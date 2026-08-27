@@ -551,43 +551,46 @@ $$ \text{MSE} = \frac{1}{n}\sum_i (x_i - \hat x_i)^2 $$
 <span class="kw">class</span> <span class="num2">VAE</span>(nn.Module):
     <span class="kw">def</span> __init__(self, input_dim, latent_dim):
         <span class="kw">super</span>().__init__()
-        <span class="cmt"># Энкодер: вход -> параметры распределения q(z|x)</span>
+        <span class="cmt"># Энкодер: вход [B, input_dim] -> скрытый вектор [B, 128]</span>
         self.encoder = nn.Sequential(
             nn.Linear(input_dim, <span class="num2">256</span>), nn.ReLU(),
             nn.Linear(<span class="num2">256</span>, <span class="num2">128</span>), nn.ReLU()
         )
-        self.mu_layer = nn.Linear(<span class="num2">128</span>, latent_dim)
-        self.logvar_layer = nn.Linear(<span class="num2">128</span>, latent_dim)
+        self.mu_layer = nn.Linear(<span class="num2">128</span>, latent_dim)       <span class="cmt"># [B, latent_dim]</span>
+        self.logvar_layer = nn.Linear(<span class="num2">128</span>, latent_dim)   <span class="cmt"># [B, latent_dim]</span>
 
-        <span class="cmt"># Декодер: латент -> восстановление x</span>
+        <span class="cmt"># Декодер: латент [B, latent_dim] -> восстановление [B, input_dim]</span>
         self.decoder = nn.Sequential(
             nn.Linear(latent_dim, <span class="num2">128</span>), nn.ReLU(),
             nn.Linear(<span class="num2">128</span>, <span class="num2">256</span>), nn.ReLU(),
-            nn.Linear(<span class="num2">256</span>, input_dim), nn.Sigmoid()  <span class="cmt"># для [0,1]</span>
+            nn.Linear(<span class="num2">256</span>, input_dim), nn.Sigmoid()      <span class="cmt"># [B, input_dim] для [0,1]</span>
         )
 
     <span class="kw">def</span> reparameterize(self, mu, logvar):
+        <span class="cmt"># mu, logvar: [B, latent_dim]</span>
         <span class="cmt"># Репараметризационный трюк: z = μ + σ⊙ε</span>
-        std = torch.exp(<span class="num2">0.5</span> * logvar)  <span class="cmt"># σ = √(exp(logvar))</span>
-        eps = torch.randn_like(std)  <span class="cmt"># ε ~ N(0,I)</span>
-        z = mu + std * eps  <span class="cmt"># z = μ + σ⊙ε</span>
+        std = torch.exp(<span class="num2">0.5</span> * logvar)  <span class="cmt"># σ: [B, latent_dim]</span>
+        eps = torch.randn_like(std)    <span class="cmt"># ε ~ N(0, I): [B, latent_dim]</span>
+        z = mu + std * eps             <span class="cmt"># z: [B, latent_dim]</span>
         <span class="kw">return</span> z
 
     <span class="kw">def</span> forward(self, x):
-        <span class="cmt"># Энкод</span>
-        h = self.encoder(x)
-        mu = self.mu_layer(h)
-        logvar = self.logvar_layer(h)
+        <span class="cmt"># x: [B, input_dim] (напр. [B, 784])</span>
+        <span class="cmt"># 1. Энкод</span>
+        h = self.encoder(x)                            <span class="cmt"># [B, 128]</span>
+        mu = self.mu_layer(h)                          <span class="cmt"># [B, latent_dim]</span>
+        logvar = self.logvar_layer(h)                  <span class="cmt"># [B, latent_dim]</span>
 
-        <span class="cmt"># Сэмплируем z</span>
-        z = self.reparameterize(mu, logvar)
+        <span class="cmt"># 2. Сэмплируем z</span>
+        z = self.reparameterize(mu, logvar)            <span class="cmt"># [B, latent_dim]</span>
 
-        <span class="cmt"># Декодируем</span>
-        x_recon = self.decoder(z)
+        <span class="cmt"># 3. Декодируем</span>
+        x_recon = self.decoder(z)                      <span class="cmt"># [B, input_dim]</span>
 
         <span class="kw">return</span> x_recon, mu, logvar
 
     <span class="kw">def</span> loss_function(self, x_recon, x, mu, logvar):
+        <span class="cmt"># x, x_recon: [B, input_dim], mu, logvar: [B, latent_dim]</span>
         <span class="cmt"># Реконструкция (BCE для [0,1])</span>
         recon = nn.BCELoss(reduction=<span class="str">'sum'</span>)(x_recon, x)
 
@@ -600,8 +603,8 @@ $$ \text{MSE} = \frac{1}{n}\sum_i (x_i - \hat x_i)^2 $$
 model = VAE(input_dim=<span class="num2">784</span>, latent_dim=<span class="num2">64</span>)
 optimizer = torch.optim.Adam(model.parameters(), lr=<span class="num2">1e-3</span>)
 
-<span class="kw">for</span> x_batch <span class="kw">in</span> dataloader:
-    x_recon, mu, logvar = model(x_batch)
+<span class="kw">for</span> x_batch <span class="kw">in</span> dataloader:            <span class="cmt"># x_batch: [B, 784]</span>
+    x_recon, mu, logvar = model(x_batch)  <span class="cmt"># x_recon: [B, 784], mu/logvar: [B, 64]</span>
     loss = model.loss_function(x_recon, x_batch, mu, logvar)
     optimizer.zero_grad()
     loss.backward()
@@ -825,17 +828,15 @@ optimizer = torch.optim.Adam(model.parameters(), lr=<span class="num2">1e-3</spa
 <summary>Решение</summary>
 <div class="sol">
 <pre><code><span class="kw">def</span> reparameterize(mu, logvar):
-    <span class="cmt"># mu shape: [batch, latent_dim]</span>
-    <span class="cmt"># logvar shape: [batch, latent_dim]</span>
-
+    <span class="cmt"># mu: [B, latent_dim], logvar: [B, latent_dim]</span>
     <span class="cmt"># σ² = exp(logvar), поэтому σ = √(exp(logvar)) = exp(0.5 * logvar)</span>
-    std = torch.exp(<span class="num2">0.5</span> * logvar)
+    std = torch.exp(<span class="num2">0.5</span> * logvar)  <span class="cmt"># [B, latent_dim]</span>
 
     <span class="cmt"># ε ~ N(0, I) независимо от параметров</span>
-    eps = torch.randn_like(std)
+    eps = torch.randn_like(std)    <span class="cmt"># [B, latent_dim]</span>
 
     <span class="cmt"># z = μ + σ⊙ε</span>
-    z = mu + std * eps
+    z = mu + std * eps             <span class="cmt"># [B, latent_dim]</span>
 
     <span class="kw">return</span> z
 </code></pre>
@@ -856,6 +857,7 @@ optimizer = torch.optim.Adam(model.parameters(), lr=<span class="num2">1e-3</spa
 <summary>Решение</summary>
 <div class="sol">
 <pre><code><span class="kw">def</span> loss_vae(x, x_recon, mu, logvar):
+    <span class="cmt"># x, x_recon: [B, input_dim], mu, logvar: [B, latent_dim]</span>
     <span class="cmt"># Реконструкция (BCE для [0,1])</span>
     recon_loss = nn.functional.binary_cross_entropy(
         x_recon, x, reduction=<span class="str">'sum'</span>
@@ -866,13 +868,13 @@ optimizer = torch.optim.Adam(model.parameters(), lr=<span class="num2">1e-3</spa
         <span class="num2">1</span> + logvar - mu**<span class="num2">2</span> - torch.exp(logvar)
     )
 
-    <span class="cmt"># Полный loss</span>
+    <span class="cmt"># Полный loss (скаляр)</span>
     total_loss = recon_loss + kl_loss
     <span class="kw">return</span> total_loss
 
 <span class="cmt"># Использование в обучении:</span>
-<span class="kw">for</span> x_batch <span class="kw">in</span> dataloader:
-    x_recon, mu, logvar = model(x_batch)
+<span class="kw">for</span> x_batch <span class="kw">in</span> dataloader:            <span class="cmt"># x_batch: [B, input_dim]</span>
+    x_recon, mu, logvar = model(x_batch)  <span class="cmt"># x_recon: [B, input_dim], mu/logvar: [B, latent_dim]</span>
     loss = loss_vae(x_batch, x_recon, mu, logvar)
     optimizer.zero_grad()
     loss.backward()

@@ -666,33 +666,35 @@ $$ \hat x = \frac{x - \mu_{\text{batch}}}{\sqrt{\sigma_{\text{batch}}^2 + \epsil
 
 <p><strong>Код на PyTorch:</strong></p>
 
-<pre><code><span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+<pre><code><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
 
+<span class="cmt"># Входной тензор: x ∈ [B, C, H, W] = [B, 3, 32, 32]</span>
 model = nn.Sequential(
-    <span class="cmt"># Блок 1</span>
-    nn.Conv2d(<span class="num2">3</span>, <span class="num2">32</span>, kernel_size=<span class="num2">3</span>, padding=<span class="num2">1</span>),
-    nn.BatchNorm2d(<span class="num2">32</span>),
+    <span class="cmt"># Блок 1: [B, 3, 32, 32] → [B, 32, 16, 16]</span>
+    nn.Conv2d(<span class="num2">3</span>, <span class="num2">32</span>, kernel_size=<span class="num2">3</span>, padding=<span class="num2">1</span>),  <span class="cmt"># [B, 32, 32, 32]</span>
+    nn.BatchNorm2d(<span class="num2">32</span>),                          <span class="cmt"># [B, 32, 32, 32]</span>
     nn.ReLU(),
-    nn.MaxPool2d(<span class="num2">2</span>, stride=<span class="num2">2</span>),  <span class="cmt"># 32×32×3 → 16×16×32</span>
+    nn.MaxPool2d(<span class="num2">2</span>, stride=<span class="num2">2</span>),                   <span class="cmt"># [B, 32, 16, 16]</span>
 
-    <span class="cmt"># Блок 2</span>
-    nn.Conv2d(<span class="num2">32</span>, <span class="num2">64</span>, kernel_size=<span class="num2">3</span>, padding=<span class="num2">1</span>),
-    nn.BatchNorm2d(<span class="num2">64</span>),
+    <span class="cmt"># Блок 2: [B, 32, 16, 16] → [B, 64, 8, 8]</span>
+    nn.Conv2d(<span class="num2">32</span>, <span class="num2">64</span>, kernel_size=<span class="num2">3</span>, padding=<span class="num2">1</span>), <span class="cmt"># [B, 64, 16, 16]</span>
+    nn.BatchNorm2d(<span class="num2">64</span>),                          <span class="cmt"># [B, 64, 16, 16]</span>
     nn.ReLU(),
-    nn.MaxPool2d(<span class="num2">2</span>, stride=<span class="num2">2</span>),  <span class="cmt"># 16×16×32 → 8×8×64</span>
+    nn.MaxPool2d(<span class="num2">2</span>, stride=<span class="num2">2</span>),                   <span class="cmt"># [B, 64, 8, 8]</span>
 
-    <span class="cmt"># Блок 3</span>
-    nn.Conv2d(<span class="num2">64</span>, <span class="num2">128</span>, kernel_size=<span class="num2">3</span>, padding=<span class="num2">1</span>),
-    nn.BatchNorm2d(<span class="num2">128</span>),
+    <span class="cmt"># Блок 3: [B, 64, 8, 8] → [B, 128, 8, 8]</span>
+    nn.Conv2d(<span class="num2">64</span>, <span class="num2">128</span>, kernel_size=<span class="num2">3</span>, padding=<span class="num2">1</span>),<span class="cmt"># [B, 128, 8, 8]</span>
+    nn.BatchNorm2d(<span class="num2">128</span>),                         <span class="cmt"># [B, 128, 8, 8]</span>
     nn.ReLU(),
 
-    <span class="cmt"># Классификация</span>
-    nn.AdaptiveAvgPool2d(<span class="num2">1</span>),  <span class="cmt"># GlobalAveragePooling</span>
-    nn.Flatten(),
-    nn.Linear(<span class="num2">128</span>, <span class="num2">10</span>),  <span class="cmt"># 10 классов</span>
+    <span class="cmt"># Классификация: [B, 128, 8, 8] → [B, 10]</span>
+    nn.AdaptiveAvgPool2d(<span class="num2">1</span>),                     <span class="cmt"># [B, 128, 1, 1] GlobalAveragePooling</span>
+    nn.Flatten(),                                <span class="cmt"># [B, 128]</span>
+    nn.Linear(<span class="num2">128</span>, <span class="num2">10</span>),                          <span class="cmt"># [B, 10] (10 классов)</span>
 )
 
-loss_fn = nn.CrossEntropyLoss()  <span class="cmt"># softmax встроена</span>
+loss_fn = nn.CrossEntropyLoss()                  <span class="cmt"># Softmax внутри loss</span>
 opt = torch.optim.Adam(model.parameters(), lr=<span class="num2">0.001</span>)</code></pre>
 
 <!-- ============================================ -->

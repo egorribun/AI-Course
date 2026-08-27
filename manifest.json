@@ -1,0 +1,26 @@
+{
+  "name": "Курс Deep Learning — Подготовка к экзамену",
+  "short_name": "DL Course",
+  "description": "Полный интерактивный курс подготовки к устному экзамену по Deep Learning (ГУУ 2026).",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f1115",
+  "theme_color": "#0f1115",
+  "categories": ["education", "books"],
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

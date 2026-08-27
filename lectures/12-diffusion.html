@@ -271,20 +271,21 @@ $$ \tilde{\epsilon}_\theta(x_t, y) = \epsilon_\theta(x_t, \emptyset) + s \cdot \
         self.T = T
         self.device = device
         
-        <span class="cmt"># 1. Расписание шума (Variance Schedule)</span>
+        <span class="cmt"># 1. Расписание шума (Variance Schedule) [T]</span>
         self.betas = torch.linspace(beta_start, beta_end, T, device=device)
         self.alphas = <span class="num2">1.0</span> - self.betas
-        self.alphas_bar = torch.cumprod(self.alphas, dim=<span class="num2">0</span>)
+        self.alphas_bar = torch.cumprod(self.alphas, dim=<span class="num2">0</span>)  <span class="cmt"># \bar{\alpha}_t: [T]</span>
         
     <span class="kw">def</span> q_sample(self, x_0, t, noise=<span class="kw">None</span>):
+        <span class="cmt"># x_0: [B, C, H, W], t: [B]</span>
         <span class="cmt"># Прямой процесс: x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * eps</span>
         <span class="kw">if</span> noise <span class="kw">is</span> <span class="kw">None</span>:
-            noise = torch.randn_like(x_0)
+            noise = torch.randn_like(x_0)                    <span class="cmt"># [B, C, H, W]</span>
             
-        sqrt_alpha_bar = torch.sqrt(self.alphas_bar[t]).view(-<span class="num2">1</span>, <span class="num2">1</span>, <span class="num2">1</span>, <span class="num2">1</span>)
-        sqrt_one_minus_alpha_bar = torch.sqrt(<span class="num2">1.0</span> - self.alphas_bar[t]).view(-<span class="num2">1</span>, <span class="num2">1</span>, <span class="num2">1</span>, <span class="num2">1</span>)
+        sqrt_alpha_bar = torch.sqrt(self.alphas_bar[t]).view(-<span class="num2">1</span>, <span class="num2">1</span>, <span class="num2">1</span>, <span class="num2">1</span>)             <span class="cmt"># [B, 1, 1, 1]</span>
+        sqrt_one_minus_alpha_bar = torch.sqrt(<span class="num2">1.0</span> - self.alphas_bar[t]).view(-<span class="num2">1</span>, <span class="num2">1</span>, <span class="num2">1</span>, <span class="num2">1</span>) <span class="cmt"># [B, 1, 1, 1]</span>
         
-        x_t = sqrt_alpha_bar * x_0 + sqrt_one_minus_alpha_bar * noise
+        x_t = sqrt_alpha_bar * x_0 + sqrt_one_minus_alpha_bar * noise                 <span class="cmt"># [B, C, H, W]</span>
         <span class="kw">return</span> x_t, noise
 
 <span class="cmt"># Шаг обучения модели model (U-Net)</span>
@@ -292,20 +293,20 @@ diff = DiffusionManager(T=<span class="num2">1000</span>, device=device)
 optimizer = torch.optim.AdamW(model.parameters(), lr=<span class="num2">1e-4</span>)
 
 <span class="kw">for</span> x_0, _ <span class="kw">in</span> dataloader:
-    x_0 = x_0.to(device)
+    x_0 = x_0.to(device)                                                              <span class="cmt"># [B, C, H, W]</span>
     batch_size = x_0.shape[<span class="num2">0</span>]
     
     <span class="cmt"># 1. Случайный шаг времени для каждого сэмпла в батче</span>
-    t = torch.randint(<span class="num2">0</span>, diff.T, (batch_size,), device=device).long()
+    t = torch.randint(<span class="num2">0</span>, diff.T, (batch_size,), device=device).long()                 <span class="cmt"># [B]</span>
     
     <span class="cmt"># 2. Зашумление x_0 до x_t за один шаг</span>
-    noise = torch.randn_like(x_0)
-    x_t, _ = diff.q_sample(x_0, t, noise)
+    noise = torch.randn_like(x_0)                                                     <span class="cmt"># [B, C, H, W]</span>
+    x_t, _ = diff.q_sample(x_0, t, noise)                                             <span class="cmt"># [B, C, H, W]</span>
     
     <span class="cmt"># 3. Предсказание шума нейросетью</span>
-    predicted_noise = model(x_t, t)
+    predicted_noise = model(x_t, t)                                                   <span class="cmt"># [B, C, H, W]</span>
     
-    <span class="cmt"># 4. L_simple: обычный MSE Loss</span>
+    <span class="cmt"># 4. L_simple: обычный MSE Loss (скаляр)</span>
     loss = F.mse_loss(predicted_noise, noise)
     
     optimizer.zero_grad()

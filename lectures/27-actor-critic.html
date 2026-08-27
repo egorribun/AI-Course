@@ -191,37 +191,39 @@ $$ L_{\text{actor}}(\theta) = -\log \pi_\theta(a_t \mid s_t) \cdot \hat{A}_t, \q
 <span class="kw">class</span> ActorCritic(nn.Module):
     <span class="kw">def</span> __init__(self, state_dim, action_dim):
         <span class="kw">super</span>().__init__()
-        <span class="cmt"># Общий костяк признаков</span>
+        <span class="cmt"># Общий костяк признаков: [B, state_dim] → [B, 128]</span>
         self.shared = nn.Sequential(
             nn.Linear(state_dim, <span class="num2">128</span>),
             nn.ReLU()
         )
-        <span class="cmt"># Голова Актёра (распределение действий)</span>
+        <span class="cmt"># Голова Актёра (распределение действий): [B, 128] → [B, action_dim]</span>
         self.actor = nn.Linear(<span class="num2">128</span>, action_dim)
-        <span class="cmt"># Голова Критика (оценка ценности состояния V)</span>
+        <span class="cmt"># Голова Критика (оценка ценности состояния V): [B, 128] → [B, 1]</span>
         self.critic = nn.Linear(<span class="num2">128</span>, <span class="num2">1</span>)
 
     <span class="kw">def</span> forward(self, x):
-        features = self.shared(x)
-        logits = self.actor(features)
-        value = self.critic(features)
+        <span class="cmt"># x: [B, state_dim]</span>
+        features = self.shared(x)          <span class="cmt"># [B, 128]</span>
+        logits = self.actor(features)      <span class="cmt"># [B, action_dim]</span>
+        value = self.critic(features)      <span class="cmt"># [B, 1]</span>
         <span class="kw">return</span> Categorical(logits=logits), value
 
 <span class="kw">def</span> train_a2c_step(model, optimizer, states, actions, rewards, next_states, dones, gamma=<span class="num2">0.99</span>):
-    dist, values = model(states)
-    _, next_values = model(next_states)
+    <span class="cmt"># states, next_states: [B, state_dim], actions, rewards, dones: [B]</span>
+    dist, values = model(states)           <span class="cmt"># dist: Categorical([B, action_dim]), values: [B, 1]</span>
+    _, next_values = model(next_states)    <span class="cmt"># next_values: [B, 1]</span>
     
     <span class="cmt"># 1. TD-мишень и Advantage</span>
-    target_values = rewards + gamma * next_values.squeeze(-<span class="num2">1</span>) * (<span class="num2">1</span> - dones)
-    advantage = target_values.detach() - values.squeeze(-<span class="num2">1</span>)
+    target_values = rewards + gamma * next_values.squeeze(-<span class="num2">1</span>) * (<span class="num2">1</span> - dones) <span class="cmt"># [B]</span>
+    advantage = target_values.detach() - values.squeeze(-<span class="num2">1</span>)                 <span class="cmt"># [B]</span>
     
     <span class="cmt"># 2. Лоссы Актёра, Критика и Энтропии</span>
-    log_probs = dist.log_prob(actions)
-    actor_loss = -(log_probs * advantage.detach()).mean()
+    log_probs = dist.log_prob(actions)                                     <span class="cmt"># [B]</span>
+    actor_loss = -(log_probs * advantage.detach()).mean()                  <span class="cmt"># скаляр</span>
     critic_loss = nn.functional.mse_loss(values.squeeze(-<span class="num2">1</span>), target_values.detach())
     entropy_loss = -dist.entropy().mean()
     
-    total_loss = actor_loss + <span class="num2">0.5</span> * critic_loss + <span class="num2">0.01</span> * entropy_loss
+    total_loss = actor_loss + <span class="num2">0.5</span> * critic_loss + <span class="num2">0.01</span> * entropy_loss     <span class="cmt"># скаляр</span>
     
     optimizer.zero_grad()
     total_loss.backward()

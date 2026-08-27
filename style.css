@@ -50,6 +50,34 @@
 
 * { box-sizing: border-box; }
 
+/* ---------- Доступность и Focus-Visible (WCAG 2.1 AA) ---------- */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+summary:focus-visible,
+.tag-chip:focus-visible,
+.sim-tab-btn:focus-visible,
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+select.search-input {
+  cursor: pointer;
+  background-color: var(--card);
+  color: var(--text);
+}
+select.search-input option {
+  background-color: var(--card);
+  color: var(--text);
+}
+
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 20px;

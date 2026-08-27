@@ -1,63 +1,71 @@
-# Project: Deep Learning Course Verification & Remediation
+# Project: Deep Learning Educational Platform
 
 ## Architecture
-- **Curriculum Scope**: 28 self-contained interactive lecture HTML pages (`lectures/00-intro-ml.html` .. `lectures/27-actor-critic.html`) and central portal `index.html`.
-- **Reference Basis**: State University of Management (GUU, 2026) Deep Learning exam syllabus (`dl_guu-dl_26/`).
-- **Core Technology Stack**: Static HTML5, CSS3, MathJax 3.2.2 (SVG/TeX engine), Python 3.10+ / PyTorch 2.x executable snippets.
-- **Structural Contract per Lecture**:
-  * Top navigation backlink (`← К оглавлению курса`)
-  * Header metadata (`.pill` badges for duration, QA count, task count)
-  * Theoretical Sections with MathJax derivations and ASCII diagrams
-  * Interactive Q&A block: «🎯 Препод спросит» ($\ge 10$ questions per lecture in `<details class="qa">`)
-  * Micro-tasks block: «📝 Микро-задачи» ($\ge 6$ tasks per lecture in `<div class="task">` with `<details class="sol">`)
-  * Cheat-sheet block: «⚡ Ответ за 3 минуты» (`<div class="cheat">`)
-  * Bottom sequential navigation bar (`.navrow` with Prev/Next links)
+- **Web Platform**: Zero-build Static HTML5 / CSS3 / Vanilla JavaScript. 100% GitHub Pages compatible.
+- **PWA & Offline**: Root `sw.js` (Cache-First strategy for local HTML/CSS/JS/Anki, Stale-While-Revalidate for MathJax CDN), `manifest.json`, standalone web app installation support.
+- **EdTech Engines**:
+  - `js/tracker.js`: Course completion, lecture visits, and global progress tracking with LocalStorage persistence.
+  - `js/simulator.js`: Exam simulator (tickets 1-25, 3-min countdown timer, blitz mode, topic drill), Leitner / SM-2 spaced repetition engine (`ai_course_sm2_cards`).
+  - `js/app.js` & `js/lecture.js`: Live search, topic filtering, keyboard shortcuts dispatcher (`[`, `]`, `T`, `/`, `Alt+O`), code copy buttons, print handling.
+- **Content & Rigor**: 28 complete HTML lectures (`lectures/00-*.html` .. `lectures/27-*.html`) covering 25 exam tickets with 300 Q&A blocks, 170 micro-tasks, and 28 cheat-sheets.
+- **Verification & Tooling**: `tests/` (254 pytest suites covering DOM, Math, Code AST, Links, Anki, UI, PWA, SM-2), `tools/export_anki.py` (generates TSV decks and `js/exam_data.js`), `ruff` linter, GitHub Actions CI/CD.
 
 ## Feature Inventory
-| # | Feature / Exam Ticket | Description | Milestone | Source |
-|---|----------------------|-------------|-----------|--------|
-| 1 | Foundations & Backprop (Ticket 1) | MLP, activations, vanishing gradients, Cybenko theorem, 4 backprop equations | M1, M2 | Survey (L00, L01) |
-| 2 | Autodiff & PINN (Ticket 2) | DAG, forward/reverse autodiff, PINN PDE residual loss, $C^2$ activations | M1, M2 | Survey (L02) |
-| 3 | Loss Functions & MLE (Ticket 3) | MSE (Gaussian), MAE (Laplace), BCE/CE, NLL minimization, MAP / L2 weight decay | M1, M2 | Survey (L03) |
-| 4 | CNN Layers (Ticket 4) | Convolutions, tensor dimensions, receptive field, BatchNorm, 1x1 conv, pooling | M1, M2 | Survey (L04) |
-| 5 | CNN Architectures (Ticket 5) | LeNet to ResNet/ViT, skip connections $\frac{\partial L}{\partial x}$, transfer learning matrix | M1, M2 | Survey (L05) |
-| 6 | Optimizers & Matrix Calculus (Ticket 6) | SGD, Momentum, NAG, RMSProp, Adam bias correction, AdamW, normal equation | M1, M2 | Survey (L06) |
-| 7 | Hyperparameters & Tuning (Ticket 7) | Augmentations, Grid/Random search, Bayesian Opt (Gaussian Process, EI/UCB), Hyperband | M1 | Survey (L07) |
-| 8 | Metric Learning (Ticket 8) | Siamese networks, Contrastive / Triplet loss with margin, mining, ArcFace | M1 | Survey (L08) |
-| 9 | Contrastive & SSL (Ticket 9) | InfoNCE / NT-Xent, SimCLR, MoCo, BYOL/SimSiam collapse avoidance, CLIP | M1, M2 | Survey (L09) |
-| 10 | VAE & CVAE (Ticket 10) | ELBO derivation, Gaussian KL analytical form, Reparameterization trick, CVAE | M1, M2 | Survey (L10) |
-| 11 | GAN (Ticket 11) | Minimax game, optimal discriminator $D^*$, JSD derivation, WGAN-GP, Mode collapse | M1, M3 | Survey (L11) |
-| 12 | Diffusion Models (Ticket 12, part 1) | DDPM forward marginal $q(x_t \vert x_0)$, reverse denoising $L_{simple}$, Latent Diffusion | M1, M3 | Survey (L12) |
-| 13 | CV Tasks (Ticket 12, part 2) | Segmentation (U-Net, DeepLab, Dice), Detection (Faster R-CNN, YOLO, mAP), Tracking | M1, M3 | Survey (L13) |
-| 14 | RNN, LSTM & biLSTM (Ticket 13) | BPTT gradient vanishing, Constant Error Carousel, 3 gates, biLSTM | M2, M3 | Survey (L14) |
-| 15 | Attention & Seq2Seq (Ticket 14) | Information bottleneck, Bahdanau additive vs Luong dot attention, alignment matrix | M1, M3 | Survey (L15) |
-| 16 | Transformer Architecture (Ticket 15) | Encoder-Decoder stacks, Multi-Head Attention, Pre/Post-LN, Positional Encoding | M1, M3 | Survey (L16) |
-| 17 | Self-Attention Mechanics (Ticket 16) | $Q, K, V$ projections, $\sqrt{d_k}$ scaling variance proof, causal/padding masks | M1, M3 | Survey (L17) |
-| 18 | LSTM vs Transformer (Ticket 17) | 8-axis comparative analysis (parallelism, memory $O(n^2)$, inductive bias, KV cache) | M3 | Survey (L18) |
-| 19 | Text Preprocessing & Word2vec (Ticket 18) | BPE/SentencePiece subwords, CBOW, Skip-Gram with Negative Sampling (SGNS) | M2, M3 | Survey (L19) |
-| 20 | Machine Translation & BLEU (Ticket 19) | Teacher forcing, Beam search decoding, modified $n$-gram precision, Brevity Penalty | M2, M3 | Survey (L20) |
-| 21 | Transformer Archetypes (Ticket 20) | Encoder-only (BERT), Decoder-only (GPT), Enc-Dec (T5), Causal vs Bidirectional | M3 | Survey (L21) |
-| 22 | RL Foundations & MDP (Ticket 21) | Agent-environment loop, Markov property, Discounted return $G_t$, Policy $\pi$, Value $V, Q$ | M3 | Survey (L22) |
-| 23 | Bellman Equations & Optimality (Ticket 22a) | Bellman expectation & optimality equations, Backup diagrams, Banach Contraction | M1, M3 | Survey (L23) |
-| 24 | Dynamic Programming & MC in RL (Ticket 22b) | Policy Iteration, Value Iteration, First/Every-visit MC control with Exploring Starts | M2, M3 | Survey (L24) |
-| 25 | TD Learning, SARSA & Q-Learning (Ticket 23) | TD error $\delta_t$, SARSA (on-policy) vs Q-learning (off-policy), DQN Replay Buffer | M2, M3 | Survey (L25) |
-| 26 | Policy Gradient & REINFORCE (Ticket 24) | Log-derivative trick, Policy Gradient Theorem, Baseline variance reduction, PPO-Clip | M2, M3 | Survey (L26) |
-| 27 | Actor-Critic, GAE & SAC (Ticket 25) | Advantage $A(s,a)$, A2C, GAE $\lambda$, Maximum Entropy RL in SAC | M2, M3 | Survey (L27) |
+| # | Feature | Description | Milestone | Source |
+|---|---------|-------------|-----------|--------|
+| 1 | Zero-build PWA & Service Worker | Root `sw.js` offline caching for all 28 lectures, assets, MathJax | M1 | survey |
+| 2 | Web App Manifest & App Icons | `manifest.json`, theme colors, standalone display mode, SVG/PNG icons | M1 | survey |
+| 3 | Spaced Repetition (Leitner / SM-2) | LocalStorage SM-2 interval scheduling ($EF, I, n$), due queue filtering | M1 | survey |
+| 4 | Exam Simulator: Ticket Selector | Direct selection of tickets 1-25 in addition to random draw | M1 | survey |
+| 5 | Exam Simulator: 3-Min Timer | 180s countdown timer with audio gong and visual alerts | M1 | survey |
+| 6 | Exam Simulator: Blitz & Drill Modes | Rapid-fire 10-question blitz test and topic category drill modes | M1 | survey |
+| 7 | Global Keyboard Shortcuts | `[` / `]` navigation, `T` theme, `/` search, `Alt+O` spoilers with input protection | M1 | survey |
+| 8 | Code Snippet Copy Buttons | Pre-block copy buttons with visual feedback and clipboard fallback | M1 | survey |
+| 9 | Print CSS & WCAG 2.1 AA a11y | `beforeprint` auto-expand `<details>`, `:focus-visible`, ARIA tab attributes | M1 | survey |
+| 10 | 28 Lectures Academic Rigor | 8 core proofs (Backprop, ELBO, Bellman, Policy Gradient, SDPA, InfoNCE, WGAN, DDPM) | M2 | survey |
+| 11 | EdTech Q&A and Micro-Tasks | $\ge 10$ Q&A (300 total) and $\ge 6$ micro-tasks (170 total) + 28 cheat-sheets | M2 | survey |
+| 12 | LaTeX Delimiter & Syntax Fixes | Clean CutMix `$$` in L07 and unescaped `%` in L09 | M2 | survey |
+| 13 | PyTorch 2.x Modernization | Replace `.data` with `nn.init.uniform_` in L19; add `# [B, C, H, W]` shape comments | M2 | survey |
+| 14 | Anki TSV Exporter & Sync | Export 3 TSV decks (494 cards) and `js/exam_data.js` via `export_anki.py` | M3 | survey |
+| 15 | Repository & Documentation Sync | Update `README.md` test counter badges, sync `PROJECT.md`, verify `ruff` 0 errors | M3 | survey |
+| 16 | E2E Verification & Adversarial Gate | Pass 100% pytest suite (Tiers 1-4) + Tier 5 adversarial hardening | M-Final | survey |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| **M0** | E2E Test Suite Creation | Automated python verification harness checking R1, R2, R3, R4 | none | **DONE** |
-| **M1** | Math & LaTeX Remediation | Fix L06 brace, L10 VAE ELBO gap formula, L13 tag bug, HTML entities in math | none | **DONE** |
-| **M2** | PyTorch Code Syntax & Execution Fix | Fix unescaped `<` in L14 & L24, raw `>` in L01 & L20, test all snippets | none | **DONE** |
-| **M3** | Q&A Content Expansion (57 questions) | Generate and inject 57 high-quality exam questions with answers across 16 lectures (11, 12, 14–27) so all 28 lectures have $\ge 10$ QA | M0 | **DONE** |
-| **M4** | E2E Full Pass & Adversarial Hardening | Run 100% test suite, Challenger verification, Forensic Audit | M1, M2, M3 | **DONE** |
-| **M5** | Platform Modernization & EdTech Hub | Exam Simulator (randomizer + 3-min timer + flashcards), LocalStorage tracker, Anki exporter, DRY CSS/JS refactoring, pre-commit | M4 | **DONE** |
+| M1 | Web Platform, PWA & EdTech UX | PWA (`sw.js`, `manifest.json`), SM-2 algorithm, ticket selector, blitz/drill, hotkeys, print/a11y | none | DONE |
+| M2 | Content Rigor & PyTorch Snippets Polish | LaTeX delimiter fixes, PyTorch `.data` modernization, tensor shape annotations | none | DONE |
+| M3 | Tooling, Anki & Documentation Sync | `export_anki.py` deck generation, `README.md` test counts, ruff lint clean | M1, M2 | DONE |
+| M-Final | E2E Test Pass & Adversarial Hardening | 100% E2E test pass (Tiers 1-4), Tier 5 adversarial stress verification | M1, M2, M3 | DONE |
 
-## Interface Contracts & Layout
-### Code Layout
-- Portal: `c:\Users\egorribun\Documents\AI-Course\index.html`
-- Lectures: `c:\Users\egorribun\Documents\AI-Course\lectures\00-intro-ml.html` ... `27-actor-critic.html`
-- Styles: `c:\Users\egorribun\Documents\AI-Course\style.css` (and embedded `<style>` blocks)
-- Reference Material: `c:\Users\egorribun\Documents\AI-Course\dl_guu-dl_26/`
-- Test Harness: `c:\Users\egorribun\Documents\AI-Course\tests/`
+## Interface Contracts
+### `sw.js` ↔ Web Platform
+- Scope: `/` (repository root).
+- Strategy: Cache-First for static assets (`/`, `index.html`, `lectures/*.html`, `style.css`, `js/*.js`, `manifest.json`), Network-First / Stale-While-Revalidate for CDN assets.
+- Fallback: Offline fallback to cached `index.html`.
+
+### `js/tracker.js` / `js/simulator.js` ↔ LocalStorage
+- `ai_course_sm2_cards`: Object mapping `cardId` $\to$ `{ box: 1..5, repetitions: int, interval: int, easeFactor: float, lastReviewed: int, nextReview: int }`.
+- `ai_course_checked_qas`: Array of checked Q&A IDs.
+- `ai_course_checked_tasks`: Array of checked task IDs.
+- `ai_course_visited_lectures`: Array of visited lecture slugs.
+
+### `tools/export_anki.py` ↔ `js/exam_data.js` & `anki_decks/*.tsv`
+- `anki_decks/ai_course_exam_qas.tsv`: 4 columns (`Ticket`, `Question`, `Answer`, `Tags`).
+- `anki_decks/ai_course_microtasks.tsv`: 4 columns (`Lecture`, `Task`, `Solution`, `Type`).
+- `anki_decks/ai_course_3min_cheatsheets.tsv`: 3 columns (`Lecture`, `Title`, `CheatSheet`).
+- `js/exam_data.js`: `window.EXAM_DATA = { tickets: [...], qas: [...], tasks: [...] }`.
+
+## Code Layout
+- `index.html` : Main course portal, lecture grid, live search, global progress bar.
+- `lectures/00-intro-ml.html` .. `lectures/27-actor-critic.html` : 28 interactive course lectures.
+- `style.css` : Design system, dark/light themes, layout, print styles (`@media print`).
+- `js/app.js` : Portal logic, search, category filters, hotkeys dispatcher.
+- `js/lecture.js` : Lecture interaction, copy buttons, spoiler toggles, hotkeys.
+- `js/tracker.js` : Progress tracking, LocalStorage persistence, progress export/import.
+- `js/simulator.js` : Exam simulator, 3-minute timer, Leitner-SM2 flashcard engine.
+- `sw.js` : Service Worker for offline PWA caching.
+- `manifest.json` : Web App Manifest for PWA installation.
+- `tools/export_anki.py` : Parser generating TSV decks and `js/exam_data.js`.
+- `tests/` : Comprehensive pytest test suites and forensic verification scripts.
+- `.github/workflows/` : CI test workflow and GitHub Pages deployment workflow.

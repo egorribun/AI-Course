@@ -45,7 +45,18 @@ document.addEventListener('DOMContentLoaded', () => {
       const code = pre.querySelector('code');
       const textToCopy = code ? code.innerText : pre.innerText;
       try {
-        await navigator.clipboard.writeText(textToCopy);
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(textToCopy);
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = textToCopy;
+          ta.style.position = 'fixed';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
         btn.textContent = '✓ Скопировано!';
         btn.classList.add('copied');
         setTimeout(() => {
@@ -142,5 +153,89 @@ document.addEventListener('DOMContentLoaded', () => {
 
   backToTop.addEventListener('click', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
+  // 8. Global Keyboard Shortcuts
+  function getLectureNavHrefs() {
+    const navLinks = Array.from(document.querySelectorAll('.navrow a.backlink, header.top a.backlink'));
+    let prevHref = null;
+    let nextHref = null;
+    navLinks.forEach(a => {
+      const text = a.textContent || '';
+      const href = a.getAttribute('href');
+      if (text.includes('←') || text.includes('Назад') || text.includes('В оглавление')) {
+        if (!prevHref) prevHref = href;
+      } else if (text.includes('→') || text.includes('Вперёд')) {
+        if (!nextHref) nextHref = href;
+      }
+    });
+    return { prevHref, nextHref };
+  }
+
+  window.addEventListener('keydown', (e) => {
+    const active = document.activeElement;
+    const isInput = active && (
+      active.tagName === 'INPUT' ||
+      active.tagName === 'TEXTAREA' ||
+      active.tagName === 'SELECT' ||
+      active.isContentEditable
+    );
+
+    if (e.key === 'Escape' && isInput) {
+      active.blur();
+      return;
+    }
+
+    if (isInput) return;
+
+    // T / t : Toggle Theme
+    if (e.key === 't' || e.key === 'T') {
+      e.preventDefault();
+      if (window.CourseTracker) window.CourseTracker.toggleTheme();
+      return;
+    }
+
+    // [ : Navigate to previous lecture
+    if (e.key === '[') {
+      const { prevHref } = getLectureNavHrefs();
+      if (prevHref) {
+        window.location.href = prevHref;
+      }
+      return;
+    }
+
+    // ] : Navigate to next lecture
+    if (e.key === ']') {
+      const { nextHref } = getLectureNavHrefs();
+      if (nextHref) {
+        window.location.href = nextHref;
+      }
+      return;
+    }
+
+    // Alt+O : Expand / Collapse all spoilers on page
+    if (e.altKey && (e.key === 'o' || e.key === 'O' || e.code === 'KeyO')) {
+      e.preventDefault();
+      const allDetails = Array.from(document.querySelectorAll('details'));
+      if (allDetails.length === 0) return;
+      const anyClosed = allDetails.some(d => !d.open);
+      allDetails.forEach(d => { d.open = anyClosed; });
+    }
+  });
+
+  // 9. Print Support - open all details before print and restore after
+  window.addEventListener('beforeprint', () => {
+    document.querySelectorAll('details').forEach(d => {
+      d.dataset.wasOpen = d.open ? 'true' : 'false';
+      d.open = true;
+    });
+  });
+
+  window.addEventListener('afterprint', () => {
+    document.querySelectorAll('details').forEach(d => {
+      if (d.dataset.wasOpen === 'false') {
+        d.open = false;
+      }
+    });
   });
 });

@@ -43,6 +43,11 @@ from tests.test_challenger1_forensics import (
 )
 from tests.verify_deep_microtasks_arithmetic import TestDeepMicrotasksForensics
 from tests.verify_all_170_tasks_oracle import TestAll170MicroTasksOracle
+from tests.test_adversarial_empirical_challenger2 import (
+    TestDynamicPyTorchExecutionRandomized,
+    TestLatexBalanceAndASTCheckingExhaustive,
+    TestServiceWorkerPrecacheResolution,
+)
 
 
 class DetailedTestResult(unittest.TestResult):
@@ -121,6 +126,9 @@ def main():
         (TestSyllabusTicketAlignmentGUU26, "Challenger 1: GUU 2026 Syllabus Tickets"),
         (TestDeepMicrotasksForensics, "Challenger 1: Deep Microtasks Completeness"),
         (TestAll170MicroTasksOracle, "Challenger 1: All 170 Tasks Oracle"),
+        (TestDynamicPyTorchExecutionRandomized, "Challenger 2: Dynamic PyTorch Randomized"),
+        (TestLatexBalanceAndASTCheckingExhaustive, "Challenger 2: LaTeX Delimiters & AST"),
+        (TestServiceWorkerPrecacheResolution, "Challenger 2: Service Worker Precache Resolution"),
     ]
 
     results = []

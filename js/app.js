@@ -147,4 +147,73 @@ document.addEventListener('DOMContentLoaded', () => {
   backToTop.addEventListener('click', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
+
+  // 5. Global Keyboard Shortcuts
+  window.addEventListener('keydown', (e) => {
+    const active = document.activeElement;
+    const isInput = active && (
+      active.tagName === 'INPUT' ||
+      active.tagName === 'TEXTAREA' ||
+      active.tagName === 'SELECT' ||
+      active.isContentEditable
+    );
+
+    // Escape key blurs active input
+    if (e.key === 'Escape' && isInput) {
+      active.blur();
+      return;
+    }
+
+    // Bypass shortcuts when typing inside form inputs
+    if (isInput) return;
+
+    // T / t : Toggle Theme
+    if (e.key === 't' || e.key === 'T') {
+      e.preventDefault();
+      if (window.CourseTracker) window.CourseTracker.toggleTheme();
+      return;
+    }
+
+    // / : Focus Search Input
+    if (e.key === '/') {
+      const searchBox = document.getElementById('lecture-search-input');
+      if (searchBox) {
+        e.preventDefault();
+        searchBox.focus();
+        searchBox.select();
+      }
+      return;
+    }
+
+    // ] : Navigate to first lecture from portal
+    if (e.key === ']') {
+      window.location.href = 'lectures/00-intro-ml.html';
+      return;
+    }
+
+    // Alt+O : Expand / Collapse all spoilers
+    if (e.altKey && (e.key === 'o' || e.key === 'O' || e.code === 'KeyO')) {
+      e.preventDefault();
+      const allDetails = Array.from(document.querySelectorAll('details'));
+      if (allDetails.length === 0) return;
+      const anyClosed = allDetails.some(d => !d.open);
+      allDetails.forEach(d => { d.open = anyClosed; });
+    }
+  });
+
+  // 6. Print CSS Support - open details before print and restore after
+  window.addEventListener('beforeprint', () => {
+    document.querySelectorAll('details').forEach(d => {
+      d.dataset.wasOpen = d.open ? 'true' : 'false';
+      d.open = true;
+    });
+  });
+
+  window.addEventListener('afterprint', () => {
+    document.querySelectorAll('details').forEach(d => {
+      if (d.dataset.wasOpen === 'false') {
+        d.open = false;
+      }
+    });
+  });
 });

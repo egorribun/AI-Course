@@ -9,6 +9,7 @@
     COMPLETED_LECTURES: 'ai_course_completed_lectures',
     CHECKED_QAS: 'ai_course_checked_qas',
     CHECKED_TASKS: 'ai_course_checked_tasks',
+    SM2_CARDS: 'ai_course_sm2_cards',
   };
 
   const TOTAL_LECTURES = 28;
@@ -160,6 +161,133 @@
       return this.setTaskChecked(taskId, !current);
     },
 
+    // ---------- Leitner / SM-2 Spaced Repetition Engine ----------
+    sm2: {
+      getCards() {
+        return safeGetJSON(STORAGE_KEYS.SM2_CARDS, {});
+      },
+
+      getCard(cardId) {
+        const cards = this.getCards();
+        const strId = String(cardId);
+        if (cards[strId]) {
+          return cards[strId];
+        }
+        return {
+          cardId: strId,
+          box: 1,
+          repetitions: 0,
+          interval: 1,
+          easeFactor: 2.5,
+          lastReviewed: null,
+          nextReview: null
+        };
+      },
+
+      calculateNextState(prevState, grade) {
+        const q = Math.max(0, Math.min(5, Number(grade)));
+        const prev = prevState || {
+          cardId: '',
+          box: 1,
+          repetitions: 0,
+          interval: 1,
+          easeFactor: 2.5
+        };
+
+        let ef = Number(prev.easeFactor) || 2.5;
+        let reps = Number(prev.repetitions) || 0;
+        let interval = Number(prev.interval) || 1;
+        let box = Number(prev.box) || 1;
+
+        // SM-2 Ease Factor formula: EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
+        const efDelta = 0.1 - (5 - q) * (0.08 + (5 - q) * 0.02);
+        ef = Math.max(1.3, Math.round((ef + efDelta) * 100) / 100);
+
+        if (q >= 3) {
+          if (reps === 0) {
+            interval = 1;
+          } else if (reps === 1) {
+            interval = 6;
+          } else {
+            interval = Math.max(1, Math.round(interval * ef));
+          }
+          reps += 1;
+          box = Math.min(5, box + 1);
+        } else {
+          reps = 0;
+          interval = 1;
+          box = 1;
+        }
+
+        const now = Date.now();
+        const nextReview = now + interval * 24 * 60 * 60 * 1000;
+
+        return {
+          cardId: prev.cardId,
+          box: box,
+          repetitions: reps,
+          interval: interval,
+          easeFactor: ef,
+          lastReviewed: now,
+          nextReview: nextReview
+        };
+      },
+
+      recordReview(cardId, grade) {
+        const strId = String(cardId);
+        const current = this.getCard(strId);
+        const nextState = this.calculateNextState(current, grade);
+        nextState.cardId = strId;
+
+        const allCards = this.getCards();
+        allCards[strId] = nextState;
+        safeSetJSON(STORAGE_KEYS.SM2_CARDS, allCards);
+
+        try {
+          window.dispatchEvent(new CustomEvent('sm2-card-reviewed', {
+            detail: nextState
+          }));
+        } catch (e) {}
+
+        return nextState;
+      },
+
+      isCardDue(cardId) {
+        const card = this.getCard(cardId);
+        if (!card.nextReview) return true; // never reviewed
+        return card.nextReview <= Date.now();
+      },
+
+      getStats() {
+        const cards = this.getCards();
+        const entries = Object.values(cards);
+        const boxCounts = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        let dueCount = 0;
+        const now = Date.now();
+
+        entries.forEach(card => {
+          const b = Math.max(1, Math.min(5, card.box || 1));
+          boxCounts[b] = (boxCounts[b] || 0) + 1;
+          if (!card.nextReview || card.nextReview <= now) {
+            dueCount++;
+          }
+        });
+
+        return {
+          totalReviewed: entries.length,
+          dueCount: dueCount,
+          boxCounts: boxCounts,
+          matureCount: (boxCounts[4] || 0) + (boxCounts[5] || 0)
+        };
+      },
+
+      resetSM2() {
+        try {
+          localStorage.removeItem(STORAGE_KEYS.SM2_CARDS);
+        } catch (e) {}
+      }
+    },
+
     // ---------- Global Statistics ----------
     getOverallStats() {
       const completedLecs = this.getCompletedLectures().length;
@@ -194,6 +322,7 @@
         completedLectures: this.getCompletedLectures(),
         checkedQAs: this.getCheckedQAs(),
         checkedTasks: this.getCheckedTasks(),
+        sm2Cards: this.sm2.getCards(),
         exportedAt: new Date().toISOString()
       }, null, 2);
     },
@@ -205,6 +334,7 @@
         if (Array.isArray(obj.completedLectures)) safeSetJSON(STORAGE_KEYS.COMPLETED_LECTURES, obj.completedLectures);
         if (Array.isArray(obj.checkedQAs)) safeSetJSON(STORAGE_KEYS.CHECKED_QAS, obj.checkedQAs);
         if (Array.isArray(obj.checkedTasks)) safeSetJSON(STORAGE_KEYS.CHECKED_TASKS, obj.checkedTasks);
+        if (obj.sm2Cards && typeof obj.sm2Cards === 'object') safeSetJSON(STORAGE_KEYS.SM2_CARDS, obj.sm2Cards);
         notifyChange();
         return true;
       } catch (e) {
@@ -218,6 +348,7 @@
         localStorage.removeItem(STORAGE_KEYS.COMPLETED_LECTURES);
         localStorage.removeItem(STORAGE_KEYS.CHECKED_QAS);
         localStorage.removeItem(STORAGE_KEYS.CHECKED_TASKS);
+        localStorage.removeItem(STORAGE_KEYS.SM2_CARDS);
       } catch (e) {}
       notifyChange();
     }
@@ -229,6 +360,16 @@
     document.documentElement.setAttribute('data-theme', currentTheme);
     CourseTracker.updateThemeButtons();
   });
+
+  // Auto Service Worker registration for Zero-build PWA
+  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      const swPath = window.location.pathname.includes('/lectures/') ? '../sw.js' : './sw.js';
+      navigator.serviceWorker.register(swPath).catch((err) => {
+        console.debug('ServiceWorker registration note:', err);
+      });
+    });
+  }
 
   window.CourseTracker = CourseTracker;
 })();

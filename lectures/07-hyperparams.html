@@ -260,13 +260,12 @@ $$ x' = \lambda x_i + (1-\lambda) x_j, \quad y' = \lambda y_i + (1-\lambda) y_j,
 <p>Вместо линейной комбинации пикселей, <strong>вырезаем кусок из одного изображения и вставляем в другое</strong>:</p>
 
 <div class="formula">
-x'_{i,j} = \begin{cases}
+$$ x'_{i,j} = \begin{cases}
 x_b(i,j) & \text{если } (i,j) \in M \\
 x_a(i,j) & \text{иначе}
 \end{cases}
-, \quad M \text{ — случайный прямоугольник}
-$$
-$$ y' = \lambda y_a + (1-\lambda) y_b, \quad \lambda = 1 - \frac{|M|}{H \times W}
+, \quad M \text{ — случайный прямоугольник} $$
+$$ y' = \lambda y_a + (1-\lambda) y_b, \quad \lambda = 1 - \frac{|M|}{H \times W} $$
 <span class="note">Метка масштабируется по доле пиксе́лей. Если вырезали 40% примера B, то метка = 60% A + 40% B.</span>
 </div>
 

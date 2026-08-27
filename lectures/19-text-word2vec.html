@@ -209,8 +209,8 @@ $$ \vec{v}(\text{«Москва»}) - \vec{v}(\text{«Россия»}) + \vec{v}
         self.out_embed = nn.Embedding(vocab_size, embed_dim)
         
         <span class="cmt"># Инициализация небольшими весами</span>
-        self.in_embed.weight.data.uniform_(-<span class="num2">0.5</span>/embed_dim, <span class="num2">0.5</span>/embed_dim)
-        self.out_embed.weight.data.zero_()
+        torch.nn.init.uniform_(self.in_embed.weight, -<span class="num2">0.5</span> / embed_dim, <span class="num2">0.5</span> / embed_dim)
+        torch.nn.init.zeros_(self.out_embed.weight)
 
     <span class="kw">def</span> forward(self, center_words, pos_context, neg_context):
         <span class="cmt"># center_words: (B,)</span>

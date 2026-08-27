@@ -291,24 +291,25 @@ $$ \text{FID} = \|\mu_r - \mu_g\|_2^2 + \text{Tr}\left(\Sigma_r + \Sigma_g - 2(\
     <span class="kw">def</span> __init__(self, z_dim=<span class="num2">100</span>, img_channels=<span class="num2">1</span>, feature_g=<span class="num2">64</span>):
         <span class="kw">super</span>().__init__()
         self.net = nn.Sequential(
-            <span class="cmt"># Вход: z (N x z_dim x 1 x 1) -> 4x4</span>
+            <span class="cmt"># Вход: z ∈ [B, z_dim, 1, 1] → [B, 256, 4, 4]</span>
             nn.ConvTranspose2d(z_dim, feature_g * <span class="num2">4</span>, kernel_size=<span class="num2">4</span>, stride=<span class="num2">1</span>, padding=<span class="num2">0</span>, bias=<span class="kw">False</span>),
             nn.BatchNorm2d(feature_g * <span class="num2">4</span>),
             nn.ReLU(<span class="kw">True</span>),
-            <span class="cmt"># 4x4 -> 8x8</span>
+            <span class="cmt"># [B, 256, 4, 4] → [B, 128, 8, 8]</span>
             nn.ConvTranspose2d(feature_g * <span class="num2">4</span>, feature_g * <span class="num2">2</span>, kernel_size=<span class="num2">4</span>, stride=<span class="num2">2</span>, padding=<span class="num2">1</span>, bias=<span class="kw">False</span>),
             nn.BatchNorm2d(feature_g * <span class="num2">2</span>),
             nn.ReLU(<span class="kw">True</span>),
-            <span class="cmt"># 8x8 -> 16x16</span>
+            <span class="cmt"># [B, 128, 8, 8] → [B, 64, 16, 16]</span>
             nn.ConvTranspose2d(feature_g * <span class="num2">2</span>, feature_g, kernel_size=<span class="num2">4</span>, stride=<span class="num2">2</span>, padding=<span class="num2">1</span>, bias=<span class="kw">False</span>),
             nn.BatchNorm2d(feature_g),
             nn.ReLU(<span class="kw">True</span>),
-            <span class="cmt"># 16x16 -> 32x32</span>
+            <span class="cmt"># [B, 64, 16, 16] → [B, img_channels, 32, 32]</span>
             nn.ConvTranspose2d(feature_g, img_channels, kernel_size=<span class="num2">4</span>, stride=<span class="num2">2</span>, padding=<span class="num2">1</span>, bias=<span class="kw">False</span>),
-            nn.Tanh() <span class="cmt"># Выход в диапазоне [-1, 1]</span>
+            nn.Tanh() <span class="cmt"># Выход в диапазоне [-1, 1]: [B, img_channels, 32, 32]</span>
         )
 
     <span class="kw">def</span> forward(self, z):
+        <span class="cmt"># z: [B, z_dim, 1, 1] → [B, img_channels, 32, 32]</span>
         <span class="kw">return</span> self.net(z)
 
 <span class="cmt"># 2. Обучающий шаг</span>
@@ -317,18 +318,18 @@ opt_D = torch.optim.Adam(D.parameters(), lr=<span class="num2">0.0002</span>, be
 opt_G = torch.optim.Adam(G.parameters(), lr=<span class="num2">0.0002</span>, betas=(<span class="num2">0.5</span>, <span class="num2">0.999</span>))
 
 <span class="kw">for</span> real_imgs, _ <span class="kw">in</span> dataloader:
-    batch_size = real_imgs.size(<span class="num2">0</span>)
-    real_labels = torch.ones(batch_size, <span class="num2">1</span>, device=device)
-    fake_labels = torch.zeros(batch_size, <span class="num2">1</span>, device=device)
+    batch_size = real_imgs.size(<span class="num2">0</span>)                           <span class="cmt"># B</span>
+    real_labels = torch.ones(batch_size, <span class="num2">1</span>, device=device)   <span class="cmt"># [B, 1]</span>
+    fake_labels = torch.zeros(batch_size, <span class="num2">1</span>, device=device)  <span class="cmt"># [B, 1]</span>
 
     <span class="cmt"># --- ШАГ 1: Обучение Дискриминатора ---</span>
     opt_D.zero_grad()
-    d_real_out = D(real_imgs)
+    d_real_out = D(real_imgs)                                <span class="cmt"># [B, 1] (real_imgs: [B, 1, 32, 32])</span>
     loss_D_real = criterion(d_real_out, real_labels)
 
-    z = torch.randn(batch_size, <span class="num2">100</span>, <span class="num2">1</span>, <span class="num2">1</span>, device=device)
-    fake_imgs = G(z)
-    d_fake_out = D(fake_imgs.detach()) <span class="cmt"># detach чтобы не считать градиенты по G!</span>
+    z = torch.randn(batch_size, <span class="num2">100</span>, <span class="num2">1</span>, <span class="num2">1</span>, device=device)      <span class="cmt"># [B, 100, 1, 1]</span>
+    fake_imgs = G(z)                                         <span class="cmt"># [B, 1, 32, 32]</span>
+    d_fake_out = D(fake_imgs.detach())                       <span class="cmt"># [B, 1] (detach чтобы не считать градиенты по G!)</span>
     loss_D_fake = criterion(d_fake_out, fake_labels)
 
     loss_D = loss_D_real + loss_D_fake
@@ -337,7 +338,7 @@ opt_G = torch.optim.Adam(G.parameters(), lr=<span class="num2">0.0002</span>, be
 
     <span class="cmt"># --- ШАГ 2: Обучение Генератора (Non-Saturating Loss) ---</span>
     opt_G.zero_grad()
-    d_fake_for_G = D(fake_imgs)
+    d_fake_for_G = D(fake_imgs)                              <span class="cmt"># [B, 1]</span>
     <span class="cmt"># Генератор хочет, чтобы D принял fake за real (цель = 1)</span>
     loss_G = criterion(d_fake_for_G, real_labels)
     loss_G.backward()

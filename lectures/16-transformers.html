@@ -213,10 +213,10 @@ PE_{(pos, 2i+1)} &= \cos\left(\frac{pos}{10000^{2i / d_{\text{model}}}}\right)
 <span class="kw">class</span> TransformerEncoderLayerPreLN(nn.Module):
     <span class="kw">def</span> __init__(self, d_model=<span class="num2">512</span>, n_heads=<span class="num2">8</span>, d_ff=<span class="num2">2048</span>, dropout=<span class="num2">0.1</span>):
         <span class="kw">super</span>().__init__()
-        <span class="cmt"># 1. Multi-Head Attention</span>
+        <span class="cmt"># 1. Multi-Head Attention: Q, K, V ∈ [B, T, d_model]</span>
         self.self_attn = nn.MultiheadAttention(d_model, n_heads, dropout=dropout, batch_first=<span class="kw">True</span>)
         
-        <span class="cmt"># 2. Position-wise Feed-Forward Network</span>
+        <span class="cmt"># 2. Position-wise Feed-Forward Network: [B, T, d_model] → [B, T, d_ff] → [B, T, d_model]</span>
         self.ffn = nn.Sequential(
             nn.Linear(d_model, d_ff),
             nn.GELU(),
@@ -231,17 +231,19 @@ PE_{(pos, 2i+1)} &= \cos\left(\frac{pos}{10000^{2i / d_{\text{model}}}}\right)
         self.dropout = nn.Dropout(dropout)
 
     <span class="kw">def</span> forward(self, x, src_mask=<span class="kw">None</span>):
+        <span class="cmt"># x: [B, T, d_model], src_mask: [T, T] или [B, n_heads, T, T]</span>
+        
         <span class="cmt"># --- Подблок 1: Self-Attention с Pre-LN ---</span>
-        norm_x = self.norm1(x)
-        attn_out, _ = self.self_attn(norm_x, norm_x, norm_x, attn_mask=src_mask)
-        x = x + self.dropout(attn_out) <span class="cmt"># Residual Connection</span>
+        norm_x = self.norm1(x)                                                    <span class="cmt"># [B, T, d_model]</span>
+        attn_out, _ = self.self_attn(norm_x, norm_x, norm_x, attn_mask=src_mask)  <span class="cmt"># [B, T, d_model]</span>
+        x = x + self.dropout(attn_out)                                            <span class="cmt"># [B, T, d_model] (Residual Connection)</span>
         
         <span class="cmt"># --- Подблок 2: Feed-Forward с Pre-LN ---</span>
-        norm_x = self.norm2(x)
-        ffn_out = self.ffn(norm_x)
-        x = x + ffn_out <span class="cmt"># Residual Connection</span>
+        norm_x = self.norm2(x)                                                    <span class="cmt"># [B, T, d_model]</span>
+        ffn_out = self.ffn(norm_x)                                                <span class="cmt"># [B, T, d_model]</span>
+        x = x + ffn_out                                                           <span class="cmt"># [B, T, d_model] (Residual Connection)</span>
         
-        <span class="kw">return</span> x
+        <span class="kw">return</span> x                                                                  <span class="cmt"># [B, T, d_model]</span>
 </code></pre>
 
 <!-- ============================================ -->

@@ -3,7 +3,7 @@
 <div align="center">
 
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live%20Portal-58a6ff?style=for-the-badge&logo=github&logoColor=white)](https://egorribun.github.io/AI-Course/)
-[![CI / Tests](https://img.shields.io/badge/CI%20Pytest-220%20Passed-3fb950?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/egorribun/AI-Course/actions)
+[![CI / Tests](https://img.shields.io/badge/CI%20Pytest-254%20Passed-3fb950?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/egorribun/AI-Course/actions)
 [![Linter](https://img.shields.io/badge/Ruff-0%20Errors-46e3b7?style=for-the-badge&logo=ruff&logoColor=white)](https://github.com/astral-sh/ruff)
 [![uv](https://img.shields.io/badge/uv-Astral%20Fast%20Env-de5fe9?style=for-the-badge&logo=astral&logoColor=white)](https://github.com/astral-sh/uv)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-3776ab?style=for-the-badge&logo=python&logoColor=white)](pyproject.toml)
@@ -11,7 +11,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-d29922.svg?style=for-the-badge)](LICENSE)
 
 [![Lectures](https://img.shields.io/badge/Lectures-28%20Interactive%20Modules-79c0ff?style=flat-square)](#3-модульный-интерактивный-учебный-план)
-[![Exam QA](https://img.shields.io/badge/Exam%20QA-280%2B%20Defense%20Items-56d364?style=flat-square)](#3-модульный-интерактивный-учебный-план)
+[![Exam QA](https://img.shields.io/badge/Exam%20QA-296%20Defense%20Items-56d364?style=flat-square)](#3-модульный-интерактивный-учебный-план)
 [![Microtasks](https://img.shields.io/badge/Microtasks-170%20Step--by--Step-f0883e?style=flat-square)](#3-модульный-интерактивный-учебный-план)
 [![Tickets](https://img.shields.io/badge/GUU%20Tickets-25%20Fully%20Covered-bc8cff?style=flat-square)](#3-модульный-интерактивный-учебный-план)
 
@@ -102,30 +102,50 @@
 
 ---
 
----
-
 ## 🚀 Интерактивная платформа и возможности
 
-Веб-портал включает полный набор EdTech-инструментов для интенсивной подготовки:
+Веб-портал включает полный набор современных EdTech-инструментов для интенсивной подготовки:
 
-1. **🎲 Интерактивный симулятор экзамена:**
-   - **Рандомайзер билетов (1–25):** Случайная генерация билета по официальной экзаменационной программе ГУУ.
-   - **⏱️ 3-минутный таймер ответа:** Таймер обратного отсчета со звуковым гонгом (Web Audio API) для тренировки устного ответа у доски.
-   - **🗂️ Flashcards (296 вопросов):** Режим экспресс-опроса по каверзным вопросам преподавателя с самопроверкой («Знаю», «Сомневаюсь», «Не помню»).
+1. **📱 Zero-build PWA и оффлайн-доступ (`sw.js`, `manifest.json`):**
+   - **Progressive Web App:** Возможность установки платформы как нативного Standalone-приложения на iOS, Android, macOS и Windows.
+   - **Оффлайн-режим (Service Worker):** Двухуровневое кэширование (Cache-First для страниц `lectures/*.html`, стилей `style.css`, скриптов `js/` и TSV-колод; Stale-While-Revalidate для MathJax CDN) — все 28 лекций и симулятор работают без подключения к сети.
+   - **Манифест и иконки:** Файл `manifest.json` с темами оформления и векторный ассет `icon.svg`.
+
+2. **🎲 Продвинутый симулятор экзамена (`js/simulator.js`):**
+   - **Выбор билета (1–25) и рандомайзер:** Прямой выбор конкретного экзаменационного билета или случайная жеребьевка билета по официальной программе ГУУ.
+   - **⏱️ 3-минутный таймер ответа:** 180-секундный таймер обратного отсчета с визуальным оповещением и звуковым гонгом (Web Audio API) для тренировки устного ответа у доски.
+   - **⚡ Блиц-тестирование (Blitz Mode):** Экспресс-опрос из 10 случайных вопросов по всей программе курса для быстрой самопроверки.
+   - **🎯 Тематический дриллинг (Topic Drill):** Выборка вопросов и задач по разделам (*Foundations*, *Computer Vision*, *Generative Models*, *NLP & Transformers*, *Reinforcement Learning*).
+   - **🗂️ Flashcards (296 вопросов):** Карточки для самопроверки с каверзными вопросами и раскрывающимися ответами.
    - **📝 Банк микро-задач (170 задач):** Практические расчетные упражнения с пошаговыми решениями.
-2. **📊 Бессерверный трекинг прогресса (LocalStorage):**
-   - Живой прогресс-бар курса (процент изученных лекций, вопросов и задач).
+
+3. **🧠 Интервальные повторения (Leitner / SM-2 Spaced Repetition):**
+   - **Алгоритм SuperMemo-2:** Расчет фактора легкости ($EF \ge 1.3$), интервалов повторения ($I$) и счетчика повторений ($n$).
+   - **Очередь повторения (Due Queue):** Автоматическая фильтрация карточек, требующих повторения на текущую дату.
+   - **Градация ответов:** Оценка качества ответа (0–5 / Снова, Трудно, Хорошо, Легко) с сохранением состояния в `LocalStorage` (`ai_course_sm2_cards`).
+
+4. **⌨️ Эргономичные горячие клавиши (Keyboard Shortcuts):**
+   - `[` / `]` — Быстрый переход к предыдущей / следующей лекции курса.
+   - `T` — Мгновенное переключение тёмной и светлой темы оформления.
+   - `/` — Фокус на строку живого поиска (с защитой от ложных срабатываний при активном вводе в текстовых полях).
+   - `Alt + O` — Мгновенное раскрытие или закрытие всех скрытых спойлеров и решений `<details>` на странице.
+
+5. **📊 Бессерверный трекинг прогресса (LocalStorage):**
+   - Живой прогресс-бар курса (процент изученных лекций, проверенных вопросов и решенных задач).
    - Чекбоксы «Выучено / Решено» у каждого вопроса и задачи внутри лекций.
-   - Экспорт и резервное копирование прогресса в JSON.
-3. **🔍 Живой поиск и фильтрация:**
-   - Мгновенный поиск по 28 лекциям, билетам, формулам и терминам (например, `AdamW`, `ELBO`, `RoPE`, `BLEU`, `PPO`).
-   - Быстрые теги: *Computer Vision*, *NLP & Transformers*, *Reinforcement Learning*, *Math & Optimization*.
-4. **📥 Экспорт колод в Anki (`tools/export_anki.py`):**
-   - Готовые `.tsv` колоды для Anki Desktop/Mobile: `anki_decks/ai_course_exam_qas.tsv`, `anki_decks/ai_course_microtasks.tsv`, `anki_decks/ai_course_3min_cheatsheets.tsv`.
-5. **🌓 Адаптивная дизайн-система и печать:**
-   - Переключатель тёмной и светлой темы.
-   - Оптимизированные стили для печати шпаргалок (`@media print`).
-   - Кнопка копирования кода в один клик и верхняя полоса прогресса чтения.
+   - Экспорт и импорт прогресса в формате JSON (`ai_course_backup_*.json`).
+
+6. **🔍 Живой поиск и фильтрация:**
+   - Мгновенный клиентский поиск по 28 лекциям, билетам, формулам и терминам (например, `AdamW`, `ELBO`, `RoPE`, `BLEU`, `PPO`, `WGAN-GP`).
+   - Быстрые теги фильтрации: *Computer Vision*, *NLP & Transformers*, *Reinforcement Learning*, *Math & Optimization*.
+
+7. **📋 Инжиниринг UX и печать:**
+   - Кнопки копирования блоков кода PyTorch с моментальной визуальной анимацией («Скопировано!»).
+   - Оптимизированные стили печати (`@media print`) с авто-раскрытием спойлеров (`beforeprint`) для генерации аккуратных PDF-шпаргалок.
+
+8. **📥 Экспорт колод в Anki (`tools/export_anki.py`):**
+   - Готовые `.tsv` колоды для Anki Desktop/Mobile: `anki_decks/ai_course_exam_qas.tsv` (296 карточек), `anki_decks/ai_course_microtasks.tsv` (170 карточек), `anki_decks/ai_course_3min_cheatsheets.tsv` (28 шпаргалок).
+   - Датасет `js/exam_data.js` для мгновенной работы симулятора в браузере.
 
 ---
 
@@ -154,10 +174,10 @@ uv run python -m http.server 8000
 После запуска откройте в браузере: [`http://localhost:8000`](http://localhost:8000) или откройте `index.html` напрямую.
 
 ### 4. Запуск автоматизированного тестового комплекса
-Репозиторий защищен исчерпывающим сквозным набором из **195 тестов** (`tests/`), проверяющих математические выводы, целостность ссылок, баланс LaTeX-тегов, синтаксис AST и выполнение PyTorch тензорных операций:
+Репозиторий защищен исчерпывающим сквозным набором из **254 тестов** (`tests/`), проверяющих математические выводы, целостность ссылок, баланс LaTeX-тегов, синтаксис AST, PWA и выполнение PyTorch тензорных операций:
 
 ```bash
-# Запуск полного набора E2E тестов (195 тестов)
+# Запуск полного набора E2E тестов (254 теста)
 uv run pytest tests/
 
 # Проверка качества кода и линтинг (Ruff)
@@ -182,15 +202,31 @@ AI-Course/
 ├── pyproject.toml                 # Стандарт PEP 621: метаданные, зависимости PyTorch/NumPy, pytest/ruff
 ├── uv.lock                        # Детерминированный lockfile зависимостей Astral uv
 ├── README.md                      # Академический паспорт курса и руководство разработчика
+├── PROJECT.md                     # Архитектурный манифест, спецификация и дорожная карта
 ├── index.html                     # Главный интерактивный веб-портал и навигационная карта курса
+├── sw.js                          # PWA Service Worker (офлайн-кэширование всех лекций и ассетов)
+├── manifest.json                  # PWA Web App Manifest (standalone установка, иконки, цвета)
+├── icon.svg                       # Векторная PWA-иконка приложения
 ├── style.css                      # Глобальная темная дизайн-система и адаптивные стили
+├── js/                            # Модульный JavaScript-движок платформы
+│   ├── app.js                     # Логика главной страницы, поиск, фильтры, горячие клавиши
+│   ├── lecture.js                 # Интерактив лекций: копирование кода, спойлеры, хоткеи
+│   ├── tracker.js                 # Локальный трекер прогресса (LocalStorage, экспорт/импорт)
+│   ├── simulator.js               # Экзаменационный симулятор, 3-мин таймер, SM-2 интервальные повторения
+│   └── exam_data.js               # Прекомпилированный датасет вопросов, билетов и микро-задач
+├── anki_decks/                    # Готовые колоды Anki (.tsv)
+│   ├── ai_course_exam_qas.tsv     # 296 карточек с вопросами экзаменатора и ответами
+│   ├── ai_course_microtasks.tsv   # 170 расчетных задач с пошаговыми решениями
+│   └── ai_course_3min_cheatsheets.tsv # 28 конспектов для 3-минутного ответа у доски
+├── tools/
+│   └── export_anki.py             # Парсер лекций для генерации Anki TSV и js/exam_data.js
 ├── lectures/                      # 28 интерактивных лекций со строгим структурным контрактом
 │   ├── 00-intro-ml.html
 │   ├── 01-fcnn.html
 │   ├── ...
 │   └── 27-actor-critic.html
 ├── dl_guu-dl_26/                  # Исходные экзаменационные материалы и задания ГУУ 2026
-└── tests/                         # Автоматизированный E2E комплекс верификации курса (195 тестов)
+└── tests/                         # Автоматизированный E2E комплекс верификации курса (254 теста)
     ├── __init__.py
     ├── common.py                  # Общие утилиты парсинга DOM, LaTeX, AST
     ├── test_r1_coverage.py        # Проверка 100% покрытия билетов и тем
@@ -198,6 +234,8 @@ AI-Course/
     ├── test_r3_code_exec.py       # Исполнение и проверка PyTorch тензорного кода
     ├── test_r4_structure_nav.py   # Проверка структуры лекций, графа ссылок, QA/Task счетчиков
     ├── test_r5_summary_styling.py # Проверка HTML тегов, CSS стилей и summary маркеров
+    ├── test_pwa_web_platform_m1.py # Верификация PWA, sw.js, manifest.json, a11y, Print CSS
+    ├── test_sm2_and_simulator_e2e.py # Верификация SM-2 алгоритма, таймера и режимов симулятора
     └── ...                        # Форензик и состязательные валидаторы целостности
 ```
 
