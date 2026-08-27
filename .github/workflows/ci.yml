@@ -30,7 +30,7 @@ jobs:
         run: uv sync --all-extras --dev
 
       - name: Run linter (Ruff)
-        run: uv run ruff check
+        run: uv run ruff check .
 
       - name: Run test suite (Pytest)
         run: uv run pytest tests/
