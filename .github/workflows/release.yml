@@ -1,0 +1,58 @@
+name: Release Publisher
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag_name:
+        description: 'Tag name to release (e.g. v1.0.0)'
+        required: true
+        default: 'v1.0.0'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build, Verify & Publish Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Run Ruff linter
+        run: uv run ruff check .
+
+      - name: Run Pytest test suite
+        run: uv run pytest tests/ -v
+
+      - name: Generate Anki Decks
+        run: uv run python tools/export_anki.py
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Deep Learning Course Platform ${{ github.ref_name || inputs.tag_name }} (Reference Edition)"
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          files: |
+            anki_decks/ai_course_exam_qas.tsv
+            anki_decks/ai_course_microtasks.tsv
+            anki_decks/ai_course_3min_cheatsheets.tsv
+            js/exam_data.js
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

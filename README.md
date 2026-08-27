@@ -2,17 +2,20 @@
 
 <div align="center">
 
+[![GitHub Release](https://img.shields.io/github/v/release/egorribun/AI-Course?style=for-the-badge&logo=github&color=58a6ff)](https://github.com/egorribun/AI-Course/releases)
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live%20Portal-58a6ff?style=for-the-badge&logo=github&logoColor=white)](https://egorribun.github.io/AI-Course/)
-[![CI / Tests](https://img.shields.io/badge/CI%20Pytest-254%20Passed-3fb950?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/egorribun/AI-Course/actions)
+[![CI / Tests](https://img.shields.io/badge/CI%20Pytest-271%20Passed-3fb950?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/egorribun/AI-Course/actions)
 [![Linter](https://img.shields.io/badge/Ruff-0%20Errors-46e3b7?style=for-the-badge&logo=ruff&logoColor=white)](https://github.com/astral-sh/ruff)
 [![uv](https://img.shields.io/badge/uv-Astral%20Fast%20Env-de5fe9?style=for-the-badge&logo=astral&logoColor=white)](https://github.com/astral-sh/uv)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-3776ab?style=for-the-badge&logo=python&logoColor=white)](pyproject.toml)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.x%20Ready-ee4c2c?style=for-the-badge&logo=pytorch&logoColor=white)](https://pytorch.org)
+[![PWA Ready](https://img.shields.io/badge/PWA-Offline%20Ready-8957e5?style=for-the-badge&logo=pwa&logoColor=white)](manifest.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-d29922.svg?style=for-the-badge)](LICENSE)
 
 [![Lectures](https://img.shields.io/badge/Lectures-28%20Interactive%20Modules-79c0ff?style=flat-square)](#3-модульный-интерактивный-учебный-план)
 [![Exam QA](https://img.shields.io/badge/Exam%20QA-296%20Defense%20Items-56d364?style=flat-square)](#3-модульный-интерактивный-учебный-план)
 [![Microtasks](https://img.shields.io/badge/Microtasks-170%20Step--by--Step-f0883e?style=flat-square)](#3-модульный-интерактивный-учебный-план)
+[![Anki Cards](https://img.shields.io/badge/Anki%20Decks-494%20Cards-d2a8ff?style=flat-square)](anki_decks/)
 [![Tickets](https://img.shields.io/badge/GUU%20Tickets-25%20Fully%20Covered-bc8cff?style=flat-square)](#3-модульный-интерактивный-учебный-план)
 
 **Официальный академический паспорт и интерактивный портал подготовки к устному экзамену по курсу «Методы искусственного интеллекта» (ГУУ 2026).**
