@@ -16,7 +16,6 @@ import re
 import sys
 import unittest
 from pathlib import Path
-from typing import List
 
 COURSE_ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(COURSE_ROOT_DIR) not in sys.path:
@@ -39,10 +38,10 @@ class TestR5SummaryStyling(unittest.TestCase):
         files_with_embedded_css = [self.style_css_path, self.index_path] + [
             p for p in self.lecture_paths if p.name != "10-vae.html"
         ]
-        
+
         for fpath in files_with_embedded_css:
             content = read_file(fpath)
-            
+
             # .task details summary checks
             self.assertTrue(
                 re.search(r"\.task\s+details\s+summary\s*\{[^}]*list-style:\s*none", content),

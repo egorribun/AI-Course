@@ -9,12 +9,8 @@ import ast
 import html
 import importlib
 import math
-import os
 import re
-import sys
-import traceback
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
 
 import torch
 import torch.nn as nn
@@ -67,7 +63,7 @@ def audit_latex_syntax():
 
     for lec in EXPECTED_LECTURES:
         content = read_lecture(lec)
-        
+
         # Mask out pre, code, script, style, comments
         def replace_ws(m):
             return "\n" * m.group(0).count("\n")
@@ -174,7 +170,7 @@ def audit_math_derivations():
 
 def audit_code_snippets_and_execution():
     print("\n=== AUDIT 3: Code Snippet Extraction, HTML Entities, AST Syntax & Execution ===")
-    
+
     extracted_blocks = []
     syntax_errors = []
     entity_anomalies = []

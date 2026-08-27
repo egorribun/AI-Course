@@ -7,16 +7,9 @@ from __future__ import annotations
 
 import json
 import math
-import os
-import re
 import unittest
 from pathlib import Path
-from typing import Dict, List, Tuple
 
-import numpy as np
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 COURSE_ROOT = Path(__file__).resolve().parent.parent
 LECTURES_DIR = COURSE_ROOT / "lectures"
@@ -35,7 +28,7 @@ class TestDeepMicrotasksForensics(unittest.TestCase):
         self.assertEqual(len(self.data), 28)
         total_tasks = sum(d["task_count"] for d in self.data)
         total_qas = sum(d["qa_count"] for d in self.data)
-        
+
         self.assertEqual(total_tasks, 170, f"Expected 170 micro-tasks, found {total_tasks}")
         self.assertEqual(total_qas, 296, f"Expected 296 Q&As, found {total_qas}")
 
@@ -49,7 +42,7 @@ class TestDeepMicrotasksForensics(unittest.TestCase):
                 self.assertTrue(len(prob) > 10, f"{fname} Task {idx+1}: Problem statement too short: '{prob}'")
                 self.assertTrue(task["has_sol"], f"{fname} Task {idx+1}: Missing solution block")
                 self.assertTrue(len(sol) > 10, f"{fname} Task {idx+1}: Solution text too short: '{sol}'")
-                
+
                 # Check for unresolved placeholders
                 self.assertNotIn("TODO", prob)
                 self.assertNotIn("TODO", sol)
@@ -84,7 +77,7 @@ class TestDeepMicrotasksForensics(unittest.TestCase):
         w3, b3 = 128 * 10, 10
         total_mlp = (w1 + b1) + (w2 + b2) + (w3 + b3)
         self.assertEqual(total_mlp, 235146)
-        
+
         # Verify L01 text contains 235146 or matching calculation
         l01_text = (LECTURES_DIR / "01-fcnn.html").read_text(encoding="utf-8")
         self.assertTrue("235" in l01_text or "200" in l01_text or "784" in l01_text)
@@ -96,7 +89,7 @@ class TestDeepMicrotasksForensics(unittest.TestCase):
         h_in, k, s, p = 224, 7, 2, 3
         h_out = math.floor((h_in + 2*p - k) / s) + 1
         self.assertEqual(h_out, 112)
-        
+
         # Dilated Conv: Input 64x64, Kernel 3x3, Dilation 2, Stride 1, Padding 2
         # Effective kernel = 2*(3-1) + 1 = 5
         # Out = (64 + 2*2 - 5)/1 + 1 = 63 + 1 = 64 (preserves dimension!)

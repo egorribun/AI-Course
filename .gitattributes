@@ -1,0 +1,28 @@
+# Set default behavior for all files to normalize line endings to LF
+* text=auto eol=lf
+
+# Explicit binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+
+# Source code files
+*.py text eol=lf diff=python
+*.html text eol=lf diff=html
+*.css text eol=lf diff=css
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.toml text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Git Linguist overrides
+lectures/*.html linguist-detectable=true
+index.html linguist-detectable=true
+style.css linguist-detectable=true

@@ -17,8 +17,8 @@ import re
 import sys
 import unittest
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
-from urllib.parse import unquote, urlparse
+from typing import Dict
+from urllib.parse import urlparse
 
 COURSE_ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(COURSE_ROOT_DIR) not in sys.path:
@@ -109,7 +109,7 @@ class TestR4StructureNav(unittest.TestCase):
         self.assertEqual(
             missing_cheats,
             [],
-            f"Lectures with missing or empty cheat sheets:\n" + "\n".join(missing_cheats),
+            "Lectures with missing or empty cheat sheets:\n" + "\n".join(missing_cheats),
         )
 
     def test_04_all_lectures_have_top_backlinks_and_pills(self):
@@ -136,7 +136,7 @@ class TestR4StructureNav(unittest.TestCase):
         self.assertEqual(
             missing_elements,
             [],
-            f"Lectures missing top backlinks or metadata pills:\n" + "\n".join(missing_elements),
+            "Lectures missing top backlinks or metadata pills:\n" + "\n".join(missing_elements),
         )
 
     def test_05_link_graph_integrity_all_hrefs_and_anchors_valid(self):
@@ -250,14 +250,14 @@ class TestR4StructureNav(unittest.TestCase):
             if not st:
                 continue
             content = self.lecture_contents.get(lec, "")
-            
+
             # QA pill check
             qa_pill_match = re.search(r'(\d+)\s+вопрос', content)
             if qa_pill_match:
                 qa_pill_num = int(qa_pill_match.group(1))
                 if qa_pill_num != st.qa_count:
                     mismatches.append(f"{lec}: QA pill badge says {qa_pill_num}, but actual QA count is {st.qa_count}")
-            
+
             # Task pill check
             task_pill_match = re.search(r'(\d+)\s+микро-задач', content)
             if task_pill_match:

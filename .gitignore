@@ -1,6 +1,53 @@
-.agents/
-.pytest_cache/
+# Python byte code and caches
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Distribution and packaging
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing and linting caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.hypothesis/
+.coverage
+htmlcov/
+
+# Editor and OS files
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Agent workspaces and scratch files
+.agents/
+*.tmp

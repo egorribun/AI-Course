@@ -5,7 +5,6 @@ Adversarial MathJax Delimiter and Formula Balance Checker.
 from __future__ import annotations
 
 import re
-import sys
 from pathlib import Path
 
 COURSE_ROOT = Path(__file__).resolve().parent.parent
@@ -50,11 +49,11 @@ def check_math_balance():
 
     for lec in EXPECTED_LECTURES:
         content = (LECTURES_DIR / lec).read_text(encoding="utf-8", errors="replace")
-        
+
         # Mask non-math containers
         def repl(m):
             return "\n" * m.group(0).count("\n")
-            
+
         masked = content
         masked = re.sub(r"(?s)<!--.*?-->", repl, masked)
         masked = re.sub(r"(?is)<script[^>]*>.*?</script>", repl, masked)

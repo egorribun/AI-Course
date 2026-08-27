@@ -1,0 +1,80 @@
+[project]
+name = "deep-learning-exam-course"
+version = "1.0.0"
+description = "Comprehensive 3-day intensive exam preparation course and syllabus for Deep Learning and AI methods (GUU 2026)"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+    { name = "Egor Ribun", email = "egorribun@users.noreply.github.com" }
+]
+keywords = [
+    "deep-learning",
+    "machine-learning",
+    "neural-networks",
+    "pytorch",
+    "ai-course",
+    "exam-preparation",
+    "transformers",
+    "reinforcement-learning"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Education"
+]
+dependencies = [
+    "numpy>=1.24.0",
+    "torch>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.8.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "ruff>=0.8.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v"
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+exclude = [
+    ".git",
+    ".agents",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "dl_guu-dl_26",
+    "__pycache__",
+]
+
+[tool.ruff.lint]
+select = ["E", "F", "W"]
+ignore = [
+    "E501",  # Line too long
+    "E741",  # Ambiguous variable name
+    "E701",  # Multiple statements on one line
+    "E402",  # Module level import not at top of file
+    "F841",  # Unused variable
+]

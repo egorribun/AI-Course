@@ -8,9 +8,7 @@ from __future__ import annotations
 import json
 import re
 import sys
-from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import urlparse
 
 COURSE_ROOT = Path(__file__).resolve().parent.parent
 LECTURES_DIR = COURSE_ROOT / "lectures"

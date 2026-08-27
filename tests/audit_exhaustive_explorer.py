@@ -6,14 +6,10 @@ Analyzes all 28 lectures + index.html in detail and outputs complete forensic da
 from __future__ import annotations
 
 import ast
-import glob
-import html
 import json
-import os
 import re
 import sys
 from pathlib import Path
-from urllib.parse import unquote, urlparse
 
 COURSE_ROOT = Path(__file__).resolve().parent.parent
 LECTURES_DIR = COURSE_ROOT / "lectures"
@@ -22,10 +18,8 @@ INDEX_PATH = COURSE_ROOT / "index.html"
 from common import (
     EXPECTED_LECTURES,
     extract_code_blocks,
-    extract_math_blocks,
     parse_lecture_structure,
     read_file,
-    validate_latex_syntax,
 )
 
 def run_exhaustive_audit():

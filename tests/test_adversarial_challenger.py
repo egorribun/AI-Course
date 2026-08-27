@@ -1,7 +1,4 @@
-import os
-import sys
 import re
-import html
 import math
 import unittest
 from pathlib import Path
@@ -46,7 +43,7 @@ class SimpleHTMLDocParser(HTMLParser):
         attr_dict = dict(attrs)
         if "id" in attr_dict:
             self.ids.add(attr_dict["id"])
-        
+
         classes = attr_dict.get("class", "").split()
         if tag == "details":
             self.total_details_count += 1
@@ -84,7 +81,7 @@ class AdversarialHyperlinkTests(unittest.TestCase):
         parser.feed(content)
         lecture_links = [href for href, _ in parser.links if href.startswith("lectures/")]
         unique_lecture_links = set(lecture_links)
-        
+
         self.assertEqual(len(unique_lecture_links), 28, f"Expected 28 unique lecture links in index.html, found {len(unique_lecture_links)}")
         for expected in EXPECTED_LECTURES:
             expected_href = f"lectures/{expected}"
@@ -141,10 +138,10 @@ class AdversarialDOMAndPillTests(unittest.TestCase):
 
             self.assertGreaterEqual(parser.qa_count, 10, f"{filename}: QA count {parser.qa_count} < 10")
             self.assertGreaterEqual(parser.task_count, 6, f"{filename}: Task count {parser.task_count} < 6")
-            
+
             # Each task contains a solution details block -> total details = qa_count + task_count
             task_solutions_count = parser.total_details_count - parser.qa_count
-            self.assertEqual(parser.task_count, task_solutions_count, 
+            self.assertEqual(parser.task_count, task_solutions_count,
                              f"{filename}: Tasks count {parser.task_count} != Solution details count {task_solutions_count}")
             self.assertGreaterEqual(parser.cheat_count, 1, f"{filename}: Missing cheat sheet <div class='cheat'>")
 
@@ -215,7 +212,7 @@ class AdversarialAlgorithmicStressTests(unittest.TestCase):
                         self.assertEqual(out.shape, (b_size, out_dim))
                         loss = F.mse_loss(out, y_target)
                         loss.backward()
-                        
+
                         # Verify input and weight gradients exist and are finite
                         self.assertIsNotNone(x.grad)
                         self.assertTrue(torch.isfinite(x.grad).all())
@@ -335,7 +332,7 @@ class AdversarialAlgorithmicStressTests(unittest.TestCase):
             if c == 0:
                 return 0.0
             bp = 1.0 if c > r else math.exp(1 - r / c)
-            
+
             p_n = []
             for n in range(1, max_n + 1):
                 if c < n:
@@ -343,15 +340,15 @@ class AdversarialAlgorithmicStressTests(unittest.TestCase):
                     continue
                 cand_ngrams = [tuple(cand_tokens[i:i+n]) for i in range(len(cand_tokens) - n + 1)]
                 ref_ngrams = [tuple(ref_tokens[i:i+n]) for i in range(len(ref_tokens) - n + 1)]
-                
+
                 from collections import Counter
                 cand_counts = Counter(cand_ngrams)
                 ref_counts = Counter(ref_ngrams)
-                
+
                 clipped = sum(min(count, ref_counts.get(ng, 0)) for ng, count in cand_counts.items())
                 total = len(cand_ngrams)
                 p_n.append(clipped / total if total > 0 else 0.0)
-            
+
             if any(p == 0.0 for p in p_n):
                 return 0.0
             log_precisions = sum(math.log(p) for p in p_n) / max_n

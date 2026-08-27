@@ -5,7 +5,6 @@ Dynamic execution tester using the exact functions from all lectures.
 from __future__ import annotations
 
 import math
-import sys
 from pathlib import Path
 
 import numpy as np

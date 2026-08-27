@@ -11,19 +11,9 @@ Checks:
 
 from __future__ import annotations
 
-import ast
-import html
-import math
-import os
-import re
-import sys
 import unittest
 from pathlib import Path
-from typing import Dict, List, Set, Tuple
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 COURSE_ROOT = Path(__file__).resolve().parent.parent
 LECTURES_DIR = COURSE_ROOT / "lectures"

@@ -4,14 +4,12 @@ Common utilities and constants for the Deep Learning course E2E test suite.
 
 from __future__ import annotations
 
-import ast
 import html
-import os
 import re
 from dataclasses import dataclass
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import List, Optional, Set, Tuple
 
 # Course Paths
 COURSE_ROOT = Path(__file__).resolve().parent.parent

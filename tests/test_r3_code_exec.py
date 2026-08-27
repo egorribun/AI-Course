@@ -18,13 +18,11 @@ Verifies:
 from __future__ import annotations
 
 import ast
-import html
 import math
-import re
 import sys
 import unittest
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 COURSE_ROOT_DIR = Path(__file__).resolve().parent.parent
 if str(COURSE_ROOT_DIR) not in sys.path:

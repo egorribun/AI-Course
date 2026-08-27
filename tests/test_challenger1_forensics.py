@@ -7,12 +7,9 @@ receptive fields, matrix dimensions, loss functions, and syllabus alignment with
 from __future__ import annotations
 
 import math
-import os
 import re
-import sys
 import unittest
 from pathlib import Path
-from typing import Dict, List, Tuple
 
 import torch
 import torch.nn as nn
@@ -51,15 +48,15 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
             qa_matches = re.findall(r'<details\s+class=["\'][^"\']*?\bqa\b[^"\']*?["\']', html_text)
             task_matches = re.findall(r'<div\s+class=["\'][^"\']*?\btask\b[^"\']*?["\']', html_text)
             sol_matches = re.findall(r'<details(?:\s+class=["\']sol["\'])?[^>]*?>\s*<summary>\s*Решение', html_text)
-            
+
             qa_cnt = len(qa_matches)
             task_cnt = len(task_matches)
             sol_cnt = len(sol_matches)
-            
+
             self.assertGreaterEqual(qa_cnt, 10, f"{name}: QA count {qa_cnt} < 10")
             self.assertGreaterEqual(task_cnt, 6, f"{name}: Task count {task_cnt} < 6")
             self.assertEqual(task_cnt, sol_cnt, f"{name}: Task count {task_cnt} != Solution count {sol_cnt}")
-            
+
             total_qas += qa_cnt
             total_tasks += task_cnt
 
@@ -76,7 +73,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         self.assertTrue(r"\text{MSE}" in text or "MSE" in text)
         self.assertTrue(r"\text{F1}" in text or "F1" in text)
         self.assertTrue(r"\theta" in text or "градиент" in text.lower())
-        
+
         # Empirical test: Gradient Descent Step
         theta = torch.tensor([0.0], requires_grad=True)
         # L(theta) = (theta - 3)^2
@@ -94,7 +91,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         self.assertTrue(re.search(r'\\delta\^\{(?:l|\(l\))\}', text) or r"\delta^l" in text)
         self.assertTrue(r"\frac{\partial L}{\partial W" in text or r"\partial L / \partial W" in text)
         self.assertTrue(r"\frac{\partial L}{\partial b" in text or r"\partial L / \partial b" in text)
-        
+
         # Empirical check: Toy 2-layer MLP exact backprop step
         torch.manual_seed(42)
         x = torch.tensor([[0.5, -0.2]], requires_grad=True)
@@ -102,13 +99,13 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         b1 = torch.tensor([[0.1, -0.1]], requires_grad=True)
         W2 = torch.tensor([[0.5], [-0.5]], requires_grad=True)
         b2 = torch.tensor([[0.2]], requires_grad=True)
-        
+
         z1 = x @ W1 + b1
         a1 = torch.sigmoid(z1)
         z2 = a1 @ W2 + b2
         loss = 0.5 * (z2 - 1.0)**2
         loss.backward()
-        
+
         self.assertTrue(torch.isfinite(W1.grad).all())
         self.assertTrue(torch.isfinite(W2.grad).all())
         self.assertTrue(torch.isfinite(b1.grad).all())
@@ -120,7 +117,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         self.assertIn("PINN", text)
         self.assertTrue(r"\mathcal{L}_{\text{data}}" in text or r"L_{\text{data}}" in text or "data" in text)
         self.assertTrue(r"\mathcal{L}_{\text{PDE}}" in text or r"L_{\text{PDE}}" in text or "pde" in text.lower())
-        
+
         x_val = 3.0
         val = x_val**3 + 2*x_val
         der = 3*(x_val**2) + 2
@@ -133,7 +130,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         self.assertTrue("MLE" in text or "правдоподоби" in text.lower())
         self.assertTrue(r"\mathcal{N}" in text or r"\sigma^2" in text or "gauss" in text.lower())
         self.assertTrue("Focal" in text or "focal" in text.lower())
-        
+
         gamma = 2.0
         pt_easy = torch.tensor([0.9])
         pt_hard = torch.tensor([0.1])
@@ -147,7 +144,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         text = self.lectures["04-cnn-layers.html"]
         self.assertTrue(r"\lfloor" in text or r"stride" in text.lower() or "padding" in text.lower())
         self.assertTrue("receptive" in text.lower() or "поле восприятия" in text.lower() or "rf" in text.lower())
-        
+
         rf = 1
         j = 1
         for k, s in [(3, 2), (3, 2)]:
@@ -161,7 +158,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         text = self.lectures["05-cnn-architectures.html"]
         self.assertTrue("resnet" in text.lower() or "resblock" in text.lower())
         self.assertTrue("mobilenet" in text.lower() or "depthwise" in text.lower())
-        
+
         K = 3
         Cin = 64
         Cout = 128
@@ -180,7 +177,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         text = self.lectures["06-optimizers.html"]
         self.assertTrue("adamw" in text.lower())
         self.assertTrue(r"\beta_1" in text or "beta1" in text.lower() or "momentum" in text.lower())
-        
+
         beta1, beta2 = 0.9, 0.999
         m_unbiased_factor_1 = 1.0 / (1.0 - beta1**1)
         v_unbiased_factor_1 = 1.0 / (1.0 - beta2**1)
@@ -192,7 +189,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         text = self.lectures["07-hyperparams.html"]
         self.assertTrue("cosine" in text.lower() or "косинус" in text.lower() or "warmup" in text.lower() or "lr" in text.lower())
         self.assertTrue("dropout" in text.lower())
-        
+
         p = 0.3
         x = torch.ones(100000)
         mask = (torch.rand_like(x) > p).float()
@@ -204,7 +201,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         text = self.lectures["08-metric-learning.html"]
         self.assertTrue("triplet" in text.lower() or "триплет" in text.lower())
         self.assertTrue("arcface" in text.lower())
-        
+
         margin = 0.5
         d_ap = torch.tensor([0.2, 0.8])
         d_an = torch.tensor([0.9, 0.9])
@@ -218,7 +215,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         self.assertTrue("infonce" in text.lower() or "contrastive" in text.lower())
         self.assertTrue("simclr" in text.lower() or "moco" in text.lower())
         self.assertTrue(r"\tau" in text or "температур" in text.lower() or "tau" in text.lower())
-        
+
         q = torch.tensor([[1.0, 0.0]])
         k_pos = torch.tensor([[1.0, 0.0]])
         k_neg = torch.tensor([[0.0, 1.0], [-1.0, 0.0]])
@@ -234,13 +231,13 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         text = self.lectures["10-vae.html"]
         self.assertTrue("elbo" in text.lower())
         self.assertTrue(r"D_{\text{KL}}" in text or r"D_{KL}" in text or "kl" in text.lower())
-        
+
         mu = torch.tensor([0.5, -0.2], dtype=torch.float64)
         logvar = torch.tensor([0.1, -0.3], dtype=torch.float64)
         sigma = torch.exp(0.5 * logvar)
-        
+
         kl_analytical = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
-        
+
         p = torch.distributions.Normal(torch.tensor(0.0, dtype=torch.float64), torch.tensor(1.0, dtype=torch.float64))
         q = torch.distributions.Normal(mu, sigma)
         kl_dist = torch.distributions.kl_divergence(q, p).sum()
@@ -251,7 +248,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         text = self.lectures["11-gan.html"]
         self.assertTrue("минимакс" in text.lower() or "minimax" in text.lower() or "d(x)" in text.lower())
         self.assertTrue("wasserstein" in text.lower() or "wgan" in text.lower())
-        
+
         p_data = 0.8
         p_g = 0.2
         d_star = p_data / (p_data + p_g)
@@ -261,7 +258,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         """L12: DDPM q(x_t|x_0) analytical jump, alpha_bar product, reverse drift."""
         text = self.lectures["12-diffusion.html"]
         self.assertTrue(r"\bar{\alpha}_t" in text or r"\alpha_t" in text or "ddpm" in text.lower() or "диффузи" in text.lower())
-        
+
         betas = torch.tensor([0.1, 0.1, 0.1], dtype=torch.float64)
         alphas = 1.0 - betas
         alpha_bars = torch.cumprod(alphas, dim=0)
@@ -274,7 +271,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         text = self.lectures["13-cv-tasks.html"]
         self.assertTrue("iou" in text.lower())
         self.assertTrue("dice" in text.lower() or "map" in text.lower() or "детекци" in text.lower())
-        
+
         iou = 2.0 / 6.0
         dice = (2.0 * 2.0) / (4.0 + 4.0)
         theo_dice = (2.0 * iou) / (1.0 + iou)
@@ -289,7 +286,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         text = self.lectures["14-rnn-lstm.html"]
         self.assertTrue("lstm" in text.lower())
         self.assertTrue(r"f_t" in text or "forget" in text.lower() or "вентил" in text.lower())
-        
+
         d_in = 32
         d_h = 64
         lstm_cell = nn.LSTMCell(d_in, d_h, bias=True)
@@ -302,7 +299,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         text = self.lectures["15-attention-seq2seq.html"]
         self.assertTrue("bahdanau" in text.lower() or "багданау" in text.lower() or "внимани" in text.lower())
         self.assertTrue("luong" in text.lower() or "луонг" in text.lower() or "seq2seq" in text.lower())
-        
+
         scores = torch.tensor([[2.0, 1.0, 0.0]])
         weights = F.softmax(scores, dim=-1)
         self.assertAlmostEqual(weights.sum().item(), 1.0, places=5)
@@ -312,7 +309,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         text = self.lectures["16-transformers.html"]
         self.assertTrue("transformer" in text.lower() or "трансформер" in text.lower())
         self.assertTrue("feed-forward" in text.lower() or "ffn" in text.lower() or "слой" in text.lower())
-        
+
         d_model = 512
         d_ff = 2048
         ffn = nn.Sequential(
@@ -329,7 +326,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         text = self.lectures["17-self-attention.html"]
         self.assertTrue(r"\sqrt{d_k}" in text or r"\sqrt{d}" in text or "sqrt(d" in text.lower())
         self.assertTrue(r"QK^T" in text or r"Q K^T" in text or "матриц" in text.lower())
-        
+
         d_k = 64
         torch.manual_seed(42)
         q = torch.randn(10000, d_k)
@@ -350,7 +347,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         text = self.lectures["19-text-word2vec.html"]
         self.assertTrue("word2vec" in text.lower())
         self.assertTrue("negative sampling" in text.lower() or "негативн" in text.lower())
-        
+
         pos_dot = torch.tensor([2.5])
         neg_dots = torch.tensor([-2.0, -3.0, -1.5])
         loss = -torch.log(torch.sigmoid(pos_dot)) - torch.sum(torch.log(torch.sigmoid(-neg_dots)))
@@ -362,7 +359,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         text = self.lectures["20-mt-bleu.html"]
         self.assertTrue("bleu" in text.lower())
         self.assertTrue("brevity" in text.lower() or "краткост" in text.lower() or "bp" in text.lower())
-        
+
         c_short, r = 8, 10
         bp_short = math.exp(1.0 - r / c_short)
         self.assertAlmostEqual(bp_short, math.exp(-0.25), places=4)
@@ -384,7 +381,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         """L22: MDP (S, A, P, R, gamma), Return G_t = sum gamma^k R_{t+k+1}."""
         text = self.lectures["22-rl-intro.html"]
         self.assertTrue("mdp" in text.lower() or "марковск" in text.lower() or "агент" in text.lower())
-        
+
         gamma = 0.9
         r = 1.0
         infinite_return = r / (1.0 - gamma)
@@ -395,7 +392,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         text = self.lectures["23-bellman.html"]
         self.assertTrue("беллман" in text.lower() or "bellman" in text.lower())
         self.assertTrue("оптимальност" in text.lower() or "уравнени" in text.lower())
-        
+
         # Empirical test: Value Iteration contraction on toy 2-state MDP
         gamma = 0.9
         V = torch.tensor([0.0, 0.0], dtype=torch.float64)
@@ -419,7 +416,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         text = self.lectures["25-td-qlearning.html"]
         self.assertTrue("q-learning" in text.lower())
         self.assertTrue("sarsa" in text.lower())
-        
+
         Q = torch.tensor([0.0, 0.0])
         alpha = 0.1
         gamma = 0.9
@@ -433,16 +430,16 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         text = self.lectures["26-policy-gradient.html"]
         self.assertTrue("reinforce" in text.lower() or "policy gradient" in text.lower() or "стратеги" in text.lower())
         self.assertTrue("ppo" in text.lower())
-        
+
         eps = 0.2
         adv_pos = 2.0
         adv_neg = -2.0
         r_large = torch.tensor(1.5)
         r_small = torch.tensor(0.5)
-        
+
         ppo_pos = torch.min(r_large * adv_pos, torch.clamp(r_large, 1.0 - eps, 1.0 + eps) * adv_pos)
         self.assertAlmostEqual(ppo_pos.item(), 2.4, places=4)
-        
+
         ppo_neg = torch.min(r_small * adv_neg, torch.clamp(r_small, 1.0 - eps, 1.0 + eps) * adv_neg)
         self.assertAlmostEqual(ppo_neg.item(), -1.6, places=4)
 
@@ -451,7 +448,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         text = self.lectures["27-actor-critic.html"]
         self.assertTrue("actor-critic" in text.lower() or "актор-критик" in text.lower() or "критик" in text.lower())
         self.assertTrue("gae" in text.lower() or "sac" in text.lower())
-        
+
         deltas = [1.0, 2.0, 0.5]
         gamma = 0.99
         lam = 0.95

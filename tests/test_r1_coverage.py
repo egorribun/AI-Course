@@ -27,7 +27,6 @@ from tests.common import (
     INDEX_FILE,
     LECTURES_DIR,
     TICKETS_METADATA,
-    parse_lecture_structure,
     read_file,
 )
 

@@ -15,9 +15,7 @@ from __future__ import annotations
 import ast
 import html
 import math
-import os
 import re
-import sys
 import unittest
 from html.parser import HTMLParser
 from pathlib import Path
@@ -412,12 +410,12 @@ class TestAdversarialDynamicCodeExecution(unittest.TestCase):
                         syntax_errors.append(f"{filename}:{line_no} -> SyntaxError: {e.msg} at line {e.lineno}")
 
         self.assertGreater(parsed_count, 30, f"Expected >30 Python snippets parsed, found {parsed_count}")
-        self.assertEqual(len(syntax_errors), 0, f"Syntax errors in lecture code snippets:\n" + "\n".join(syntax_errors))
+        self.assertEqual(len(syntax_errors), 0, "Syntax errors in lecture code snippets:\n" + "\n".join(syntax_errors))
 
     def test_edge_case_l00_activations(self):
         """L00: Activation functions under extreme inputs without NaN/Inf."""
         x_extreme = torch.tensor([-1e5, -100.0, -1.0, 0.0, 1.0, 100.0, 1e5])
-        
+
         # Sigmoid, Tanh, ReLU, LeakyReLU, GELU
         sig = torch.sigmoid(x_extreme)
         self.assertTrue(torch.isfinite(sig).all())
@@ -550,7 +548,7 @@ class TestAdversarialDynamicCodeExecution(unittest.TestCase):
         torch.manual_seed(42)
         embeddings = F.normalize(torch.randn(4, 16), dim=-1)
         weights = F.normalize(torch.randn(5, 16), dim=-1)  # 5 classes
-        
+
         cos_theta = F.linear(embeddings, weights).clamp(-1.0 + 1e-7, 1.0 - 1e-7)
         theta = torch.acos(cos_theta)
         margin = 0.5
@@ -708,7 +706,7 @@ class TestAdversarialDynamicCodeExecution(unittest.TestCase):
         gamma = 0.9
         V1 = np.array([10.0, -5.0, 2.0])
         V2 = np.array([2.0, 3.0, -1.0])
-        
+
         # Simple transition P(s'|s,a) with immediate rewards
         R = np.array([1.0, 0.0, 2.0])
         TV1 = R + gamma * V1

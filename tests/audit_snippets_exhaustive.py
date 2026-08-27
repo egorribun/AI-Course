@@ -9,7 +9,6 @@ import ast
 import html
 import json
 import math
-import os
 import re
 import sys
 from pathlib import Path
@@ -22,7 +21,7 @@ import torch.nn.functional as F
 COURSE_ROOT = Path(__file__).resolve().parent.parent
 LECTURES_DIR = COURSE_ROOT / "lectures"
 
-from common import EXPECTED_LECTURES, read_file
+from common import EXPECTED_LECTURES
 
 pattern = re.compile(r"<pre[^>]*>(?:<code[^>]*>)?(.*?)(?:</code>)?</pre>", re.DOTALL | re.IGNORECASE)
 
@@ -50,7 +49,7 @@ def run_snippet_audit():
             # Determine type
             is_bash = clean.startswith("$") or clean.startswith("pip install")
             is_ascii = "+---" in clean or "|---" in clean or "# ASCII" in clean or "=== " in clean
-            
+
             py_indicators = [
                 "import torch", "import numpy", "import math", "import nn", "from torch",
                 "nn.Module", "def ", "class ", "torch.tensor", "torch.zeros", "torch.randn",

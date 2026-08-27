@@ -8,9 +8,8 @@ from __future__ import annotations
 import sys
 import time
 import unittest
-from io import StringIO
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 # Ensure course root is on python path
 COURSE_ROOT = Path(__file__).resolve().parent.parent

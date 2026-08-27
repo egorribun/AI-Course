@@ -6,16 +6,10 @@ Tests all 170 micro-tasks against independent mathematical oracles across all 28
 from __future__ import annotations
 
 import json
-import math
-import os
-import re
 import unittest
 from pathlib import Path
 from typing import Dict, List
 
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
 COURSE_ROOT = Path(__file__).resolve().parent.parent
 LECTURES_DIR = COURSE_ROOT / "lectures"
