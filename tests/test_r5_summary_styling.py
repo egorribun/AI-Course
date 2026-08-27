@@ -3,11 +3,12 @@ Requirement R5 Tests: Summary Marker & Solution Arrow Polish.
 State University of Management (GUU, 2026) DL Course Verification.
 
 Verifies:
-- All stylesheets (style.css, index.html, and 28 lectures) properly hide native browser disclosure markers
+- Stylesheet (style.css) properly hides native browser disclosure markers
   with list-style: none, list-style-type: none, ::-webkit-details-marker { display: none }, and ::marker { display: none }.
 - ::before pseudo-element acts as the sole expansion indicator (▸ closed, ▾ open).
 - No HTML files contain literal arrow characters (▸, ▶, ▾) inside task <summary> tags.
 - All 170 task solutions consistently render <summary>Решение</summary>.
+- All 28 lectures and index.html properly link to external style.css and shared JS modules.
 """
 
 from __future__ import annotations
@@ -34,67 +35,62 @@ class TestR5SummaryStyling(unittest.TestCase):
         cls.lecture_paths = [LECTURES_DIR / lec for lec in EXPECTED_LECTURES]
 
     def test_01_style_css_and_html_summary_marker_rules(self):
-        """Verify .task details summary and .qa > summary have complete marker suppression rules."""
-        files_with_embedded_css = [self.style_css_path, self.index_path] + [
-            p for p in self.lecture_paths if p.name != "10-vae.html"
-        ]
+        """Verify .task details summary and .qa > summary have complete marker suppression rules in style.css."""
+        content = read_file(self.style_css_path)
 
-        for fpath in files_with_embedded_css:
-            content = read_file(fpath)
+        # .task details summary checks
+        self.assertTrue(
+            re.search(r"\.task\s+details\s+summary\s*\{[^}]*list-style:\s*none", content),
+            "style.css: 'list-style: none' missing in .task details summary",
+        )
+        self.assertTrue(
+            re.search(r"\.task\s+details\s+summary\s*\{[^}]*list-style-type:\s*none", content),
+            "style.css: 'list-style-type: none' missing in .task details summary",
+        )
+        self.assertTrue(
+            re.search(r"\.task\s+details\s+summary::-webkit-details-marker\s*\{\s*display:\s*none;?\s*\}", content),
+            "style.css: '::-webkit-details-marker' display:none missing in .task details summary",
+        )
+        self.assertTrue(
+            re.search(r"\.task\s+details\s+summary::marker\s*\{\s*display:\s*none;?\s*\}", content),
+            "style.css: '::marker' display:none missing in .task details summary",
+        )
+        self.assertTrue(
+            re.search(r'\.task\s+details\s+summary::before\s*\{[^}]*content:\s*"▸ "', content),
+            "style.css: closed arrow '▸ ' pseudo-element missing in .task details summary::before",
+        )
+        self.assertTrue(
+            re.search(r'\.task\s+details\[open\]\s+summary::before\s*\{[^}]*content:\s*"▾ "', content),
+            "style.css: open arrow '▾ ' pseudo-element missing in .task details[open] summary::before",
+        )
 
-            # .task details summary checks
-            self.assertTrue(
-                re.search(r"\.task\s+details\s+summary\s*\{[^}]*list-style:\s*none", content),
-                f"{fpath.name}: 'list-style: none' missing in .task details summary",
-            )
-            self.assertTrue(
-                re.search(r"\.task\s+details\s+summary\s*\{[^}]*list-style-type:\s*none", content),
-                f"{fpath.name}: 'list-style-type: none' missing in .task details summary",
-            )
-            self.assertTrue(
-                re.search(r"\.task\s+details\s+summary::-webkit-details-marker\s*\{\s*display:\s*none;?\s*\}", content),
-                f"{fpath.name}: '::-webkit-details-marker' display:none missing in .task details summary",
-            )
-            self.assertTrue(
-                re.search(r"\.task\s+details\s+summary::marker\s*\{\s*display:\s*none;?\s*\}", content),
-                f"{fpath.name}: '::marker' display:none missing in .task details summary",
-            )
-            self.assertTrue(
-                re.search(r'\.task\s+details\s+summary::before\s*\{[^}]*content:\s*"▸ "', content),
-                f"{fpath.name}: closed arrow '▸ ' pseudo-element missing in .task details summary::before",
-            )
-            self.assertTrue(
-                re.search(r'\.task\s+details\[open\]\s+summary::before\s*\{[^}]*content:\s*"▾ "', content),
-                f"{fpath.name}: open arrow '▾ ' pseudo-element missing in .task details[open] summary::before",
-            )
-
-            # .qa > summary checks
-            self.assertTrue(
-                re.search(r"\.qa\s*>\s*summary\s*\{[^}]*list-style:\s*none", content),
-                f"{fpath.name}: 'list-style: none' missing in .qa > summary",
-            )
-            self.assertTrue(
-                re.search(r"\.qa\s*>\s*summary\s*\{[^}]*list-style-type:\s*none", content),
-                f"{fpath.name}: 'list-style-type: none' missing in .qa > summary",
-            )
-            self.assertTrue(
-                re.search(r"\.qa\s*>\s*summary::-webkit-details-marker\s*\{\s*display:\s*none;?\s*\}", content),
-                f"{fpath.name}: '::-webkit-details-marker' display:none missing in .qa > summary",
-            )
-            self.assertTrue(
-                re.search(r"\.qa\s*>\s*summary::marker\s*\{\s*display:\s*none;?\s*\}", content),
-                f"{fpath.name}: '::marker' display:none missing in .qa > summary",
-            )
-            self.assertTrue(
-                re.search(r'\.qa\s*>\s*summary::before\s*\{[^}]*content:\s*"❯ "', content),
-                f"{fpath.name}: '❯ ' pseudo-element missing in .qa > summary::before",
-            )
+        # .qa > summary checks
+        self.assertTrue(
+            re.search(r"\.qa\s*>\s*summary\s*\{[^}]*list-style:\s*none", content),
+            "style.css: 'list-style: none' missing in .qa > summary",
+        )
+        self.assertTrue(
+            re.search(r"\.qa\s*>\s*summary\s*\{[^}]*list-style-type:\s*none", content),
+            "style.css: 'list-style-type: none' missing in .qa > summary",
+        )
+        self.assertTrue(
+            re.search(r"\.qa\s*>\s*summary::-webkit-details-marker\s*\{\s*display:\s*none;?\s*\}", content),
+            "style.css: '::-webkit-details-marker' display:none missing in .qa > summary",
+        )
+        self.assertTrue(
+            re.search(r"\.qa\s*>\s*summary::marker\s*\{\s*display:\s*none;?\s*\}", content),
+            "style.css: '::marker' display:none missing in .qa > summary",
+        )
+        self.assertTrue(
+            re.search(r'\.qa\s*>\s*summary::before\s*\{[^}]*content:\s*"❯ "', content),
+            "style.css: '❯ ' pseudo-element missing in .qa > summary::before",
+        )
 
     def test_02_no_literal_arrows_in_task_summary_html(self):
         """Verify no hardcoded arrow characters remain in task <summary> across all 28 lectures."""
         for fpath in self.lecture_paths:
             content = read_file(fpath)
-            task_summaries = re.findall(r'<div class=["\']task["\'].*?<summary>(.*?)</summary>', content, flags=re.DOTALL)
+            task_summaries = re.findall(r"""<div\s+class=["']task["'].*?<summary>(.*?)</summary>""", content, flags=re.DOTALL)
             self.assertGreater(len(task_summaries), 0, f"No task summaries found in {fpath.name}")
             for s in task_summaries:
                 self.assertEqual(s.strip(), "Решение", f"{fpath.name}: Unexpected task summary content '{s}'")
@@ -110,10 +106,13 @@ class TestR5SummaryStyling(unittest.TestCase):
             total_tasks += len(sols)
         self.assertEqual(total_tasks, 170, f"Expected exactly 170 standardized task solutions, found {total_tasks}")
 
-    def test_04_lecture_10_vae_stylesheet_link(self):
-        """Verify lecture 10-vae.html correctly imports external style.css."""
-        content = read_file(LECTURES_DIR / "10-vae.html")
-        self.assertIn('<link rel="stylesheet" href="../style.css">', content)
+    def test_04_all_lectures_have_stylesheet_link(self):
+        """Verify all 28 lectures correctly link to external style.css and shared JS."""
+        for fpath in self.lecture_paths:
+            content = read_file(fpath)
+            self.assertIn('<link rel="stylesheet" href="../style.css">', content, f"{fpath.name} missing style.css link")
+            self.assertIn('<script src="../js/tracker.js"></script>', content, f"{fpath.name} missing tracker.js")
+            self.assertIn('<script src="../js/lecture.js"></script>', content, f"{fpath.name} missing lecture.js")
 
     def test_05_qa_summaries_no_duplicate_arrows(self):
         """Verify none of the 296 QA question summaries have hardcoded leading arrows."""
@@ -122,7 +121,7 @@ class TestR5SummaryStyling(unittest.TestCase):
         for fpath in self.lecture_paths:
             content = read_file(fpath)
             qa_summaries = re.findall(
-                r'<details\s+class=["\']qa["\'][^>]*>\s*<summary>(.*?)</summary>',
+                r"""<details\s+class=["']qa["'][^>]*>\s*<summary>(.*?)</summary>""",
                 content,
                 re.DOTALL,
             )
@@ -137,19 +136,15 @@ class TestR5SummaryStyling(unittest.TestCase):
         self.assertEqual(total_qa, 296, f"Expected 296 QA blocks across all lectures, found {total_qa}")
 
     def test_06_qa_open_marker_rotation_rule(self):
-        """Verify transform: rotate(90deg) is present on .qa[open] > summary::before in all styles."""
-        files_with_embedded_css = [self.style_css_path, self.index_path] + [
-            p for p in self.lecture_paths if p.name != "10-vae.html"
-        ]
-        for fpath in files_with_embedded_css:
-            content = read_file(fpath)
-            self.assertTrue(
-                re.search(
-                    r"\.qa\[open\]\s*>\s*summary::before\s*\{[^}]*transform:\s*rotate\(90deg\)",
-                    content,
-                ),
-                f"{fpath.name}: 'transform: rotate(90deg)' missing in .qa[open] > summary::before",
-            )
+        """Verify transform: rotate(90deg) is present on .qa[open] > summary::before in style.css."""
+        content = read_file(self.style_css_path)
+        self.assertTrue(
+            re.search(
+                r"\.qa\[open\]\s*>\s*summary::before\s*\{[^}]*transform:\s*rotate\(90deg\)",
+                content,
+            ),
+            "style.css: 'transform: rotate(90deg)' missing in .qa[open] > summary::before",
+        )
 
     def test_07_all_details_elements_have_valid_summary(self):
         """Verify all 466 details blocks across all lectures contain exactly one <summary> tag."""
@@ -243,5 +238,3 @@ class TestR5SummaryStyling(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-
-

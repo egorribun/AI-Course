@@ -1,6 +1,6 @@
 """
 Master Test Runner for Deep Learning Course Verification Suite.
-Executes Requirements R1, R2, R3, and R4 test suites and outputs structured report.
+Executes Requirements R1, R2, R3, R4, R5, Exam Simulator, Anki Exporter, TSV Parsing, HTML Conformance, and Forensics suites.
 """
 
 from __future__ import annotations
@@ -22,6 +22,13 @@ from tests.test_r2_math_latex import TestR2MathLatex
 from tests.test_r3_code_exec import TestR3CodeExec
 from tests.test_r4_structure_nav import TestR4StructureNav
 from tests.test_r5_summary_styling import TestR5SummaryStyling
+from tests.test_theme_and_styles import TestThemeAndStyles
+from tests.test_js_assets_and_tracker import TestJSAssetsAndTracker
+from tests.test_exam_simulator import TestExamSimulator
+from tests.test_anki_exporter import TestAnkiExporter
+from tests.test_anki_tsv_parsing import TestAnkiTSVParsing
+from tests.test_all_28_lectures_html_conformance import TestAll28LecturesHTMLConformance
+from tests.test_portal_ui import TestPortalUI
 from tests.test_adversarial_challenges import TestAdversarialChallenges
 from tests.test_syllabus_mathematical_forensics import TestSyllabusForensics
 from tests.test_qa_pill_sync import TestQAPillSync
@@ -51,7 +58,6 @@ class DetailedTestResult(unittest.TestResult):
 
 
 def run_suite_and_gather_stats(suite_class, suite_name: str) -> Dict:
-    """Run a single test suite class and extract statistics."""
     loader = unittest.TestLoader()
     suite = loader.loadTestsFromTestCase(suite_class)
     result = DetailedTestResult()
@@ -97,7 +103,14 @@ def main():
         (TestR2MathLatex, "R2: Math & LaTeX Verification"),
         (TestR3CodeExec, "R3: Code & Implementation Check"),
         (TestR4StructureNav, "R4: Structure & Navigation Integrity"),
-        (TestR5SummaryStyling, "R5: Summary Marker & Arrow Polish"),
+        (TestR5SummaryStyling, "R5: Summary Marker & DRY CSS Rules"),
+        (TestThemeAndStyles, "Platform: Theme Engine & Widgets"),
+        (TestJSAssetsAndTracker, "Platform: JS & CourseTracker Core"),
+        (TestExamSimulator, "Platform: Exam Simulator & Flashcards"),
+        (TestAnkiExporter, "Platform: Anki Exporter & Dataset"),
+        (TestAnkiTSVParsing, "Platform: Anki TSV Strict Parser"),
+        (TestAll28LecturesHTMLConformance, "Platform: 28 HTML Lectures Conformance"),
+        (TestPortalUI, "Platform: Portal UI & Search Hub"),
         (TestAdversarialChallenges, "Adversarial Stress & Boundary Suite"),
         (TestSyllabusForensics, "Syllabus Mathematical Forensic Suite"),
         (TestQAPillSync, "QA Pill Badge Exact Sync Suite"),
@@ -129,7 +142,7 @@ def main():
         total_duration += stats["duration"]
 
     # Print summary table
-    print("\nSUMMARY OF REQUIREMENTS VERIFICATION:")
+    print("\nSUMMARY OF REQUIREMENTS & PLATFORM VERIFICATION:")
     print("-" * 80)
     header = f"{'Requirement Suite':<38} | {'Total':<6} | {'Pass':<6} | {'Fail':<6} | {'Err':<5} | {'Rate':<7}"
     print(header)
@@ -152,7 +165,6 @@ def main():
     print(f"Elapsed Time: {total_duration:.3f}s")
     print("=" * 80)
 
-    # Print detailed failures if any
     has_failures = total_failed > 0 or total_errors > 0
     if has_failures:
         print("\nIDENTIFIED ISSUES & REMEDIATION BACKLOG:")
@@ -162,13 +174,12 @@ def main():
                 print(f"\n>>> {st['name']} ({len(st['failure_details'])} failure(s)):")
                 for item in st["failure_details"]:
                     print(f"\n  [FAIL] {item['test']}:")
-                    # Print first 5 lines of error for clarity
                     lines = item["error"].splitlines()
                     for line in lines[-6:]:
                         print(f"    {line}")
         print("\n" + "=" * 80)
 
-    print("\nVerification status: " + ("ALL TESTS PASSED" if not has_failures else "FAILURES DETECTED (EXPECTED AT BASELINE)"))
+    print("\nVerification status: " + ("ALL TESTS PASSED" if not has_failures else "FAILURES DETECTED"))
     return 1 if has_failures else 0
 
 

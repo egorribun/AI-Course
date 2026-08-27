@@ -52,6 +52,7 @@
 | **M2** | PyTorch Code Syntax & Execution Fix | Fix unescaped `<` in L14 & L24, raw `>` in L01 & L20, test all snippets | none | **DONE** |
 | **M3** | Q&A Content Expansion (57 questions) | Generate and inject 57 high-quality exam questions with answers across 16 lectures (11, 12, 14–27) so all 28 lectures have $\ge 10$ QA | M0 | **DONE** |
 | **M4** | E2E Full Pass & Adversarial Hardening | Run 100% test suite, Challenger verification, Forensic Audit | M1, M2, M3 | **DONE** |
+| **M5** | Platform Modernization & EdTech Hub | Exam Simulator (randomizer + 3-min timer + flashcards), LocalStorage tracker, Anki exporter, DRY CSS/JS refactoring, pre-commit | M4 | **DONE** |
 
 ## Interface Contracts & Layout
 ### Code Layout

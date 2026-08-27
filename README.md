@@ -3,7 +3,7 @@
 <div align="center">
 
 [![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-Live%20Portal-58a6ff?style=for-the-badge&logo=github&logoColor=white)](https://egorribun.github.io/AI-Course/)
-[![CI / Tests](https://img.shields.io/badge/CI%20Pytest-195%20Passed-3fb950?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/egorribun/AI-Course/actions)
+[![CI / Tests](https://img.shields.io/badge/CI%20Pytest-220%20Passed-3fb950?style=for-the-badge&logo=pytest&logoColor=white)](https://github.com/egorribun/AI-Course/actions)
 [![Linter](https://img.shields.io/badge/Ruff-0%20Errors-46e3b7?style=for-the-badge&logo=ruff&logoColor=white)](https://github.com/astral-sh/ruff)
 [![uv](https://img.shields.io/badge/uv-Astral%20Fast%20Env-de5fe9?style=for-the-badge&logo=astral&logoColor=white)](https://github.com/astral-sh/uv)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.13%20%7C%203.14-3776ab?style=for-the-badge&logo=python&logoColor=white)](pyproject.toml)
@@ -99,6 +99,33 @@
 | **Лекция 25** | [`25-td-qlearning.html`](lectures/25-td-qlearning.html) | **Билет 23** | Бессмодельное обучение (Model-Free): Temporal Difference TD(0), On-policy SARSA, Off-policy Q-Learning, Deep Q-Networks (DQN) | 2.0 ч |
 | **Лекция 26** | [`26-policy-gradient.html`](lectures/26-policy-gradient.html) | **Билет 24** | Методы оптимизации стратегии: Метод кросс-энтропии (CEM), Теорема о градиенте стратегии (Policy Gradient Theorem), Алгоритм REINFORCE | 2.0 ч |
 | **Лекция 27** | [`27-actor-critic.html`](lectures/27-actor-critic.html) | **Билет 25** | Сравнение Value-based vs Policy-based, Архитектуры Актор-Критик (Actor-Critic), Advantage ($A(s,a)$), A2C/A3C, PPO, SAC | 1.75 ч |
+
+---
+
+---
+
+## 🚀 Интерактивная платформа и возможности
+
+Веб-портал включает полный набор EdTech-инструментов для интенсивной подготовки:
+
+1. **🎲 Интерактивный симулятор экзамена:**
+   - **Рандомайзер билетов (1–25):** Случайная генерация билета по официальной экзаменационной программе ГУУ.
+   - **⏱️ 3-минутный таймер ответа:** Таймер обратного отсчета со звуковым гонгом (Web Audio API) для тренировки устного ответа у доски.
+   - **🗂️ Flashcards (296 вопросов):** Режим экспресс-опроса по каверзным вопросам преподавателя с самопроверкой («Знаю», «Сомневаюсь», «Не помню»).
+   - **📝 Банк микро-задач (170 задач):** Практические расчетные упражнения с пошаговыми решениями.
+2. **📊 Бессерверный трекинг прогресса (LocalStorage):**
+   - Живой прогресс-бар курса (процент изученных лекций, вопросов и задач).
+   - Чекбоксы «Выучено / Решено» у каждого вопроса и задачи внутри лекций.
+   - Экспорт и резервное копирование прогресса в JSON.
+3. **🔍 Живой поиск и фильтрация:**
+   - Мгновенный поиск по 28 лекциям, билетам, формулам и терминам (например, `AdamW`, `ELBO`, `RoPE`, `BLEU`, `PPO`).
+   - Быстрые теги: *Computer Vision*, *NLP & Transformers*, *Reinforcement Learning*, *Math & Optimization*.
+4. **📥 Экспорт колод в Anki (`tools/export_anki.py`):**
+   - Готовые `.tsv` колоды для Anki Desktop/Mobile: `anki_decks/ai_course_exam_qas.tsv`, `anki_decks/ai_course_microtasks.tsv`, `anki_decks/ai_course_3min_cheatsheets.tsv`.
+5. **🌓 Адаптивная дизайн-система и печать:**
+   - Переключатель тёмной и светлой темы.
+   - Оптимизированные стили для печати шпаргалок (`@media print`).
+   - Кнопка копирования кода в один клик и верхняя полоса прогресса чтения.
 
 ---
 
