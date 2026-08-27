@@ -50,6 +50,10 @@
 
 * { box-sizing: border-box; }
 
+em, i {
+  font-style: normal;
+}
+
 /* ---------- Доступность и Focus-Visible (WCAG 2.1 AA) ---------- */
 :focus-visible {
   outline: 2px solid var(--accent);
@@ -326,7 +330,6 @@ pre code { background: none; padding: 0; color: #d6deeb; font-size: 14px; }
   color: var(--text-dim);
   font-size: 13.5px;
   text-align: center;
-  font-style: italic;
 }
 
 /* ---------- Таблицы ---------- */
@@ -376,7 +379,6 @@ tbody tr:hover { background: rgba(110,168,254,.045); }
   font-size: 13px;
   margin-top: 12px;
   white-space: normal;
-  font-style: italic;
 }
 
 /* ---------- Q&A: «препод спросит» ---------- */

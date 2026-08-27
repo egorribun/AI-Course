@@ -646,7 +646,7 @@
             <option value="math">📐 Математика & Оптимизация</option>
           </select>
           <button type="button" class="btn btn-exam" id="blitz-start-btn" style="font-size:15px; padding:10px 22px;">
-            🚀 Начать блиц-опрос (10 вопросов)
+            🚀 Начать блиц-опрос
           </button>
         </div>
       </div>
@@ -670,18 +670,18 @@
     if (!container) return;
 
     container.innerHTML = `
-      <div class="sim-container" role="region" aria-label="Интерактивный симулятор экзамена">
+      <div class="sim-container tex2jax_ignore" role="region" aria-label="Интерактивный симулятор экзамена">
         <div class="sim-header">
           <div class="sim-title">🎓 Интерактивный симулятор экзамена</div>
-          <div class="sim-nav-tabs" role="tablist" aria-label="Вкладки симулятора">
+          <div class="sim-nav-tabs tex2jax_ignore" role="tablist" aria-label="Вкладки симулятора">
             <button type="button" class="sim-tab-btn active" role="tab" id="tab-btn-ticket" aria-selected="true" aria-controls="tab-ticket" data-tab="tab-ticket">
               🎲 Экзаменационный билет
             </button>
             <button type="button" class="sim-tab-btn" role="tab" id="tab-btn-blitz" aria-selected="false" aria-controls="tab-blitz" data-tab="tab-blitz">
-              ⚡ Блиц-опрос (10 вопросов)
+              ⚡ Блиц-опрос
             </button>
             <button type="button" class="sim-tab-btn" role="tab" id="tab-btn-flashcards" aria-selected="false" aria-controls="tab-flashcards" data-tab="tab-flashcards">
-              🗂️ Карточки (интервальное повторение)
+              🗂️ Карточки
             </button>
             <button type="button" class="sim-tab-btn" role="tab" id="tab-btn-anki" aria-selected="false" aria-controls="tab-anki" data-tab="tab-anki">
               📥 Экспорт в Anki
