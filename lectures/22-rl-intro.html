@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лекция 22. Введение в Reinforcement Learning и MDP</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--sans); font-size:17px; line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line); padding:38px 24px 30px; margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+</style>
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]},
+  svg: {fontCache:'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Блок D · Вопрос 21 · Обучение с подкреплением</div>
+  <h1>Лекция 22. Введение в Reinforcement Learning и MDP</h1>
+  <p class="sub">Парадигма обучения с подкреплением, цикл взаимодействия «Агент — Среда», Марковское свойство, формализация MDP ($\mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma$), дисконтированный доход $G_t$, стратегия $\pi$, функции ценности $V^\pi(s)$ и $Q^\pi(s, a)$, модель среды.</p>
+  <div class="meta">
+    <span class="pill">⏱ 2 ч</span>
+    <span class="pill gray">10 вопросов препода</span>
+    <span class="pill gray">6 микро-задач</span>
+    <span class="pill good">Билет 21</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<a class="backlink" href="../index.html">← К оглавлению курса</a>
+
+<nav class="toc">
+  <div class="bt">Содержание лекции</div>
+  <ol>
+    <li><a href="#s1">Парадигма Reinforcement Learning: отличие от Supervised / Unsupervised</a></li>
+    <li><a href="#s2">Базовый цикл взаимодействия «Агент — Среда»</a></li>
+    <li><a href="#s3">Марковское свойство (Markov Property)</a></li>
+    <li><a href="#s4">Марковский процесс принятия решений (MDP)</a></li>
+    <li><a href="#s5">Доход (Return $G_t$), горизонт и фактор дисконтирования $\gamma$</a></li>
+    <li><a href="#s6">Стратегия (Policy $\pi$): детерминированная и стохастическая</a></li>
+    <li><a href="#s7">Функции ценности: $V^\pi(s)$ и $Q^\pi(s, a)$ и связь между ними</a></li>
+    <li><a href="#s8">Model-Based vs Model-Free и дилемма Exploration vs Exploitation</a></li>
+    <li><a href="#s9">Практический пример среды (Gymnasium / GridWorld)</a></li>
+    <li><a href="#qa">Препод спросит</a></li>
+    <li><a href="#tasks">Микро-задачи</a></li>
+    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="s1"><span class="num">1.</span> Парадигма Reinforcement Learning</h2>
+
+<p><strong>Обучение с подкреплением (Reinforcement Learning, RL)</strong> — третья фундаментальная парадигма машинного обучения наряду с Supervised и Unsupervised Learning.</p>
+
+<div class="box idea">
+  <div class="bt">💡 В чем отличие RL от других видов машинного обучения?</div>
+  <ul>
+    <li><strong>Supervised Learning (С учителем):</strong> На каждом шаге есть «правильный ответ» (метка $y$). Ошибка вычисляется немедленно.</li>
+    <li><strong>Unsupervised Learning (Без учителя):</strong> Нет меток и наград. Цель — обнаружить скрытую структуру в данных (кластеризация, снижение размерности).</li>
+    <li><strong>Reinforcement Learning (С подкреплением):</strong> <strong>Нет учителя с правильными действиями.</strong> Есть обучающийся <em>Агент</em>, который действует в неизвестной <em>Среде</em> методом проб и ошибок, получая <strong>числовой сигнал награды с задержкой во времени (Delayed Reward)</strong>. Задача — максимизировать суммарный накопленный выигрыш.</li>
+  </ul>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> Базовый цикл взаимодействия «Агент — Среда»</h2>
+
+<div class="scheme">
+                      ┌─────────────────────────────────┐
+                      │              АГЕНТ              │
+                      │  (Принимает решения по стратегии)│
+                      └───────┬─────────────────▲───────┘
+                              │ Действие        │ Состояние s_t
+                              │ a_t             │ Награда r_t
+                              ▼                 │
+                      ┌─────────────────────────┴───────┐
+                      │              СРЕДА              │
+                      │   (Мир: физика, правила, игра)  │
+                      └─────────────────────────────────┘
+
+<span class="cap">Дискретный шаг времени $t$: агент совершает действие $a_t$, среда выдает новое состояние $s_{t+1}$ и награду $r_{t+1}$.</span></div>
+
+<p>Траектория взаимодействия (Episode / History):</p>
+$$ \tau = (s_0, a_0, r_1, s_1, a_1, r_2, s_2, a_2, \dots, s_T) $$
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> Марковское свойство (Markov Property)</h2>
+
+<div class="box mathbox">
+  <div class="bt">📐 Марковское свойство состояния</div>
+  <p>Состояние $s_t$ называется <strong>Марковским</strong>, если вероятность перехода в следующее состояние $s_{t+1}$ и получения награды $r_{t+1}$ зависит <strong>только от текущего состояния $s_t$ и действия $a_t$</strong>, и не зависит от всей предшествующей истории:</p>
+  $$ P(s_{t+1}, r_{t+1} \mid s_t, a_t, s_{t-1}, a_{t-1}, \dots, s_0, a_0) = P(s_{t+1}, r_{t+1} \mid s_t, a_t) $$
+  <p><em>«Будущее не зависит от прошлого при известном настоящем.»</em> Текущее состояние $s_t$ содержит в себе всю достаточную информацию о системе.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> Марковский процесс принятия решений (MDP)</h2>
+
+<p>Формально математическая задача RL формулируется как <strong>Markov Decision Process (MDP)</strong> — кортеж из 5 элементов:</p>
+
+<div class="formula">
+$$ \mathcal{M} = \langle \mathcal{S}, \, \mathcal{A}, \, \mathcal{P}, \, \mathcal{R}, \, \gamma \rangle $$
+</div>
+
+<ol>
+  <li><strong>$\mathcal{S}$ (State Space):</strong> Пространство состояний среды (дискретное, например клетки поля, или непрерывное $\mathbb{R}^n$, например углы суставов робота).</li>
+  <li><strong>$\mathcal{A}$ (Action Space):</strong> Пространство действий агента (дискретное: влево/вправо/прыжок, или непрерывное: крутящий момент мотора).</li>
+  <li><strong>$\mathcal{P}(s' \mid s, a)$ (Transition Probability):</strong> Вероятность перехода в состояние $s'$ при совершении действия $a$ в состоянии $s$:
+    $$ \mathcal{P}(s' \mid s, a) = P(S_{t+1} = s' \mid S_t = s, A_t = a) $$
+  </li>
+  <li><strong>$\mathcal{R}(s, a, s')$ (Reward Function):</strong> Математическое ожидание награды за совершение действия $a$ в $s$ с переходом в $s'$:
+    $$ \mathcal{R}(s, a) = \mathbb{E}\left[ R_{t+1} \mid S_t = s, A_t = a \right] $$
+  </li>
+  <li><strong>$\gamma \in [0, 1)$ (Discount Factor):</strong> Коэффициент дисконтирования будущих наград.</li>
+</ol>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> Доход ($G_t$), горизонт и фактор дисконтирования $\gamma$</h2>
+
+<p>Цель агента — максимизировать не сиюминутную награду $r_{t+1}$, а суммарный <strong>дисконтированный доход (Total Discounted Return, $G_t$)</strong>:</p>
+
+<div class="formula">
+$$ G_t = r_{t+1} + \gamma r_{t+2} + \gamma^2 r_{t+3} + \dots = \sum_{k=0}^\infty \gamma^k r_{t+k+1} $$
+<span class="note">Рекуррентная форма (Критически важна!): $G_t = r_{t+1} + \gamma G_{t+1}$</span>
+</div>
+
+<div class="box warnbox">
+  <div class="bt">⚠️ Зачем нужен коэффициент дисконтирования $\gamma < 1$?</div>
+  <ol>
+    <li><strong>Математическая сходимость:</strong> В бесконечных непрерывных задачах сумма наград $\sum_{t=0}^\infty r_t$ разойдется в $\infty$. При $\gamma < 1$ сумма ряда строго ограничена: $\sum_{k=0}^\infty \gamma^k R_{\max} = \frac{R_{\max}}{1 - \gamma}$.</li>
+    <li><strong>Учет неопределенности:</strong> Награда сейчас гарантирована, награда через 100 шагов может сорваться из-за стохастичности мира.</li>
+    <li><strong>Регулировка горизонта планирования:</strong> При $\gamma \to 0$ агент становится «близоруким» (думает только о $r_{t+1}$). При $\gamma \to 1$ агент становится «дальновидным» стратегам (эффективный горизонт $H \approx \frac{1}{1 - \gamma}$).</li>
+  </ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s6"><span class="num">6.</span> Стратегия (Policy $\pi$)</h2>
+
+<p><strong>Стратегия $\pi$</strong> — это правило, по которому агент выбирает действие в зависимости от текущего состояния:</p>
+
+<ul>
+  <li><strong>Детерминированная стратегия:</strong> $a = \pi(s)$. Каждому состоянию жестко сопоставлено одно действие.</li>
+  <li><strong>Стохастическая стратегия:</strong> $\pi(a \mid s) = P(A_t = a \mid S_t = s)$. Распределение вероятностей выбора действий, где $\sum_{a \in \mathcal{A}} \pi(a \mid s) = 1$.</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s7"><span class="num">7.</span> Функции ценности: $V^\pi(s)$ и $Q^\pi(s, a)$</h2>
+
+<p>Чтобы принимать оптимальные решения, агент оценивает перспективность состояний и действий:</p>
+
+<h3>1. Функция ценности состояния (State-Value Function, $V^\pi(s)$):</h3>
+<div class="formula">
+$$ V^\pi(s) = \mathbb{E}_\pi \left[ G_t \mid S_t = s \right] = \mathbb{E}_\pi \left[ \sum_{k=0}^\infty \gamma^k R_{t+k+1} \;\middle|\; S_t = s \right] $$
+<span class="note">Показывает: насколько хорошо оказаться в состоянии $s$, если далее следовать стратегии $\pi$.</span>
+</div>
+
+<h3>2. Функция ценности действия / Q-функция (Action-Value Function, $Q^\pi(s, a)$):</h3>
+<div class="formula">
+$$ Q^\pi(s, a) = \mathbb{E}_\pi \left[ G_t \mid S_t = s, A_t = a \right] $$
+<span class="note">Показывает: насколько выгодно в состоянии $s$ совершить действие $a$, а затем следовать стратегии $\pi$.</span>
+</div>
+
+<h3>Связь между $V^\pi(s)$ и $Q^\pi(s, a)$:</h3>
+<div class="formula">
+$$ V^\pi(s) = \sum_{a \in \mathcal{A}} \pi(a \mid s) \, Q^\pi(s, a) $$
+<span class="note">Ценность состояния равна математическому ожиданию Q-функций по всем возможным действиям в этом состоянии.</span>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s8"><span class="num">8.</span> Model-Based vs Model-Free и Exploration vs Exploitation</h2>
+
+<h3>Model-Based vs Model-Free:</h3>
+<ul>
+  <li><strong>Model-Based RL:</strong> Агент знает или явно выучивает физику мира $\mathcal{P}(s' \mid s, a)$ и $\mathcal{R}(s, a)$ (например, алгоритмы планирования AlphaZero, MuZero, World Models). Может «думать вперед» в воображении.</li>
+  <li><strong>Model-Free RL:</strong> Агент <strong>не знает динамику среды</strong> и обучается напрямую на реальном опыте методом проб и ошибок (Q-learning, DQN, PPO, SAC).</li>
+</ul>
+
+<h3>Дилемма «Исследование — Эксплуатация» (Exploration vs Exploitation):</h3>
+<div class="box okbox">
+  <div class="bt">⚖️ Дилемма разведки и использования</div>
+  <ul>
+    <li><strong>Exploitation (Эксплуатация):</strong> Совершать лучшее известное на данный момент действие $a = \arg\max Q(s, a)$, собирая максимальную награду.</li>
+    <li><strong>Exploration (Исследование / Разведка):</strong> Пробовать случайные неизведанные действия, чтобы найти еще более выгодные долгосрочные стратегии.</li>
+    <li><strong>$\epsilon$-Greedy стратегия:</strong> С вероятностью $1 - \epsilon$ агент выбирает лучшее действие ($\arg\max Q$), а с вероятностью $\epsilon$ — случайное действие.</li>
+  </ul>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s9"><span class="num">9.</span> Практический пример среды (Gymnasium / GridWorld)</h2>
+
+<pre><code><span class="kw">import</span> gymnasium <span class="kw">as</span> gym
+
+<span class="cmt"># Создаем классическую среду "Тележка с шестом" (CartPole)</span>
+env = gym.make(<span class="str">"CartPole-v1"</span>)
+state, info = env.reset()
+
+total_reward = <span class="num2">0</span>
+terminated = <span class="kw">False</span>
+truncated = <span class="kw">False</span>
+
+<span class="kw">while not</span> (terminated <span class="kw">or</span> truncated):
+    <span class="cmt"># Простая случайная стратегия (Exploration)</span>
+    action = env.action_space.sample() <span class="cmt"># 0: влево, 1: вправо</span>
+    
+    <span class="cmt"># Шаг среды: возвращает s_{t+1}, r_{t+1}, флаги завершения</span>
+    next_state, reward, terminated, truncated, info = env.step(action)
+    
+    total_reward += reward
+    state = next_state
+
+print(f<span class="str">"Эпизод завершен. Суммарная награда: {total_reward}"</span>)
+env.close()
+</code></pre>
+
+<!-- ============================================ -->
+<h2 id="qa">🎯 Препод спросит</h2>
+
+<details class="qa"><summary>Сформулируйте Марковское свойство простыми словами и математически.</summary>
+<div class="ans">
+<p>Марковское свойство означает, что текущее состояние $s_t$ содержит исчерпывающую информацию о всей истории процесса. Распределение вероятностей следующего состояния и награды зависит исключительно от пары $(s_t, a_t)$: $P(s_{t+1}, r_{t+1} \mid s_t, a_t, s_{t-1}, a_{t-1}, \dots) = P(s_{t+1}, r_{t+1} \mid s_t, a_t)$.</p>
+</div></details>
+
+<details class="qa"><summary>Из каких 5 компонентов состоит кортеж Марковского процесса принятия решений (MDP)?</summary>
+<div class="ans">
+<p>Кортеж $\langle \mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma \rangle$, где:<br>
+1. $\mathcal{S}$ — множество состояний;<br>
+2. $\mathcal{A}$ — множество действий;<br>
+3. $\mathcal{P}(s' \mid s, a)$ — матрица/функция вероятностей переходов среды;<br>
+4. $\mathcal{R}(s, a)$ — функция математического ожидания наград;<br>
+5. $\gamma \in [0, 1)$ — фактор дисконтирования будущих наград.</p>
+</div></details>
+
+<details class="qa"><summary>В чем разница между функцией ценности состояния $V(s)$ и Q-функцией $Q(s, a)$?</summary>
+<div class="ans">
+<p>$V^\pi(s)$ оценивает средний ожидаемый доход, если мы уже находимся в состоянии $s$ и действуем по стратегии $\pi$. $Q^\pi(s, a)$ оценивает ожидаемый доход, если мы сначала принудительно совершим конкретное действие $a$ (даже если оно нетипично для стратегии $\pi$), а уже со следующего шага будем следовать $\pi$.</p>
+</div></details>
+
+<details class="qa"><summary>Зачем в формуле дохода $G_t$ введен фактор дисконтирования $\gamma$?</summary>
+<div class="ans">
+<p>1. Обеспечивает математическую сходимость ряда суммарных наград на бесконечном горизонте ($\sum \gamma^k R \le \frac{R_{\max}}{1-\gamma}$);<br>
+2. Отражает убывание уверенности в далеком будущем в стохастической среде;<br>
+3. Позволяет настраивать горизонт планирования агента ($H \approx \frac{1}{1-\gamma}$).</p>
+</div></details>
+
+<details class="qa"><summary>Что такое дилемма Exploration vs Exploitation и как ее решает $\epsilon$-greedy стратегия?</summary>
+<div class="ans">
+<p>Это конфликт между эксплуатацией (Exploitation — выбор известного наилучшего действия для сбора награды) и исследованием (Exploration — проверка новых неизведанных действий для нахождения более выгодных путей). $\epsilon$-greedy выбирает лучшее действие с вероятностью $1-\epsilon$ и случайное действие с вероятностью $\epsilon$.</p>
+</div></details>
+
+<details class="qa"><summary>Чем Model-Based RL отличается от Model-Free RL?</summary>
+<div class="ans">
+<p>В Model-Based RL агент обладает моделью переходов $\mathcal{P}(s' \mid s, a)$ и наград $\mathcal{R}$, что позволяет ему планировать наперед в воображении (симуляция). В Model-Free RL агент не моделирует законы физики среды и обучается исключительно на фактическом опыте прямого взаимодействия.</p>
+</div></details>
+
+<details class="qa"><summary>Сформулируйте строгое математическое определение Марковского свойства первого порядка и объясните, как неполнота наблюдений превращает процесс в POMDP.</summary>
+<div class="ans">
+<p>Стохастический процесс изменения состояний обладает Марковским свойством первого порядка, если условное распределение вероятностей будущего состояния и мгновенной награды при условии всей предыстории процесса зависит исключительно от текущего состояния и предпринятого действия:</p>
+$$ \mathbb{P}(S_{t+1} = s', R_{t+1} = r \mid S_t = s_t, A_t = a_t, S_{t-1} = s_{t-1}, A_{t-1} = a_{t-1}, \dots, S_0 = s_0, A_0 = a_0) = \mathbb{P}(S_{t+1} = s', R_{t+1} = r \mid S_t = s_t, A_t = a_t) $$
+<p>Это означает, что состояние $S_t$ является достаточной статистикой (sufficient statistic) всей истории взаимодействия: знание прошлого не дает никакой дополнительной информации о будущем сверх того, что уже содержится в $S_t$.</p>
+<p>Если же агент наблюдает лишь часть признаков (например, одиночный статичный кадр из видеоигры без вектора скорости объектов), процесс становится частично наблюдаемым (Partially Observable Markov Decision Process, POMDP). В POMDP для восстановления марковости агент должен агрегировать историю наблюдений (через конкатенацию $k$ последних кадров, как в Atari DQN, или с помощью рекуррентной памяти LSTM / Transformer).</p>
+</div></details>
+
+<details class="qa"><summary>Какова строгая математическая роль фактора дисконтирования $\gamma \in [0, 1)$ в сходимости бесконечного ряда наград и каков эффективный горизонт планирования?</summary>
+<div class="ans">
+<p>Доход на бесконечном горизонте ($T = \infty$) определяется рядом:</p>
+$$ G_t = \sum_{k=0}^{\infty} \gamma^k R_{t+k+1} $$
+<ol>
+  <li><strong>Математическая сходимость ряда:</strong> Если все мгновенные награды ограничены сверху константой $|R_t| \le R_{\max}$, то по формуле суммы бесконечно убывающей геометрической прогрессии:
+  $$ |G_t| \le \sum_{k=0}^{\infty} \gamma^k |R_{t+k+1}| \le R_{\max} \sum_{k=0}^{\infty} \gamma^k = \frac{R_{\max}}{1 - \gamma} < \infty $$
+  При $\gamma = 1$ в нетерминальных непрерывных задачах сумма может расходиться к бесконечности ($G_t = \infty$), делая невозможным корректное сравнение различных стратегий.</li>
+  <li><strong>Эффективный горизонт планирования:</strong> Вклад награды через $k$ шагов дисконтируется множителем $\gamma^k$. Интегральный эффективный временной горизонт оценивается как:
+  $$ H_{\text{eff}} = \sum_{k=0}^\infty \gamma^k = \frac{1}{1 - \gamma} $$
+  Например: при $\gamma = 0.9 \implies H_{\text{eff}} = 10$ шагов (близорукий агент), при $\gamma = 0.99 \implies H_{\text{eff}} = 100$ шагов, а при $\gamma = 0.999 \implies H_{\text{eff}} = 1000$ шагов.</li>
+</ol>
+</div></details>
+
+<details class="qa"><summary>В чем математическое отличие стратегии исследования Больцмана (Boltzmann / Softmax Exploration) от $\epsilon$-greedy?</summary>
+<div class="ans">
+<p>В $\epsilon$-greedy схеме агент выбирает наилучшее действие с вероятностью $1 - \epsilon$, либо с вероятностью $\epsilon$ выбирает действие из строго равномерного распределения $\frac{1}{|\mathcal{A}|}$. При этом второе по привлекательности действие исследуется с той же частотой, что и заведомо катастрофическое.</p>
+<p><strong>Стратегия Больцмана (Boltzmann / Softmax Exploration):</strong> распределяет вероятности выбора действий пропорционально экспоненте их текущих оценок ценности $Q(s, a)$, масштабированных температурой $\tau > 0$:</p>
+$$ \pi(a \mid s) = \frac{\exp\left(\frac{Q(s, a)}{\tau}\right)}{\sum_{b \in \mathcal{A}} \exp\left(\frac{Q(s, b)}{\tau}\right)} $$
+<ul>
+  <li><strong>Ранжированное исследование:</strong> действия с высокой ожидаемой полезностью исследуются существенно чаще, чем бесперспективные.</li>
+  <li><strong>Асимптотическое поведение температуры $\tau$:</strong>
+    <ul>
+      <li>При $\tau \to \infty$: $\pi(a \mid s) \to \frac{1}{|\mathcal{A}|}$ (равномерный случайный поиск).</li>
+      <li>При $\tau \to 0^+$: $\pi(a \mid s) \to 1$ для $a = \arg\max_{a'} Q(s, a')$ (чистая детерминированная эксплуатация).</li>
+    </ul>
+  </li>
+</ul>
+</div></details>
+
+<details class="qa"><summary>Приведите подробную таксономию методов RL: Model-Free против Model-Based, и в чем компромисс между Sample Efficiency и Model Bias?</summary>
+<div class="ans">
+<p>Все алгоритмы обучения с подкреплением делятся на два ключевых направления:</p>
+<ul>
+  <li><strong>Model-Based RL (на основе модели среды):</strong> Агент явно выучивает динамику переходов $\mathcal{P}(s' \mid s, a)$ и функцию наград $\mathcal{R}(s, a)$ (или модель дана аналитически). Принятие решений осуществляется через планирование (MCTS в AlphaZero, World Models в Dreamer).
+  <ul>
+    <li><em>Преимущество:</em> Высокая эффективность по выборке (Sample Efficiency) — агент генерирует миллионы «воображаемых» переходов внутри симулятора.</li>
+    <li><em>Недостаток:</em> <strong>Model Bias (смещение модели)</strong> — ошибки аппроксимации физики среды накапливаются, и оптимизатор эксплуатирует баги симулятора, которые проваливаются в реальном мире.</li>
+  </ul>
+  </li>
+  <li><strong>Model-Free RL (без модели среды):</strong> Агент не моделирует среду, а напрямую оптимизирует функции ценности $V(s), Q(s, a)$ (Q-learning, DQN) или параметры политики $\pi_\theta$ (REINFORCE, PPO, SAC).
+  <ul>
+    <li><em>Преимущество:</em> Не подвержен ошибкам смещения модели, асимптотически сходится к истинной оптимальной политике.</li>
+    <li><em>Недостаток:</em> Требует огромного объема реального взаимодействия со средой (миллионы шагов).</li>
+  </ul>
+  </li>
+</ul>
+<p>Архитектура <strong>Dyna-Q</strong> объединяет оба мира: обновляет $Q$-функцию по реальному опыту и параллельно генерирует синтетический опыт из выученной модели среды для ускорения сходимости.</p>
+</div></details>
+
+
+<!-- ============================================ -->
+<h2 id="tasks">📝 Микро-задачи</h2>
+
+<div class="task">
+  <div class="tt">Задача 1. Расчет дисконтированного дохода $G_0$ вручную</div>
+  <p>Агент получил последовательность наград: $r_1 = 2, r_2 = -1, r_3 = 4, r_4 = 10$ (терминальный шаг). Коэффициент дисконтирования $\gamma = 0.5$. Найдите доход $G_0$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Формула: $G_0 = r_1 + \gamma r_2 + \gamma^2 r_3 + \gamma^3 r_4$.</p>
+    <p>$$ G_0 = 2 + 0.5 \cdot (-1) + 0.25 \cdot 4 + 0.125 \cdot 10 $$</p>
+    <p>$$ G_0 = 2 - 0.5 + 1.0 + 1.25 = 3.75 $$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 2. Рекуррентный пересчет дохода от конца траектории</div>
+  <p>Для той же траектории ($r_1=2, r_2=-1, r_3=4, r_4=10, \gamma=0.5$) найдите значения $G_3, G_2, G_1, G_0$ с конца через $G_t = r_{t+1} + \gamma G_{t+1}$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <ul>
+      <li>$G_3 = r_4 = 10.0$ (терминальный шаг).</li>
+      <li>$G_2 = r_3 + \gamma G_3 = 4 + 0.5 \cdot 10.0 = 4 + 5 = 9.0$.</li>
+      <li>$G_1 = r_2 + \gamma G_2 = -1 + 0.5 \cdot 9.0 = -1 + 4.5 = 3.5$.</li>
+      <li>$G_0 = r_1 + \gamma G_1 = 2 + 0.5 \cdot 3.5 = 2 + 1.75 = 3.75$.</li>
+    </ul>
+    <p>Значение $G_0 = 3.75$ в точности совпало!</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 3. Расчет $V(s)$ через значения $Q(s, a)$</div>
+  <p>В состоянии $s$ доступны 3 действия. $Q(s, a_1) = 10, Q(s, a_2) = 2, Q(s, a_3) = -4$. Стохастическая стратегия агента: $\pi(a_1 \mid s) = 0.6, \pi(a_2 \mid s) = 0.3, \pi(a_3 \mid s) = 0.1$. Найдите $V^\pi(s)$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Формула: $V^\pi(s) = \sum \pi(a \mid s) Q^\pi(s, a)$.</p>
+    <p>$$ V^\pi(s) = 0.6 \cdot 10 + 0.3 \cdot 2 + 0.1 \cdot (-4) = 6.0 + 0.6 - 0.4 = 6.2 $$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 4. Теоретический предел бесконечного дохода</div>
+  <p>В бесконечной задаче агент на каждом шаге получает постоянную награду $r_t = 5$. Коэффициент дисконтирования $\gamma = 0.9$. Чему равен суммарный доход $G_t$?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Формула суммы бесконечной геометрической прогрессии:</p>
+    <p>$$ G_t = \sum_{k=0}^\infty \gamma^k r = \frac{r}{1 - \gamma} = \frac{5}{1 - 0.9} = \frac{5}{0.1} = 50.0 $$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 5. Расчет эффективного горизонта планирования</div>
+  <p>При $\gamma = 0.99$, через сколько шагов $k$ влияние будущей награды $r_{t+k}$ уменьшится в $e \approx 2.718$ раз ($\gamma^k \approx 1/e$)?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Используем приближение $\ln(1 - x) \approx -x$:</p>
+    <p>$$ \gamma^k = (1 - 0.01)^k \approx e^{-0.01 k} = e^{-1} \implies 0.01 k = 1 \implies k = \frac{1}{1 - \gamma} = \frac{1}{0.01} = 100 \text{ шагов} $$</p>
+    <p>Эффективный горизонт планирования при $\gamma=0.99$ составляет около 100 шагов.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 6. Проверка марковского свойства на физической задаче</div>
+  <p>Положение маятника описывается координатой угла $\theta_t$. Является ли состояние $s_t = (\theta_t)$ марковским для прогноза угла на следующем шаге $\theta_{t+1}$? Если нет, как сделать его марковским?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>Нет, не является.</strong> Зная только угол $\theta_t$, мы не знаем, куда маятник движется (по часовой стрелке или против) и с какой скоростью.</p>
+    <p><strong>Решение:</strong> Включить угловую скорость $\dot{\theta}_t$ в вектор состояния: $s_t = (\theta_t, \dot{\theta}_t)$. В механике Ньютона положение и скорость в момент $t$ однозначно определяют положение в момент $t+1$, делая состояние марковским.</p>
+  </div></details>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+
+<div class="cheat">
+  <div class="bt">Скелет устного ответа по билету 21 (Введение в RL и MDP)</div>
+  <ol>
+    <li><strong>Суть RL.</strong> Агент обучается взаимодействием со средой методом проб и ошибок, максимизируя числовой сигнал отложенной награды (Delayed Reward) без учителя.</li>
+    <li><strong>Цикл.</strong> Состояние $s_t \to$ Действие $a_t \to$ Среда переходит в $s_{t+1}$ и возвращает награду $r_{t+1}$.</li>
+    <li><strong>Марковское свойство.</strong> Будущее зависит только от настоящего $(s_t, a_t)$ и не зависит от прошлого: $P(s_{t+1}, r_{t+1} \mid s_t, a_t)$.</li>
+    <li><strong>Формализация MDP.</strong> Кортеж $\langle \mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma \rangle$: состояния, действия, вероятности переходов, функция наград, дисконт.</li>
+    <li><strong>Дисконтированный доход.</strong> $G_t = \sum_{k=0}^\infty \gamma^k r_{t+k+1} = r_{t+1} + \gamma G_{t+1}$. $\gamma < 1$ обеспечивает сходимость ряда к $\frac{R_{\max}}{1-\gamma}$ и задает горизонт $H \approx \frac{1}{1-\gamma}$.</li>
+    <li><strong>Стратегия $\pi$.</strong> Детерминированная $a = \pi(s)$ или стохастическая $\pi(a \mid s) = P(a \mid s)$.</li>
+    <li><strong>Функции ценности.</strong> $V^\pi(s) = \mathbb{E}[G_t \mid s]$ (ценность состояния) и $Q^\pi(s, a) = \mathbb{E}[G_t \mid s, a]$ (ценность действия). Связь: $V^\pi(s) = \sum \pi(a \mid s) Q^\pi(s, a)$.</li>
+    <li><strong>Model-Based vs Model-Free.</strong> Model-Based знает или учит модель $\mathcal{P}$ и $\mathcal{R}$; Model-Free учится только по траекториям опыта.</li>
+    <li><strong>Exploration vs Exploitation.</strong> Конфликт между исследованием нового и сбором известной награды ($\epsilon$-greedy).</li>
+  </ol>
+</div>
+
+<div class="navrow">
+  <a class="backlink" href="21-enc-dec.html">← Лекция 21. Архитектуры Transformer</a>
+  <a class="backlink" href="23-bellman.html">Лекция 23. Уравнения Беллмана →</a>
+</div>
+
+</div>
+</body>
+</html>

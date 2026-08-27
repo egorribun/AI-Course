@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лекция 16. Трансформеры: архитектура и элементы</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--sans); font-size:17px; line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line); padding:38px 24px 30px; margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+</style>
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]},
+  svg: {fontCache:'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Блок C · Вопрос 15 · Трансформеры</div>
+  <h1>Лекция 16. Архитектура Transformer («Attention is all you need»)</h1>
+  <p class="sub">Полное устройство трансформера: энкодер, декодер, Multi-Head Self-Attention, Feed-Forward Network, Residual connections, Pre-LN vs Post-LN LayerNorm, позиционное кодирование (Positional Encoding) и сквозной поток данных.</p>
+  <div class="meta">
+    <span class="pill">⏱ 2 ч</span>
+    <span class="pill gray">10 вопросов препода</span>
+    <span class="pill gray">6 микро-задач</span>
+    <span class="pill good">Билет 15</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<a class="backlink" href="../index.html">← К оглавлению курса</a>
+
+<nav class="toc">
+  <div class="bt">Содержание лекции</div>
+  <ol>
+    <li><a href="#s1">Революция 2017 года: отказ от рекуррентности</a></li>
+    <li><a href="#s2">Общая архитектура Encoder-Decoder Transformer</a></li>
+    <li><a href="#s3">Блок Энкодера (Encoder Layer)</a></li>
+    <li><a href="#s4">Блок Декодера (Decoder Layer)</a></li>
+    <li><a href="#s5">Анатомия компонентов: FFN, Residual и LayerNorm (Pre-LN vs Post-LN)</a></li>
+    <li><a href="#s6">Позиционное кодирование: Синусоидальное, Обучаемое, RoPE</a></li>
+    <li><a href="#s7">Сквозной путь данных (End-to-End Data Flow)</a></li>
+    <li><a href="#s8">Практическая реализация на PyTorch</a></li>
+    <li><a href="#qa">Препод спросит</a></li>
+    <li><a href="#tasks">Микро-задачи</a></li>
+    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="s1"><span class="num">1.</span> Революция 2017 года: отказ от рекуррентности</h2>
+
+<p>До 2017 года доминирующей парадигмой в обработке естественного языка (NLP) были рекуррентные сети (LSTM, biLSTM, GRU). Статья команды Google Brain (Ашиш Васвани, Ноам Шазир, Илья Полосухин и др.) <strong>«Attention is All You Need»</strong> изменила мир искусственного интеллекта.</p>
+
+<p>Авторы доказали, что можно <strong>полностью отказаться от рекуррентных и свёрточных связей</strong>, построив сквозную модель исключительно на механизмах внимания и полносвязных проекциях.</p>
+
+<div class="box idea">
+  <div class="bt">💡 Три кита превосходства Transformer над RNN</div>
+  <ol>
+    <li><strong>Массивный параллелизм при обучении:</strong> В отличие от RNN, где шаг $t$ ждет шага $t-1$, трансформер обрабатывает все $T$ токенов одновременно за $O(1)$ параллельных матричных операций.</li>
+    <li><strong>Прямой путь градиента $O(1)$:</strong> Любой токен напрямую связан с любым другим токеном через внимание. Нет затухания градиента на длинных контекстах.</li>
+    <li><strong>Масштабируемость (Scaling Laws):</strong> Архитектура идеально ложится на тензорные ядра GPU/TPU, что позволило масштабировать модели до сотен миллиардов параметров (GPT-4, Claude, Gemini, LLaMA).</li>
+  </ol>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> Общая архитектура Encoder-Decoder Transformer</h2>
+
+<div class="scheme">
+                      ВЫХОДНЫЕ ВЕРОЯТНОСТИ (Словарь |V|)
+                                     ▲
+                              [ Linear + Softmax ]
+                                     │
+           ┌─────────────────────────┴────────────────────────┐
+           │             СТЕК ДЕКОДЕРА (N = 6 слоев)          │
+           │  ┌────────────────────────────────────────────┐  │
+           │  │ Feed-Forward Network + Add & LayerNorm     │  │
+           │  └──────────────────────▲─────────────────────┘  │
+           │                         │                        │
+  ┌────────┼──────────┐       ┌──────┴─────────────────────┐  │
+  │ СТЕК ЭНКОДЕРА     │       │ Cross-Attention (Q, K, V)  │  │
+  │ (N = 6 слоев)     │──────▶│ + Add & LayerNorm          │  │
+  │ ┌──────────────┐  │ K, V  └──────────────▲─────────────┘  │
+  │ │ FFN + Norm   │  │                      │                │
+  │ └──────▲───────┘  │       ┌──────────────┴─────────────┐  │
+  │ ┌──────┴───────┐  │       │ Masked Self-Attention      │  │
+  │ │ Self-Attn    │  │       │ + Add & LayerNorm          │  │
+  │ │ + Norm       │  │       └──────────────▲─────────────┘  │
+  │ └──────▲───────┘  │                      │                │
+  └────────┼──────────┘       └──────────────┼────────────────┘
+           │                                 │
+     (Pos Encoding)                    (Pos Encoding)
+           ▲                                 ▲
+  [ Input Embeddings ]              [ Output Embeddings ]
+           ▲                                 ▲
+   Входные токены (EN)               Целевые токены (RU) (Сдвинуты вправо)
+
+<span class="cap">Классическая архитектура оригинального Transformer из статьи «Attention is All You Need» (2017).</span></div>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> Блок Энкодера (Encoder Layer)</h2>
+
+<p>Энкодер состоит из стопки $N = 6$ идентичных слоев. Каждый слой содержит <strong>два основных подблока</strong>, охваченных остаточными связями (Residual Connections) и нормализацией (LayerNorm):</p>
+
+<ol>
+  <li><strong>Подблок 1 — Multi-Head Self-Attention:</strong> Позволяет каждому входному токену взаимодействовать со всеми остальными токенами фразы (без ограничений по направлению — двунаправленно).
+    $$ x^{(1)} = \text{LayerNorm}\left( x + \text{MultiHeadSelfAttention}(x) \right) $$
+  </li>
+  <li><strong>Подблок 2 — Position-wise Feed-Forward Network (FFN):</strong> Двухслойный полносвязный MLP, применяемый к каждому токену независимо и одинаково:
+    $$ x^{(2)} = \text{LayerNorm}\left( x^{(1)} + \text{FFN}(x^{(1)}) \right) $$
+  </li>
+</ol>
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> Блок Декодера (Decoder Layer)</h2>
+
+<p>Декодер также состоит из стопки $N = 6$ слоев, но содержит <strong>три подблока</strong>:</p>
+
+<ol>
+  <li><strong>Подблок 1 — Masked Multi-Head Self-Attention:</strong> Авторегрессионное самовнимание. С помощью <em>причинной маски (Causal Mask)</em> позиции $t$ запрещается смотреть на будущие токены $t+1, t+2, \dots$ (предотвращение утечки ответов при обучении).</li>
+  <li><strong>Подблок 2 — Cross-Attention (Encoder-Decoder Attention):</strong> Запросы ($Q$) формируются из выходов предыдущего слоя декодера, а Ключи ($K$) и Значения ($V$) берутся из финального выхода энкодера. Декодер динамически извлекает релевантную информацию из исходного текста.</li>
+  <li><strong>Подблок 3 — Position-wise Feed-Forward Network:</strong> Стандартный двухслойный MLP над каждым токеном.</li>
+</ol>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> Анатомия компонентов: FFN, Residual и LayerNorm (Pre-LN vs Post-LN)</h2>
+
+<h3>5.1 Position-wise Feed-Forward Network (FFN)</h3>
+<p>В то время как Multi-Head Attention перемешивает информацию <em>между разными позициями</em> последовательности, FFN обрабатывает информацию <em>внутри каналов каждого токена</em> по отдельности:</p>
+
+<div class="formula">
+$$ \text{FFN}(x) = \max\left(0, \, x W_1 + b_1\right) W_2 + b_2 $$
+<span class="note">В оригинальной модели: $d_{\text{model}} = 512 \xrightarrow{W_1} d_{\text{ff}} = 2048 \xrightarrow{W_2} d_{\text{model}} = 512$. В современных LLM часто используют SwiGLU / GeGLU.</span>
+</div>
+
+<h3>5.2 Layer Normalization: отличие от BatchNorm</h3>
+<table>
+<thead><tr><th>Характеристика</th><th>Batch Normalization (BatchNorm)</th><th>Layer Normalization (LayerNorm)</th></tr></thead>
+<tbody>
+<tr><td><strong>Ось нормализации</strong></td><td>По батчу для каждого признака независимо: $\mu_c = \frac{1}{B \cdot T}\sum x_{b, t, c}$.</td><td>По всем признакам/каналам для каждого токена независимо: $\mu_{b, t} = \frac{1}{d}\sum_{c=1}^d x_{b, t, c}$.</td></tr>
+<tr><td><strong>Зависимость от батча</strong></td><td>Сильная. Не работает при $B=1$ или переменной длине $T$.</td><td><strong>Полная независимость от размера батча.</strong> Идеально подходит для текстов разной длины и инференса с $B=1$.</td></tr>
+</tbody>
+</table>
+
+<h3>5.3 Post-LN vs Pre-LN (Критическая тема для экзамена!)</h3>
+
+<div class="scheme">
+  POST-LN (Оригинал 2017):               PRE-LN (Современный стандарт: GPT-2/3, LLaMA):
+
+  x ──┬──▶ [ SubLayer ] ──▶ [ + ] ──▶ [ LayerNorm ] ──▶      x ──┬──▶ [ LayerNorm ] ──▶ [ SubLayer ] ──▶ [ + ] ──▶
+      └─────────────────────▲                                    └────────────────────────────────────────▲
+
+<span class="cap">Сравнение Post-LN и Pre-LN: Pre-LN сохраняет чистый остаточный тракт (Residual Stream), обеспечивая стабильное обучение сверхглубоких моделей.</span></div>
+
+<div class="box warnbox">
+  <div class="bt">⚠️ Почему индустрия перешла на Pre-LN?</div>
+  <p>В оригинальном <strong>Post-LN</strong> нормализация стоит после сложения $x + \text{SubLayer}(x)$. В глубоких моделях градиенты на ранних слоях взрываются/затухают, из-за чего требовался жесткий и нестабильный этап Learning Rate Warmup. В <strong>Pre-LN</strong> сигнал $x$ проходит по чистому градиентному «хайвею» ($x + f(\text{LN}(x))$), что позволяет стабильно обучать сети из 100+ слоев с первого шага.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s6"><span class="num">6.</span> Позиционное кодирование: Синусоидальное, Обучаемое, RoPE</h2>
+
+<p>Операция Self-Attention вычисляет скалярные произведения между всеми парами векторов и <strong>инвариантна к перестановкам токенов (Permutation Equivariant)</strong>: если перемешать слова во фразе местами, модель получит ровно те же множества векторов без учета порядка!</p>
+
+<p>Чтобы сеть знала порядок слов, к входным эмбеддингам токенов <strong>поэлементно прибавляется вектор позиционного кодирования</strong>: $x = \text{Embedding}(w) + PE(pos)$.</p>
+
+<h3>6.1 Синусоидальное позиционное кодирование (Vaswani et al., 2017)</h3>
+<div class="formula">
+$$ \begin{aligned}
+PE_{(pos, 2i)} &= \sin\left(\frac{pos}{10000^{2i / d_{\text{model}}}}\right) \\
+PE_{(pos, 2i+1)} &= \cos\left(\frac{pos}{10000^{2i / d_{\text{model}}}}\right)
+\end{aligned} $$
+<span class="note">$pos \in [0, T-1]$ — номер позиции токена, $i \in [0, \frac{d}{2}-1]$ — индекс канала размерности.</span>
+</div>
+
+<p><strong>Гениальное свойство:</strong> По формулам тригонометрии сложения углов ($\sin(\alpha + \beta) = \sin\alpha\cos\beta + \cos\alpha\sin\beta$), вектор $PE_{pos + k}$ на относительном сдвиге $k$ можно представить как <strong>линейное преобразование</strong> вектора $PE_{pos}$ с помощью фиксированной матрицы поворота $M_k$! Модель легко выучивает относительные расстояния между словами.</p>
+
+<h3>6.2 Эволюция позиционных кодировок:</h3>
+<ul>
+  <li><strong>Обучаемые абсолютные эмбеддинги (Learned Embeddings, BERT, GPT-2):</strong> Таблица весов `nn.Embedding(max_len, d_model)`. <em>Минус:</em> не умеет экстраполировать на длину текста больше `max_len`.</li>
+  <li><strong>Rotary Position Embeddings (RoPE, Su et al., LLaMA, Mistral):</strong> Поворот векторов $Q$ и $K$ в комплексной плоскости на угол, пропорциональный позиции $pos$. Скалярное произведение $Q_m K_n^T$ природно зависит только от относительного расстояния $m - n$.</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s7"><span class="num">7.</span> Сквозной путь данных (End-to-End Data Flow)</h2>
+
+<ol>
+  <li><strong>Токенизация:</strong> Предложение <em>«Кот сидит на окне»</em> разбивается на ID токенов: `[1045, 8392, 204, 912]`.</li>
+  <li><strong>Эмбеддинг + PE:</strong> Табличный эмбеддинг размера $4 \times 512$ складывается с синусоидальной матрицей $PE$ размера $4 \times 512$.</li>
+  <li><strong>Стек Энкодера ($N$ раз):</strong> Векторы проходят через Multi-Head Self-Attention (обмениваются контекстом со всей фразой) и FFN, обогащаясь семантикой. На выходе — тензор контекстных скрытых состояний $H_{\text{enc}} \in \mathbb{R}^{B \times S \times d_{\text{model}}}$.</li>
+  <li><strong>Авторегрессионный Декодер:</strong> Начинает с токена `[BOS]`. На каждом шаге $t$:
+    <ul>
+      <li>Masked Self-Attention обрабатывает уже сгенерированные токены $y_1, \dots, y_{t-1}$.</li>
+      <li>Cross-Attention вытягивает информацию из $H_{\text{enc}}$.</li>
+      <li>Финальный линейный слой проецирует вектор $h_{\text{dec}} \in \mathbb{R}^{512}$ в логиты словаря $\mathbb{R}^{|V|}$ (например, 50 000 классов).</li>
+      <li>Softmax выдает распределение вероятностей следующего слова. Токен сэмплируется и подается на следующий шаг.</li>
+    </ul>
+  </li>
+</ol>
+
+<!-- ============================================ -->
+<h2 id="s8"><span class="num">8.</span> Практическая реализация на PyTorch</h2>
+
+<p>Реализация базового слоя Transformer Encoder (Pre-LN архитектура):</p>
+
+<pre><code><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+
+<span class="kw">class</span> TransformerEncoderLayerPreLN(nn.Module):
+    <span class="kw">def</span> __init__(self, d_model=<span class="num2">512</span>, n_heads=<span class="num2">8</span>, d_ff=<span class="num2">2048</span>, dropout=<span class="num2">0.1</span>):
+        <span class="kw">super</span>().__init__()
+        <span class="cmt"># 1. Multi-Head Attention</span>
+        self.self_attn = nn.MultiheadAttention(d_model, n_heads, dropout=dropout, batch_first=<span class="kw">True</span>)
+        
+        <span class="cmt"># 2. Position-wise Feed-Forward Network</span>
+        self.ffn = nn.Sequential(
+            nn.Linear(d_model, d_ff),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(d_ff, d_model),
+            nn.Dropout(dropout)
+        )
+        
+        <span class="cmt"># 3. Нормализация LayerNorm (Pre-LN)</span>
+        self.norm1 = nn.LayerNorm(d_model)
+        self.norm2 = nn.LayerNorm(d_model)
+        self.dropout = nn.Dropout(dropout)
+
+    <span class="kw">def</span> forward(self, x, src_mask=<span class="kw">None</span>):
+        <span class="cmt"># --- Подблок 1: Self-Attention с Pre-LN ---</span>
+        norm_x = self.norm1(x)
+        attn_out, _ = self.self_attn(norm_x, norm_x, norm_x, attn_mask=src_mask)
+        x = x + self.dropout(attn_out) <span class="cmt"># Residual Connection</span>
+        
+        <span class="cmt"># --- Подблок 2: Feed-Forward с Pre-LN ---</span>
+        norm_x = self.norm2(x)
+        ffn_out = self.ffn(norm_x)
+        x = x + ffn_out <span class="cmt"># Residual Connection</span>
+        
+        <span class="kw">return</span> x
+</code></pre>
+
+<!-- ============================================ -->
+<h2 id="qa">🎯 Препод спросит</h2>
+
+<details class="qa"><summary>В чем принципиальная разница между Self-Attention и Cross-Attention в Трансформере?</summary>
+<div class="ans">
+<p>В <strong>Self-Attention</strong> все три вектора — Запросы ($Q$), Ключи ($K$) и Значения ($V$) — формируются из <em>одного и того же источника</em> (из выходов предыдущего слоя того же блока). В <strong>Cross-Attention</strong> (в декодере) Запросы ($Q$) берутся от <em>декодера</em>, а Ключи ($K$) и Значения ($V$) приходят от <em>выхода энкодера</em>. Декодер своими запросами опрашивает память энкодера.</p>
+</div></details>
+
+<details class="qa"><summary>Зачем в декодере нужна маска в Masked Self-Attention и как она устроена?</summary>
+<div class="ans">
+<p>Декодер генерирует токены последовательно (авторегрессионно). Во время параллельного обучения мы подаем всю целевую фразу целиком. Без маски токен $y_t$ мог бы «подсмотреть» следующий токен $y_{t+1}$ через скалярное произведение, сделав задачу тривиальной. Маска представляет собой верхнетреугольную матрицу, заполненную $-\infty$ выше главной диагонали, что зануляет веса внимания к будущим токенам после Softmax.</p>
+</div></details>
+
+<details class="qa"><summary>Чем Layer Normalization отличается от Batch Normalization и почему в NLP используют только LayerNorm?</summary>
+<div class="ans">
+<p>BatchNorm нормализует каждый признак по всем объектам батча, что сильно зависит от размера батча и ломается при текстах разной длины и малых $B$. LayerNorm считает среднее $\mu$ и дисперсию $\sigma^2$ по <strong>вектору скрытых признаков одного конкретного токена</strong>, независимо от других токенов фразы и размера батча. Это идеально подходит для NLP.</p>
+</div></details>
+
+<details class="qa"><summary>Почему синусоидальное позиционное кодирование складывают с эмбеддингами, а не конкатенируют?</summary>
+<div class="ans">
+<p>Конкатенация увеличила бы размерность входа ($d_{\text{model}} + d_{\text{pos}}$), требуя дополнительных параметров во всех последующих матрицах $W^Q, W^K, W^V$. Сложение не увеличивает размерность, а в многомерном пространстве ($d=512$) векторы семантики и синусоидальные гармоники почти ортогональны и линейные слои легко их разделяют.</p>
+</div></details>
+
+<details class="qa"><summary>Какую роль играет Feed-Forward Network (FFN) после слоя внимания?</summary>
+<div class="ans">
+<p>Слой внимания выполняет лишь линейную комбинацию существующих представлений разных токенов ($\sum \alpha_i V_i$). FFN с нелинейностью (ReLU/GELU) проецирует вектор в пространство высокой размерности ($4 \times d_{\text{model}}$) и обратно, выполняя нелинейную трансформацию признаков и выступая в роли «ассоциативной памяти» фактов модели.</p>
+</div></details>
+
+<details class="qa"><summary>В чем преимущество Pre-LN перед Post-LN?</summary>
+<div class="ans">
+<p>В схеме Pre-LN нормализация применяется к входам подблоков <em>до</em> операций внимания и FFN ($x + \text{SubLayer}(\text{LN}(x))$). Это оставляет чистый остаточный тракт (Residual Stream), где градиент свободно течет от верхних слоев к нижним без масштабирования дисперсии, что позволяет обучать сверхглубокие сети без warmup.</p>
+</div></details>
+
+<details class="qa"><summary>Сколько раз вызывается декодер при генерации фразы из 20 слов на инференсе?</summary>
+<div class="ans">
+<p>При авторегрессионной генерации декодер вызывается <strong>20 раз последовательно</strong> (по одному разу для каждого нового токена). При этом энкодер вызывается <strong>ровно один раз</strong> в самом начале, так как входная фраза не меняется.</p>
+</div></details>
+
+<details class="qa"><summary>Почему в оригинальном Transformer используется $d_{\text{ff}} = 4 \times d_{\text{model}}$?</summary>
+<div class="ans">
+<p>Расширение скрытого слоя FFN в 4 раза (с 512 до 2048) дает сети достаточную емкость для моделирования сложных нелинейных зависимостей и хранения знаний о предметной области без чрезмерного утяжеления матриц внимания.</p>
+</div></details>
+
+<details class="qa"><summary>Каким математическим свойством обладает синусоидальное позиционное кодирование при относительном сдвиге позиций (Linear Property)?</summary>
+<div class="ans">
+<p>Для любой пары компонент синусоидального позиционного кодирования на частоте $\omega_i = \frac{1}{10000^{2i/d}}$ вектор на позиции $pos + k$ выражается через вектор на позиции $pos$ с помощью <strong>линейного преобразования (матрицы вращения)</strong>:</p>
+$$\begin{pmatrix} \sin(\omega_i (pos + k)) \\ \cos(\omega_i (pos + k)) \end{pmatrix} = \begin{pmatrix} \cos(\omega_i k) & \sin(\omega_i k) \\ -\sin(\omega_i k) & \cos(\omega_i k) \end{pmatrix} \begin{pmatrix} \sin(\omega_i pos) \\ \cos(\omega_i pos) \end{pmatrix}$$
+<p>Это означает, что существует фиксированная блочно-диагональная матрица перехода $M_k \in \mathbb{R}^{d \times d}$, зависящая только от величины относительного сдвига $k$, такая что $PE_{pos + k} = M_k PE_{pos}$. Благодаря этому линейные проекции $W_Q, W_K$ в механизме внимания могут легко обучаться выявлять относительные расстояния между словами независимо от их абсолютного положения в предложении.</p>
+</div></details>
+
+<details class="qa"><summary>В чем разница между абсолютными (Learned, Sinusoidal) и относительными (RoPE, ALiBi) позиционными кодированиями и почему современные LLM перешли на RoPE?</summary>
+<div class="ans">
+<p>Сравнение подходов к позиционному кодированию:</p>
+<ol>
+  <li><strong>Абсолютные (Sinusoidal, Learned Embeddings в BERT/GPT-2):</strong> Вектор позиции $PE_{pos}$ прибавляется к эмбеддингу токена $x_{pos} + PE_{pos}$ на входе в сеть. Главный недостаток: при длине контекста $L > L_{\text{train}}$ модель встречает незнакомые абсолютные индексы, и качество генерации резко деградирует (нет экстраполяции длины).</li>
+  <li><strong>ALiBi (Attention with Linear Biases, Press et al., 2021):</strong> Отказывается от добавления позиций к эмбеддингам и вместо этого вычитает линейный штраф $m \cdot |i - j|$ прямо из логитов внимания $q_i^\top k_j$. Обеспечивает устойчивую экстраполяцию длины.</li>
+  <li><p><strong>RoPE (Rotary Position Embedding, Su et al., 2021):</strong> Применяет ортогональное вращение к 2D-подпространствам векторов запросов $Q$ и ключей $K$: $\tilde{q}_m = R_{\Theta, m} q_m$, $\tilde{k}_n = R_{\Theta, n} k_n$. Скалярное произведение зависит исключительно от относительного сдвига $(m - n)$:</p>
+  $$\langle \tilde{q}_m, \tilde{k}_n \rangle = q_m^\top R_{\Theta, m}^\top R_{\Theta, n} k_n = q_m^\top R_{\Theta, n - m} k_n$$
+  <p>RoPE используется в LLaMA 1/2/3, Mistral, Qwen и Gemma, поскольку оно естественно затухает с ростом относительного расстояния, совместимо с FlashAttention и эффективно масштабируется на сверхдлинные контексты (128K+ токенов) через методы интерполяции частот (RoPE scaling, YaRN).</p></li>
+</ol>
+</div></details>
+
+<!-- ============================================ -->
+<h2 id="tasks">📝 Микро-задачи</h2>
+
+<div class="task">
+  <div class="tt">Задача 1. Подсчет параметров одного слоя Transformer Encoder</div>
+  <p>Параметры базовой модели: $d_{\text{model}} = 512$, $d_{\text{ff}} = 2048$, $h = 8$ голов. Посчитайте суммарное число обучаемых параметров в одном слое энкодера (включая проекции внимания, FFN и LayerNorm с bias).</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>1. <strong>Multi-Head Attention:</strong></p>
+    <ul>
+      <li>Матрицы $W^Q, W^K, W^V$: каждая $512 \times 512 + 512 = 262\,656$. Три матрицы: $3 \times 262\,656 = 787\,968$.</li>
+      <li>Выходная матрица $W^O$: $512 \times 512 + 512 = 262\,656$.</li>
+      <li>Итого Attention: $787\,968 + 262\,656 = 1\,050\,624$.</li>
+    </ul>
+    <p>2. <strong>FFN:</strong></p>
+    <ul>
+      <li>Линейный слой 1 ($512 \to 2048$): $512 \times 2048 + 2048 = 1\,050\,624$.</li>
+      <li>Линейный слой 2 ($2048 \to 512$): $2048 \times 512 + 512 = 1\,049\,088$.</li>
+      <li>Итого FFN: $1\,050\,624 + 1\,049\,088 = 2\,099\,712$.</li>
+    </ul>
+    <p>3. <strong>Два слоя LayerNorm:</strong> $2 \times (2 \cdot 512) = 2\,048$ ($\gamma$ и $\beta$).</p>
+    <p>$$ \text{Суммарно на 1 слой} = 1\,050\,624 + 2\,099\,712 + 2\,048 = 3\,152\,384 \approx 3.15 \text{ млн} $$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 2. Ручной расчет синусоидального позиционного кодирования</div>
+  <p>Пусть $d_{\text{model}} = 4$. Рассчитайте компоненты вектора $PE$ для позиции $pos = 0$ и позиции $pos = 1$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Формула частот: $\omega_i = \frac{1}{10000^{2i/4}} = \frac{1}{10000^{i/2}}$.</p>
+    <ul>
+      <li>Для $i=0$ (компоненты 0 и 1): $\omega_0 = 10000^0 = 1.0$.</li>
+      <li>Для $i=1$ (компоненты 2 и 3): $\omega_1 = 10000^{-0.5} = \frac{1}{100} = 0.01$.</li>
+    </ul>
+    <p><strong>Для $pos = 0$:</strong></p>
+    <p>$PE_{(0, 0)} = \sin(0 \cdot 1.0) = 0.0$, $PE_{(0, 1)} = \cos(0 \cdot 1.0) = 1.0$.</p>
+    <p>$PE_{(0, 2)} = \sin(0 \cdot 0.01) = 0.0$, $PE_{(0, 3)} = \cos(0 \cdot 0.01) = 1.0$.</p>
+    <p>$$ PE(0) = [0.0, \, 1.0, \, 0.0, \, 1.0] $$</p>
+    <p><strong>Для $pos = 1$:</strong></p>
+    <p>$PE_{(1, 0)} = \sin(1.0) \approx 0.841$, $PE_{(1, 1)} = \cos(1.0) \approx 0.540$.</p>
+    <p>$PE_{(1, 2)} = \sin(0.01) \approx 0.010$, $PE_{(1, 3)} = \cos(0.01) \approx 0.9999$.</p>
+    <p>$$ PE(1) = [0.841, \, 0.540, \, 0.010, \, 1.000] $$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 3. Расчет Causal Mask для последовательности</div>
+  <p>Последовательность состоит из 3 токенов. Выпишите бинарную матрицу маски и матрицу маски для сложения с логитами перед Softmax.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>1. Булева маска видимости (True = разрешено смотреть):</p>
+    <p>$$ M_{\text{bool}} = \begin{pmatrix} 1 & 0 & 0 \\ 1 & 1 & 0 \\ 1 & 1 & 1 \end{pmatrix} $$</p>
+    <p>2. Аддитивная маска (0 для разрешенных, $-\infty$ для запрещенных):</p>
+    <p>$$ M_{\text{add}} = \begin{pmatrix} 0 & -\infty & -\infty \\ 0 & 0 & -\infty \\ 0 & 0 & 0 \end{pmatrix} $$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 4. Размерность Cross-Attention матриц</div>
+  <p>Батч $B=8$. Длина входа энкодера $S=50$, длина выхода декодера $T=20$. Размерность $d=512$, $h=8$ голов ($d_k = 64$). Каковы размерности матриц $Q, K, V$ и матрицы весов внимания до и после Softmax в Cross-Attention?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>1. $Q$ (от декодера): $(B, h, T, d_k) = (8, 8, 20, 64)$.</p>
+    <p>2. $K, V$ (от энкодера): $(B, h, S, d_k) = (8, 8, 50, 64)$.</p>
+    <p>3. Матрица $Q K^T$: $(8, 8, T, d_k) \times (8, 8, d_k, S) \to (8, 8, 20, 50)$.</p>
+    <p>4. Softmax вычисляется по последней размерности $S=50$. Размерность весов: $(8, 8, 20, 50)$.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 5. Размерность тензора после FFN</div>
+  <p>Вход в FFN имеет размерность $(B=16, T=128, d=512)$. Промежуточный слой расширяет размерность до $d_{\text{ff}}=2048$. Каковы размеры тензора внутри FFN и на выходе?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>После первого линейного слоя $W_1$ и активации: $(16, 128, 2048)$.</p>
+    <p>После второго линейного слоя $W_2$: $(16, 128, 512)$.</p>
+    <p>Пространственная форма $(16, 128)$ сохраняется неизменной.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 6. Влияние Residual Connection на градиенты</div>
+  <p>Пусть блок описывается уравнением $y = x + F(x)$. Найдите производную $\frac{\partial y}{\partial x}$. Почему это предотвращает затухание градиента?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$$ \frac{\partial y}{\partial x} = I + \frac{\partial F(x)}{\partial x} $$</p>
+    <p>При обратном распространении ошибки через $N$ слоев градиент содержит единичное слагаемое $I$. Даже если веса подблока $F(x)$ почти зануляют градиент ($\frac{\partial F}{\partial x} \approx 0$), сигнал свободно протекает через единичную матрицу $I$, предотвращая затухание градиента.</p>
+  </div></details>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+
+<div class="cheat">
+  <div class="bt">Скелет устного ответа по билету 15 (Архитектура Transformer)</div>
+  <ol>
+    <li><strong>Суть и революция.</strong> «Attention is All You Need» (2017): полный отказ от RNN и CNN в пользу прямого внимания. Полный параллелизм при обучении, длина пути $O(1)$.</li>
+    <li><strong>Общая структура.</strong> Энкодер (N=6 слоев) переводит вход в контекстные представления. Декодер (N=6 слоев) авторегрессионно генерирует ответ.</li>
+    <li><strong>Блок Энкодера.</strong> 2 подблока: Multi-Head Self-Attention (двунаправленное) и Position-wise FFN ($d_{\text{model}} \to 4d \to d_{\text{model}}$). Охвачены Residual и LayerNorm.</li>
+    <li><strong>Блок Декодера.</strong> 3 подблока: Masked Self-Attention (с причинной маской от заглядывания вперед), Cross-Attention ($Q$ от декодера, $K,V$ от энкодера) и FFN.</li>
+    <li><strong>LayerNorm.</strong> Нормализация по каналам одного токена (в отличие от BatchNorm по батчу). Независима от $B$. Pre-LN ($x + F(\text{LN}(x))$) — современный стандарт стабильности.</li>
+    <li><strong>Residual Connections.</strong> $x + F(x)$ обеспечивает прямой тракт градиента $I + \frac{\partial F}{\partial x}$, спасая от затухания.</li>
+    <li><strong>Позиционное кодирование.</strong> Внимание инвариантно к перестановкам. Для учета порядка к эмбеддингам прибавляют $PE$. Синусоидальное кодирование выражает относительные сдвиги через линейные преобразования. Современный аналог — RoPE.</li>
+    <li><strong>Сквозной поток.</strong> Токены $\to$ Embeddings + PE $\to$ Encoder $\to$ Decoder (авторегрессия с `[BOS]`) $\to$ Linear $\to$ Softmax $\to$ сэмплирование слова.</li>
+  </ol>
+</div>
+
+<div class="navrow">
+  <a class="backlink" href="15-attention-seq2seq.html">← Лекция 15. Внимание в Seq2Seq</a>
+  <a class="backlink" href="17-self-attention.html">Лекция 17. Самовнимание: Q, K, V, маски →</a>
+</div>
+
+</div>
+</body>
+</html>

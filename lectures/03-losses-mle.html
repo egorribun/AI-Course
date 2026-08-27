@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лекция 3. Loss-функции и метод максимального правдоподобия</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:17px;
+  line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line);
+  padding:38px 24px 30px;
+  margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация назад ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление лекции ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+/* ---------- Сетка карточек (главная) ---------- */
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px; margin:20px 0}
+.lec{
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:17px 19px; text-decoration:none; color:var(--text);
+  display:block; transition:.16s; position:relative;
+}
+.lec:hover{border-color:var(--accent); transform:translateY(-2px); background:var(--card-2)}
+.lec .n{
+  font-family:var(--mono); font-size:12px; color:var(--accent);
+  font-weight:700; letter-spacing:.05em;
+}
+.lec .t{font-weight:700; margin:5px 0 6px; font-size:16.5px; line-height:1.35; color:#fff}
+.lec .d{color:var(--text-dim); font-size:13.5px; line-height:1.5}
+.lec .time{
+  margin-top:10px; font-size:12px; color:var(--text-dim);
+  font-family:var(--mono); border-top:1px solid var(--line); padding-top:8px;
+}
+
+/* ---------- Плашка дня ---------- */
+.day{
+  margin:44px 0 8px; padding:16px 22px; border-radius:12px;
+  background:linear-gradient(90deg, rgba(110,168,254,.14), transparent);
+  border-left:4px solid var(--accent);
+}
+.day h2{border:none; margin:0; padding:0; font-size:24px}
+.day p{margin:6px 0 0; color:var(--text-dim); font-size:15px}
+
+hr{border:none; border-top:1px solid var(--line); margin:44px 0}
+
+.small{font-size:14px; color:var(--text-dim)}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+
+</style>
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]},
+  svg: {fontCache:'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Блок A · Основы · Вопрос 3</div>
+  <h1>Лекция 3. Loss-функции: MSE, MAE, cross-entropy. Метод максимального правдоподобия</h1>
+  <p class="sub">Откуда берутся loss-функции и почему именно эти. Вероятностная интерпретация обучения.</p>
+  <div class="meta">
+    <span class="pill">⏱ 2 ч</span>
+    <span class="pill gray">11 вопросов препода</span>
+    <span class="pill gray">6 микро-задач</span>
+    <span class="pill">Теория + практика</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<a class="backlink" href="../index.html">← К оглавлению курса</a>
+
+<nav class="toc">
+  <div class="bt">Содержание лекции</div>
+  <ol>
+    <li><a href="#s1">Loss vs метрика</a></li>
+    <li><a href="#s2">MSE: формула, график, производная</a></li>
+    <li><a href="#s3">MAE: робастность к выбросам</a></li>
+    <li><a href="#s4">Huber loss и SmoothL1</a></li>
+    <li><a href="#s5">MSE минимизирует среднее, MAE — медиану</a></li>
+    <li><a href="#s6">Cross-entropy и дивергенция Кульбака-Лейблера</a></li>
+    <li><a href="#s7">Binary cross-entropy</a></li>
+    <li><a href="#s8">Categorical cross-entropy</a></li>
+    <li><a href="#s9">Почему нельзя MSE для классификации</a></li>
+    <li><a href="#s10">Метод максимального правдоподобия</a></li>
+    <li><a href="#s11">ММП для регрессии: гауссов шум → MSE</a></li>
+    <li><a href="#s12">ММП для классификации: категориальное → cross-entropy</a></li>
+    <li><a href="#s13">Регуляризация как байесовский априор (MAP)</a></li>
+    <li><a href="#s14">Focal loss и взвешенная CE при дисбалансе</a></li>
+    <li><a href="#qa">Препод спросит</a></li>
+    <li><a href="#tasks">Микро-задачи</a></li>
+    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="s1"><span class="num">1.</span> Loss vs метрика</h2>
+
+<p>Два разных понятия, часто путаются.</p>
+
+<div class="box idea">
+  <div class="bt">💡 Ключевое различие</div>
+  <p><strong>Loss-функция (целевая функция):</strong> число, которое модель <em>минимизирует</em> во время обучения. Должна быть <strong>дифференцируема</strong> по параметрам, чтобы можно было считать градиент и делать обновление.</p>
+  <p><strong>Метрика:</strong> число, которое мы <em>смотрим</em> в конце, чтобы оценить качество. Может быть любая — хоть недифференцируема, хоть хитрая.</p>
+</div>
+
+<p><strong>Пример:</strong> классификация. На выходе нейросеть выдаёт вероятности по классам. Во время обучения мы оптимизируем <strong>cross-entropy loss</strong> (дифференцируема). После обучения смотрим на <strong>accuracy или F1</strong> (недифференцируемы, но понятны человеку).</p>
+
+<p><strong>Почему разные?</strong> Loss нужна для оптимизации (градиент), метрика нужна для понимания бизнес-результата. Иногда они совпадают, но часто нет.</p>
+
+<div class="scheme">
+    Процесс обучения
+
+    Данные (x, y)
+         │
+         ▼
+    Модель f_θ(x)  ← оптимизируем вот здесь
+         │
+         ▼
+    Предсказание ŷ
+         │
+    ┌────┴────┐
+    │          │
+    ▼          ▼
+  Loss    Метрика
+(минимиз)  (смотрим)
+  │         │
+  ├────────┘
+  │
+  ▼
+∂L/∂θ ─→ θ ← θ - η·∇L
+
+
+    Loss: cross-entropy, MSE    Метрика: accuracy, F1, AUC
+  (ДИФФЕРЕНЦИРУЕМА)           (ПОНЯТНА БИЗНЕСУ)
+
+<span class="cap">Loss — для оптимизации (нужен градиент). Метрика — для оценки (нужна интерпретируемость).</span></div>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> MSE: формула, график, производная</h2>
+
+<h3>2.1 Определение</h3>
+
+<div class="formula">
+$$ \text{MSE} = \frac{1}{N} \sum_{i=1}^{N} (y_i - \hat{y}_i)^2 $$
+</div>
+
+<p><strong>Смысл:</strong> средняя квадратичная ошибка. Каждую ошибку возводим в квадрат, усредняем.</p>
+
+<h3>2.2 График</h3>
+
+<div class="scheme">
+    MSE как функция от ошибки e = y - ŷ
+
+    Loss
+       │
+       │        (квадратичная парабола)
+       │              ╱╲
+      4├───          ╱  ╲
+       │            ╱    ╲
+      3├           ╱      ╲
+       │          ╱        ╲
+      2├         ╱          ╲
+       │        ╱            ╲
+      1├       ╱              ╲
+       │      ╱                ╲
+      0├─────┴─────────────────┴─── e
+       │    -2   -1    0    1   2
+       │
+   Большие ошибки наказываются РЕЗКО.
+   Маленькие ошибки наказываются МЯГКО.
+
+<span class="cap">Функция MSE(e) = e². Выпуклая, строго возрастает с |e|. Чувствительна к выбросам.</span></div>
+
+<h3>2.3 Производная по ошибке</h3>
+
+<div class="formula">
+$$ \frac{\partial \text{MSE}}{\partial e} = \frac{\partial}{\partial e} e^2 = 2e $$
+<span class="note">где $e = y - \hat{y}$ ошибка, или точнее $e_i = \frac{1}{N}\sum (y_i - \hat{y}_i)^2$</span>
+</div>
+
+<p><strong>Смысл производной:</strong> градиент <em>линейно зависит от ошибки</em>. Если ошибка большая (100), градиент тоже большой (200). Если маленькая (0.1), градиент маленький (0.2).</p>
+
+<p><strong>Следствие:</strong> большие ошибки дают большие градиенты → быстрое обновление в начале. Маленькие ошибки дают маленькие градиенты → медленное приближение к минимуму. Это хорошая сбалансированность.</p>
+
+<h3>2.4 Единицы и RMSE</h3>
+
+<p>Если $y$ в метрах, MSE в м². Для интерпретации часто берут квадратный корень:</p>
+
+<div class="formula">
+$$ \text{RMSE} = \sqrt{\text{MSE}} $$
+</div>
+
+<p>Теперь RMSE в тех же единицах что $y$, удобнее читать.</p>
+
+<h3>2.5 Где применяется</h3>
+
+<p>Во всех задачах регрессии по умолчанию, если нет сильного выброса в данных или специальных требований.</p>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> MAE: робастность к выбросам</h2>
+
+<h3>3.1 Определение</h3>
+
+<div class="formula">
+$$ \text{MAE} = \frac{1}{N} \sum_{i=1}^{N} |y_i - \hat{y}_i| $$
+</div>
+
+<p><strong>Смысл:</strong> средняя абсолютная ошибка. Абсолютное значение, не квадрат.</p>
+
+<h3>3.2 График</h3>
+
+<div class="scheme">
+    MAE как функция от ошибки e = y - ŷ
+
+    Loss
+       │
+       │      (V-образная, линейная)
+      4├───╱╲
+       │  ╱  ╲
+      3├ ╱    ╲
+       │╱      ╲
+      2├        ╲
+       │         ╲
+      1├          ╲
+       │           ╲
+      0├────┴──────┴── e
+       │   -2  0   2
+       │
+  Градиент = ±1 везде.
+  Большие ошибки наказываются ЛИНЕЙНО.
+  Нет резкого скачка в наказании.
+
+<span class="cap">Функция MAE(e) = |e|. V-образная, одинаковый наклон везде (кроме 0, где недифференцируема).</span></div>
+
+<h3>3.3 Производная</h3>
+
+<div class="formula">
+$$ \frac{\partial \text{MAE}}{\partial e} = \begin{cases} 1, & e > 0 \\ -1, & e < 0 \\ \text{undefined}, & e = 0 \end{cases} $$
+</div>
+
+<p><strong>Смысл:</strong> градиент <em>константа ±1</em>, не зависит от величины ошибки. Большая ошибка (100) даёт градиент 1, маленькая (0.01) даёт тоже 1. На практике берут субградиент 0 при $e=0$.</p>
+
+<p><strong>Следствие:</strong> большие и маленькие ошибки имеют одинаковый вес при обновлении. Это хорошо для робастности (выбросы не доминируют), но может привести к колебаниям при очень маленьких ошибках (градиент не затухает).</p>
+
+<h3>3.4 Сравнение: выборос 100 среди {1,2,3,4,5}</h3>
+
+<div class="scheme">
+    y = [1, 2, 3, 4, 5, 100]
+    Predictions: ŷ = [1.5, 2.5, 3.5, 4.5, 5.5, 99]
+    Errors: e = [-0.5, -0.5, -0.5, -0.5, -0.5, 1]
+
+    MSE: (0.25 + 0.25 + 0.25 + 0.25 + 0.25 + 1) / 6 = 1.25 / 6 ≈ 0.208
+         Выброс (1²) доминирует!
+
+    MAE: (0.5 + 0.5 + 0.5 + 0.5 + 0.5 + 1) / 6 = 3.5 / 6 ≈ 0.583
+         Все ошибки равны по вкладу.
+
+<span class="cap">MSE чувствительна к выбросам (квадрат), MAE робастна (абсолютное значение).</span></div>
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> Huber loss и SmoothL1</h2>
+
+<p>Гибрид MSE и MAE: квадратичный для маленьких ошибок, линейный для больших.</p>
+
+<div class="formula">
+$$ L_\delta(e) = \begin{cases} \frac{1}{2}e^2, & |e| \le \delta \\ \delta(|e| - \frac{\delta}{2}), & |e| > \delta \end{cases} $$
+<span class="note">$\delta$ — порог, типично 1.0</span>
+</div>
+
+<div class="scheme">
+    Huber loss
+
+    Loss
+       │                         ╱╱
+      4├───╭────                ╱╱
+       │   │   ╭╮              ╱╱
+      3├───┤   ││             ╱╱
+       │   │   ││            ╱╱
+      2├───┤   ││           ╱╱
+       │   │   ╱╱          ╱╱
+      1├───┤ ╱╱ ← граница δ
+       │   ╱╱             ╱╱
+      0├──╱──┴────────┴──╱╱─ e
+       │-2   -δ  0   δ   2
+       │
+    MSE-часть         MAE-часть
+    (гладкая)      (линейная)
+
+<span class="cap">Huber loss: квадратичная внутри [-δ, δ], линейная снаружи. Компромисс.</span></div>
+
+<p><strong>Плюсы:</strong> гладкий и дифференцируем везде, устойчив к выбросам, но не так резко как MAE.</p>
+
+<p><strong>Где применяется:</strong> объектная детекция, где outliers частые, но нужна гладкость для оптимизации.</p>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> MSE минимизирует среднее, MAE — медиану</h2>
+
+<p>Это красивый и часто спрашиваемый результат.</p>
+
+<div class="box exambox">
+  <div class="bt">🎯 Готовый ответ на экзамене</div>
+  <p><strong>Теорема:</strong> Если мы минимизируем MSE, минимум достигается при $\hat{y} = E[y|x]$ (условное среднее). Если минимизируем MAE, при $\hat{y} = \text{median}(y|x)$ (условная медиана).</p>
+</div>
+
+<h3>5.1 Доказательство для MSE</h3>
+
+<p>Пусть даны значения $\{y_1, \ldots, y_N\}$ и мы хотим найти $a$, минимизирующие $\sum (y_i - a)^2$.</p>
+
+<div class="formula">
+$$ \frac{\partial}{\partial a} \sum (y_i - a)^2 = -2 \sum (y_i - a) = 0 $$
+$$ a = \frac{1}{N} \sum y_i = E[y] \quad \checkmark $$
+</div>
+
+<h3>5.2 Доказательство для MAE</h3>
+
+<p>Пусть даны значения $\{y_1, \ldots, y_N\}$ (отсортированы) и мы хотим найти $a$, минимизирующие $\sum |y_i - a|$.</p>
+
+<p>Производная $\sum |y_i - a|$ по $a$ это количество элементов, где $y_i > a$, минус количество, где $y_i < a$:</p>
+
+<div class="formula">
+$$ \frac{\partial}{\partial a} \sum |y_i - a| = -\#\{i: y_i < a\} + \#\{i: y_i > a\} $$
+</div>
+
+<p>Минимум при $\frac{\partial}{\partial a} = 0$ означает одинаковое число элементов слева и справа от $a$. Это определение медианы. $\checkmark$</p>
+
+<h3>5.3 Числовой пример</h3>
+
+<p>Данные: $y = [1, 2, 3, 4, 100]$.</p>
+
+<ul>
+  <li><strong>Среднее:</strong> $(1+2+3+4+100)/5 = 22$. MSE минимизируется при $\hat{y} = 22$.</li>
+  <li><strong>Медиана:</strong> 3 (средний элемент упорядоченного массива). MAE минимизируется при $\hat{y} = 3$.</li>
+  <li>Проверка: $\text{MSE при 22} = (21^2 + 20^2 + 19^2 + 18^2 + 78^2)/5 \approx 1330$. $\text{MSE при 3} = (2^2 + 1^2 + 0^2 + 1^2 + 97^2)/5 \approx 1880$. Ну да, 22 лучше.</li>
+  <li>Проверка: $\text{MAE при 22} = (21 + 20 + 19 + 18 + 78)/5 = 31.2$. $\text{MAE при 3} = (2 + 1 + 0 + 1 + 97)/5 = 20.2$. Ну да, 3 лучше!</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s6"><span class="num">6.</span> Cross-entropy и дивергенция Кульбака-Лейблера</h2>
+
+<h3>6.1 Энтропия</h3>
+
+<p>Мера неопределённости / неожиданности распределения $p$:</p>
+
+<div class="formula">
+$$ H(p) = -\sum_{i=1}^{K} p_i \log p_i $$
+<span class="note">$\log$ обычно натуральный или по основанию 2 (информационная мера в битах)</span>
+</div>
+
+<p><strong>Смысл:</strong> если $p$ = детерминированное распределение (один класс с вероятностью 1, остальные 0), то $H = 0$ (нет неопределённости). Если $p$ = равномерное, то $H$ максимальна (максимальная неопределённость).</p>
+
+<p><strong>Пример:</strong> $p = [1, 0]$ (детерминировано класс 0): $H = -(1 \log 1 + 0 \log 0) = 0$.</p>
+<p>$p = [0.5, 0.5]$ (максимальная неопределённость): $H = -(0.5 \log 0.5 + 0.5 \log 0.5) = \log 2 \approx 0.693$ (при натуральном логарифме).</p>
+
+<h3>6.2 Кросс-энтропия</h3>
+
+<div class="formula">
+$$ H(p, q) = -\sum_{i=1}^{K} p_i \log q_i $$
+<span class="note">$p$ — истинное распределение (метки), $q$ — предсказанное (выход модели)</span>
+</div>
+
+<p><strong>Смысл:</strong> средняя неожиданность при использовании кодирования от распределения $q$, когда истинное распределение $p$. Если $q$ хорошо приближает $p$, кросс-энтропия близка к энтропии $H(p)$. Если плохо, кросс-энтропия большая.</p>
+
+<h3>6.3 KL-дивергенция (kullback-Leibler)</h3>
+
+<div class="formula">
+$$ \text{KL}(p \| q) = \sum_{i=1}^{K} p_i \log \frac{p_i}{q_i} = H(p, q) - H(p) $$
+</div>
+
+<p><strong>Смысл:</strong> расстояние между двумя распределениями. KL ≥ 0 всегда, KL = 0 только если $p = q$.</p>
+
+<p><strong>Ключевой факт:</strong> $H(p)$ не зависит от параметров модели (это true labels). Поэтому:</p>
+
+<div class="formula">
+$$ \arg\min_\theta H(p, q_\theta) = \arg\min_\theta \text{KL}(p \| q_\theta) $$
+</div>
+
+<p>Минимизация кросс-энтропии ≡ минимизация KL-дивергенции ≡ максимизация похожести $q$ на $p$.</p>
+
+<!-- ============================================ -->
+<h2 id="s7"><span class="num">7.</span> Binary cross-entropy</h2>
+
+<h3>7.1 Формула</h3>
+
+<div class="formula">
+$$ \text{BCE} = -\frac{1}{N} \sum_{i=1}^{N} [y_i \log \hat{y}_i + (1 - y_i) \log(1 - \hat{y}_i)] $$
+<span class="note">$y_i \in \{0, 1\}$, $\hat{y}_i \in (0, 1)$ (вероятность, выход sigmoid)</span>
+</div>
+
+<h3>7.2 График</h3>
+
+<div class="scheme">
+    Binary CE как функция от предсказания ŷ, для истинного y=1
+
+    Loss
+       │ ╱╱╱
+     4 ├╱
+       │
+     3 ├
+       │
+     2 ├
+       │
+     1 ├      ╭────
+       │    ╭─╯
+     0 ├────┴─────────── ŷ
+       │  0   0.5   1
+       │
+    y=1:  BCE = -log(ŷ)
+    Если ŷ=0.99, то BCE ≈ 0.01
+    Если ŷ=0.5,  то BCE ≈ 0.69
+    Если ŷ→0,   то BCE→∞  (ШТРАФ!)
+
+<span class="cap">Уверенная ошибка (предсказал 0.01 вместо 1) → бесконечный штраф. Это хорошо.</span></div>
+
+<h3>7.3 Интерпретация</h3>
+
+<p>Для истинного $y = 1$: $\text{BCE} = -\log \hat{y}$.</p>
+
+<ul>
+  <li>Если модель уверена и правильна ($\hat{y} \approx 1$): $-\log 1 = 0$ (без штрафа).</li>
+  <li>Если модель неуверена ($\hat{y} = 0.5$): $-\log 0.5 \approx 0.69$ (штраф).</li>
+  <li>Если модель уверена и ошибается ($\hat{y} \approx 0$): $-\log 0 = \infty$ (бесконечный штраф).</li>
+</ul>
+
+<p><strong>Свойство:</strong> модель наказывается особенно за уверенные ошибки. Это хорошее свойство — не хочешь изводить уверенно неправильные ответы.</p>
+
+<!-- ============================================ -->
+<h2 id="s8"><span class="num">8.</span> Categorical cross-entropy</h2>
+
+<h3>8.1 Формула</h3>
+
+<div class="formula">
+$$ \text{CE} = -\frac{1}{N} \sum_{i=1}^{N} \sum_{k=1}^{K} y_{i,k} \log \hat{y}_{i,k} $$
+<span class="note">$y_{i,k}$ — one-hot кодирование (1 если класс k, иначе 0), $\hat{y}_{i,k}$ — предсказанная вероятность класса k</span>
+</div>
+
+<h3>8.2 Упрощение</h3>
+
+<p>Так как $y$ one-hot (только одна 1, остальные 0), сумма по $k$ коллапсирует:</p>
+
+<div class="formula">
+$$ \text{CE} = -\frac{1}{N} \sum_{i=1}^{N} \log \hat{y}_{i, y_i^*} $$
+<span class="note">$y_i^*$ — истинный класс примера $i$. Берём только логарифм вероятности правильного класса!</span>
+</div>
+
+<p><strong>Смысл:</strong> считаем логарифм только по правильному классу. Остальные классы не влияют. Штраф только за то, что назначили маленькую вероятность правильному классу.</p>
+
+<h3>8.3 Пример</h3>
+
+<p>Задача: 3 класса (кошка, собака, птица). Истина: класс кошка. Предсказания: $[\hat{y}_{\text{кошка}}, \hat{y}_{\text{собака}}, \hat{y}_{\text{птица}}] = [0.7, 0.2, 0.1]$ (после softmax).</p>
+
+<p>One-hot истина: $y = [1, 0, 0]$.</p>
+
+<p>$\text{CE} = -(1 \cdot \log 0.7 + 0 \cdot \log 0.2 + 0 \cdot \log 0.1) = -\log 0.7 \approx 0.357$.</p>
+
+<p>Если модель уверена неправильно, например $[\hat{y}] = [0.1, 0.6, 0.3]$ (думает собака), то $\text{CE} = -\log 0.1 \approx 2.303$ (большой штраф).</p>
+
+<!-- ============================================ -->
+<h2 id="s9"><span class="num">9.</span> Почему нельзя MSE для классификации</h2>
+
+<p>Это частый вопрос, и ответ нужно знать с двумя причинами.</p>
+
+<h3>9.1 Причина 1: градиент насыщается</h3>
+
+<p>Рассмотрим бинарную классификацию с выходом через sigmoid.</p>
+
+<div class="formula">
+$$ \hat{y} = \sigma(z), \quad L_{\text{MSE}} = (y - \hat{y})^2 $$
+$$ \frac{\partial L}{\partial z} = \frac{\partial L}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial z} = 2(y - \hat{y}) \cdot \sigma'(z) = 2(y - \hat{y}) \cdot \sigma(z)(1 - \sigma(z)) $$
+</div>
+
+<p>Сравним с cross-entropy:</p>
+
+<div class="formula">
+$$ L_{\text{CE}} = -[y \log \hat{y} + (1-y) \log(1-\hat{y})] $$
+$$ \frac{\partial L}{\partial z} = \frac{\partial L}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial z} = (\hat{y} - y) \cdot \sigma'(z) $$
+</div>
+
+<p><strong>Численный пример:</strong> $y = 0, \hat{y} = 0.01$ (модель почти уверена в ошибке).</p>
+
+<p>MSE: $\frac{\partial L}{\partial z} = 2 \cdot (0.01 - 0) \cdot 0.01 \cdot 0.99 \approx 0.0002$ (крошечный градиент!).</p>
+
+<p>CE: $\frac{\partial L}{\partial z} = (0.01 - 0) \cdot 0.01 \cdot 0.99 \approx 0.0001$ (тоже маленький, но...).</p>
+
+<p>Подожди, давай пересчитаем CE более аккуратно. Если $y=0$:</p>
+
+<div class="formula">
+$$ L_{\text{CE}} = -\log(1 - \hat{y}) $$
+$$ \frac{\partial L}{\partial \hat{y}} = \frac{1}{1 - \hat{y}} $$
+</div>
+
+<p>При $\hat{y} = 0.01$: $\frac{\partial L}{\partial \hat{y}} = \frac{1}{0.99} \approx 1.01$.</p>
+
+<p>Градиент по $z$: $1.01 \cdot \sigma'(0.01) \approx 1.01 \cdot 0.0099 \approx 0.01$ (всё ещё маленький, но лучше!).</p>
+
+<p>На самом деле, фишка в том, что в CE множители $\sigma'(z)$ сокращаются с производной от $\log$, получается чистый $(y - \hat{y})$. <strong>Вот настоящее доказательство:</strong></p>
+
+<div class="formula">
+$$ L_{\text{CE}} = -[y \log \sigma(z) + (1-y) \log(1-\sigma(z))] $$
+$$ \frac{\partial L}{\partial z} = -\left[y \frac{\sigma'(z)}{\sigma(z)} - (1-y) \frac{\sigma'(z)}{1-\sigma(z)}\right] $$
+$$ = -\sigma'(z) \left[\frac{y}{\sigma(z)} - \frac{1-y}{1-\sigma(z)}\right] $$
+$$ = -\sigma'(z) \left[\frac{y(1-\sigma(z)) - (1-y)\sigma(z)}{\sigma(z)(1-\sigma(z))}\right] $$
+$$ = -\sigma'(z) \left[\frac{y - \sigma(z)}{\sigma(z)(1-\sigma(z))}\right] $$
+$$ = \sigma(z) - y \quad \text{(так как } \sigma'(z) = \sigma(z)(1-\sigma(z))) $$
+</div>
+
+<p><strong>Ключевой результат:</strong> производная CE по $z$ просто $\sigma(z) - y$, независимо от $\sigma(z)$! Никакого насыщения, всегда хороший градиент.</p>
+
+<h3>9.2 Причина 2: неправильная вероятностная модель</h3>
+
+<p>MSE предполагает гауссов шум (см. лекцию ниже). Для классификации истинное распределение — категориальное (Бернулли для binary), не гауссово.</p>
+
+<!-- ============================================ -->
+<h2 id="s10"><span class="num">10.</span> Метод максимального правдоподобия</h2>
+
+<h3>10.1 Определение</h3>
+
+<div class="box idea">
+  <div class="bt">💡 MLE (Maximum Likelihood Estimation)</div>
+  <p>Дана выборка $\{(x_i, y_i)\}_{i=1}^N$, нужно найти параметры $\theta$ модели, которые максимизируют правдоподобие:</p>
+  <p>$$\theta^* = \arg\max_\theta L(\theta) = \arg\max_\theta \prod_{i=1}^N p(y_i | x_i, \theta)$$</p>
+  <p>Логарифмируем (произведение → сумма, монотонность сохраняется):</p>
+  <p>$$\theta^* = \arg\max_\theta \sum_{i=1}^N \log p(y_i | x_i, \theta)$$</p>
+  <p>Или минимизируем отрицательное логарифм-правдоподобие (NLL):</p>
+  <p>$$\theta^* = \arg\min_\theta \left(-\sum_{i=1}^N \log p(y_i | x_i, \theta)\right) = \arg\min_\theta \text{NLL}$$</p>
+</div>
+
+<h3>10.2 Почему логарифм?</h3>
+
+<ul>
+  <li><strong>Произведение → сумма:</strong> произведение N вероятностей становится суммой логарифмов (удобнее).</li>
+  <li><strong>Численная устойчивость:</strong> вероятности часто крошечные (0.001 × 0.002 × … = очень мало). Логарифмы избегают underflow.</li>
+  <li><strong>Монотонность:</strong> log монотонно возрастает, поэтому max произведения = max суммы логарифмов.</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s11"><span class="num">11.</span> ММП для регрессии: гауссов шум → MSE</h2>
+
+<p>Это главная тема. Вывод происходит в 3-4 строки.</p>
+
+<div class="box mathbox">
+  <div class="bt">📐 Главный вывод: откуда берётся MSE</div>
+
+  <p><strong>Предположение:</strong> $y_i = f(x_i, \theta) + \varepsilon_i$, где $\varepsilon_i \sim N(0, \sigma^2)$ независимый гауссов шум.</p>
+
+  <p><strong>Следствие:</strong> $y_i | x_i, \theta \sim N(f(x_i, \theta), \sigma^2)$, то есть $p(y_i | x_i, \theta) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left(-\frac{(y_i - f(x_i, \theta))^2}{2\sigma^2}\right)$.</p>
+
+  <p><strong>Логарифм правдоподобия:</strong></p>
+  <p>$$\log L(\theta) = \sum_{i=1}^N \log p(y_i | x_i, \theta) = \sum_{i=1}^N \left[-\frac{1}{2}\log(2\pi\sigma^2) - \frac{(y_i - f(x_i, \theta))^2}{2\sigma^2}\right]$$</p>
+
+  <p><strong>Максимизация по $\theta$:</strong> первое слагаемое от $\theta$ не зависит, поэтому:</p>
+  <p>$$\arg\max_\theta \log L(\theta) = \arg\min_\theta \sum_{i=1}^N (y_i - f(x_i, \theta))^2 = \arg\min_\theta \text{MSE}$$</p>
+
+  <p><strong>Вывод:</strong> MSE не взята с потолка — это естественное следствие ММП при предположении нормального (гауссова) шума.</p>
+</div>
+
+<p><strong>Важная тонкость:</strong> параметр $\sigma^2$ (дисперсия шума) не оптимизируется, он фиксирован. На практике часто не нужен, так как оптимум по $\theta$ не зависит от $\sigma$.</p>
+
+<!-- ============================================ -->
+<h2 id="s12"><span class="num">12.</span> ММП для классификации: категориальное распределение → CE</h2>
+
+<h3>12.1 Бинарная классификация</h3>
+
+<p><strong>Модель:</strong> $\hat{y}_i = \sigma(\theta^\top x_i)$ (вероятность класса 1).</p>
+
+<p><strong>Распределение:</strong> $y_i | x_i \sim \text{Bernoulli}(\hat{y}_i)$, то есть $p(y_i | x_i, \theta) = \hat{y}_i^{y_i} (1-\hat{y}_i)^{1-y_i}$.</p>
+
+<p><strong>Логарифм правдоподобия:</strong></p>
+
+<div class="formula">
+$$ \log L(\theta) = \sum_{i=1}^N [y_i \log \hat{y}_i + (1-y_i) \log(1-\hat{y}_i)] = -\sum_{i=1}^N \text{BCE}_i $$
+</div>
+
+<p><strong>Максимизация:</strong> $\arg\max_\theta \log L = \arg\min_\theta \text{BCE}$.</p>
+
+<h3>12.2 Многоклассовая классификация</h3>
+
+<p><strong>Модель:</strong> $\hat{y}_{i,k} = \text{softmax}(\theta_k^\top x_i)$ для класса $k = 1 \ldots K$.</p>
+
+<p><strong>Распределение:</strong> $y_i | x_i \sim \text{Categorical}(\hat{y}_i)$, то есть $p(y_i | x_i, \theta) = \prod_{k=1}^K \hat{y}_{i,k}^{\mathbb{1}[y_i = k]}$.</p>
+
+<p><strong>Логарифм правдоподобия:</strong></p>
+
+<div class="formula">
+$$ \log L(\theta) = \sum_{i=1}^N \sum_{k=1}^K \mathbb{1}[y_i = k] \log \hat{y}_{i,k} = -\sum_{i=1}^N \text{CE}_i $$
+</div>
+
+<p><strong>Максимизация:</strong> $\arg\max_\theta \log L = \arg\min_\theta \text{CE}$.</p>
+
+<!-- ============================================ -->
+<h2 id="s13"><span class="num">13.</span> Регуляризация как байесовский априор (MAP)</h2>
+
+<p>L2-регуляризация не с потолка — это эквивалентно байесовскому подходу!</p>
+
+<div class="box idea">
+  <div class="bt">💡 Связь регуляризации и Байеса</div>
+  <p><strong>Максимум апостериори (MAP):</strong> $\theta^* = \arg\max_\theta p(\theta | D) = \arg\max_\theta p(D | \theta) p(\theta)$.</p>
+  <p>Логарифмируем: $\log p(\theta | D) \propto \log p(D | \theta) + \log p(\theta)$.</p>
+  <p>Минимизируем: $-\log p(D | \theta) - \log p(\theta) = \text{NLL} + (-\log p(\theta))$.</p>
+  <p><strong>Если априор $p(\theta) = N(0, \tau^2)$ (гауссов):</strong> то $-\log p(\theta) \propto \frac{\|θ\|^2}{\tau^2}$ = L2-регуляризация!</p>
+</div>
+
+<p><strong>Вывод:</strong> $L2 = -\log p(\theta)$ с гауссовым априором. Выбор $\lambda$ в регуляризации = выбор aprior дисперсии $\tau^2$.</p>
+
+<p>Аналогично, <strong>L1-регуляризация соответствует лапласову априору.</strong></p>
+
+<!-- ============================================ -->
+<h2 id="s14"><span class="num">14.</span> Focal loss и взвешенная CE при дисбалансе</h2>
+
+<p>Когда классы сильно дисбалансированы (например, 99% класс 0, 1% класс 1), обычная CE подходит плохо.</p>
+
+<h3>14.1 Проблема дисбаланса</h3>
+
+<p>Модель может выучиться говорить всегда класс 0. Loss упадёт, потому что на 99% примеров она права. Но на 1% примеров (классе 1) будет полный кошмар.</p>
+
+<h3>14.2 Focal Loss</h3>
+
+<div class="formula">
+$$ L_{\text{focal}} = -\alpha (1 - \hat{y})^\gamma y \log \hat{y} - (1 - \alpha) \hat{y}^\gamma (1-y) \log(1-\hat{y}) $$
+<span class="note">$\alpha$ — балансировочный коэффициент, $\gamma$ (gamma) — focusing parameter, обычно 2</span>
+</div>
+
+<p><strong>Идея:</strong> при $\gamma > 0$ примеры, которые модель уже классифицирует хорошо (высокая $\hat{y}$), получают маленький вес. Примеры, на которых модель ошибается, получают большой вес. Фокусируемся на hard examples.</p>
+
+<p><strong>Пример:</strong> если $\hat{y} = 0.99$ и $y = 0$, то $(1-\hat{y})^\gamma = 0.01^\gamma$ очень мал, loss маленький (игнорируем easy negatives). Если $\hat{y} = 0.01$ и $y = 1$, то $(1-\hat{y})^\gamma = 0.99^\gamma \approx 1$, loss нормальная (штрафуем hard positives).</p>
+
+<h3>14.3 Взвешенная CE</h3>
+
+<p>Простой способ: домножить loss на вес, обратный частоте класса:</p>
+
+<div class="formula">
+$$ L = -w_0 y \log \hat{y} - w_1 (1-y) \log(1-\hat{y}), \quad w_k = \frac{N}{N_k} $$
+<span class="note">$N$ — общее число примеров, $N_k$ — число примеров класса $k$</span>
+</div>
+
+<p>Редкие классы получают больший вес в loss, модель не может их игнорировать.</p>
+
+<!-- ============================================ -->
+<h2 id="qa">🎯 Препод спросит</h2>
+
+<details class="qa"><summary>Чем loss отличается от метрики?</summary>
+<div class="ans">
+<p>Loss — дифференцируемая функция, которую модель минимизирует во время обучения (нужен градиент). Метрика — число, которое мы смотрим в конце, может быть недифференцируемой, главное что понятна человеку. Пример: оптимизируем cross-entropy, смотрим accuracy. Иногда совпадают, но обычно нет.</p>
+</div></details>
+
+<details class="qa"><summary>Почему MSE чувствительна к выбросам, а MAE нет?</summary>
+<div class="ans">
+<p>MSE = квадрат ошибки, поэтому большая ошибка наказывается резко (квадратично). Выброс с ошибкой 100 вносит вклад 10000 в loss. MAE = абсолютное значение, линейно. Выброс с ошибкой 100 вносит вклад 100. Также, производная MSE зависит от величины ошибки (2e), производная MAE константа (±1). Для робастности выбираем MAE.</p>
+</div></details>
+
+<details class="qa"><summary>MSE минимизирует среднее или медиану?</summary>
+<div class="ans">
+<p>MSE минимизирует среднее. Доказательство: $\min_a \sum (y_i - a)^2 \Rightarrow \frac{\partial}{\partial a} = 0 \Rightarrow a = \frac{1}{N}\sum y_i$. MAE минимизирует медиану: $\frac{\partial}{\partial a} \sum |y_i - a| = 0$ означает одинаковое число точек слева и справа от $a$, что есть определение медианы.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое cross-entropy и KL-дивергенция?</summary>
+<div class="ans">
+<p>Cross-entropy $H(p,q) = -\sum p_i \log q_i$ — средняя неожиданность при кодировании истинного распределения $p$ кодом для распределения $q$. KL-дивергенция $\text{KL}(p\|q) = \sum p_i \log(p_i/q_i)$ — расстояние между $p$ и $q$. Связь: $H(p,q) = H(p) + \text{KL}(p\|q)$. Так как $H(p)$ константна, минимизация CE = минимизация KL = максимизация похожести q на p.</p>
+</div></details>
+
+<details class="qa"><summary>Почему нельзя использовать MSE для классификации вместо CE?</summary>
+<div class="ans">
+<p><strong>Причина 1 (градиент):</strong> при использовании sigmoid, градиент MSE = $2(\hat{y} - y) \sigma'(z)$ содержит множитель $\sigma'(z)$, который насыщается (близко к 0) при большой ошибке. Градиент CE = $(\hat{y} - y)$ — чистый, без насыщения. Причина 2 (модель): MSE предполагает гауссов шум, классификация — категориальное распределение. Вероятностно неправильно.</p>
+</div></details>
+
+<details class="qa"><summary>Как работает метод максимального правдоподобия?</summary>
+<div class="ans">
+<p>Ищем параметры $\theta$, которые максимизируют произведение вероятностей $\prod_i p(y_i|x_i,\theta)$. Логарифмируем: $\max \sum_i \log p(y_i|x_i,\theta)$. Или минимизируем NLL = $-\sum_i \log p(y_i|x_i,\theta)$. Логарифм: произведение становится суммой, избегаем underflow, монотонность сохраняется.</p>
+</div></details>
+
+<details class="qa"><summary>Докажи, что ММП с гауссовым шумом → MSE.</summary>
+<div class="ans">
+<p>Предположим $y_i = f(x_i,\theta) + \varepsilon_i$, $\varepsilon_i \sim N(0,\sigma^2)$. Тогда $p(y_i|x_i,\theta) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp(-(y_i-f(x_i,\theta))^2/(2\sigma^2))$. Логарифм: $\log p = -\frac{1}{2}\log(2\pi\sigma^2) - (y_i-f(x_i,\theta))^2/(2\sigma^2)$. Первое слагаемое от θ не зависит. Максимизируем второе → минимизируем $\sum (y_i-f(x_i,\theta))^2$ = MSE. Вывод готов.</p>
+</div></details>
+
+<details class="qa"><summary>Откуда берётся binary cross-entropy и почему она лучше MSE?</summary>
+<div class="ans">
+<p>Для бинарной классификации истинное распределение Бернулли: $p(y|x,\theta) = \hat{y}^y (1-\hat{y})^{1-y}$, где $\hat{y} = \sigma(\theta^\top x)$. По ММП логарифм правдоподобия: $\log p = y\log\hat{y} + (1-y)\log(1-\hat{y})$. Максимизируем = минимизируем $-[y\log\hat{y} + (1-y)\log(1-\hat{y})]$ = BCE. Лучше MSE потому что: (1) нет насыщения градиента, (2) правильная вероятностная модель.</p>
+</div></details>
+
+<details class="qa"><summary>L2-регуляризация — это что из вероятности?</summary>
+<div class="ans">
+<p>L2-регуляризация = MAP (максимум апостериори) с гауссовым априором на параметры. Логарифм апостериора: $\log p(\theta|D) \propto \log p(D|\theta) + \log p(\theta) = \text{NLL} + \log N(θ; 0, \tau^2) = \text{NLL} - \|θ\|^2/(2\tau^2)$. Минимизируем: NLL + λ·||θ||² где λ~1/τ². Выбор λ = выбор дисперсии априора.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое Focal loss и зачем нужна при дисбалансе?</summary>
+<div class="ans">
+<p>Focal loss: $L_f = -(1-\hat{y})^\gamma y \log\hat{y} - \hat{y}^\gamma (1-y)\log(1-\hat{y})$ с $\gamma>0$. Идея: примеры, на которых модель уже хорошо работает (высокая $\hat{y}$), получают маленький вес $(1-\hat{y})^\gamma \approx 0$. Примеры, на которых ошибается, получают вес близко к 1. Фокусируемся на hard examples, игнорируем easy. Это помогает при дисбалансе, не даёт модели сосредоточиться только на большом классе.</p>
+</div></details>
+
+<details class="qa"><summary>Какая вероятностная модель стоит за MAE?</summary>
+<div class="ans">
+<p>MAE стоит за лапласовым распределением шума: $p(y|x,\theta) = \frac{1}{2b} \exp(-|y-f(x,\theta)|/b)$ где $b$ — масштаб. По ММП логарифм: $\log p \propto -|y-f(x,\theta)|/b$. Максимизируем = минимизируем MAE. Лапласово распределение имеет тяжелые хвосты, что и обеспечивает робастность к выбросам.</p>
+</div></details>
+
+<!-- ============================================ -->
+<h2 id="tasks">📝 Микро-задачи</h2>
+
+<div class="task">
+  <div class="tt">Задача 1. MSE vs MAE на выбросе</div>
+  <p>Данные: $y = [10, 11, 12, 13, 14, 100]$. Предсказания: $\hat{y} = [10.5, 11.5, 12.5, 13.5, 14.5, 99.5]$. Считай MSE и MAE.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>Ошибки:</strong> $e = [-0.5, -0.5, -0.5, -0.5, -0.5, 0.5]$.</p>
+    <p>$\text{MSE} = \frac{0.25 + 0.25 + 0.25 + 0.25 + 0.25 + 0.25}{6} = \frac{1.5}{6} = 0.25$.</p>
+    <p>$\text{MAE} = \frac{0.5 + 0.5 + 0.5 + 0.5 + 0.5 + 0.5}{6} = \frac{3}{6} = 0.5$.</p>
+    <p><strong>Вывод:</strong> выброса нет! Модель хорошо предсказывает везде. MSE и MAE одинаковые.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 2. Binary cross-entropy</div>
+  <p>Истина $y = 1$, предсказания $\hat{y} = [0.9, 0.5, 0.1]$. Считай BCE для каждого.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$\text{BCE} = -[y\log\hat{y} + (1-y)\log(1-\hat{y})] = -\log\hat{y}$ (так как $y=1$).</p>
+    <p>$\hat{y} = 0.9$: $\text{BCE} = -\log 0.9 \approx 0.105$.</p>
+    <p>$\hat{y} = 0.5$: $\text{BCE} = -\log 0.5 \approx 0.693$.</p>
+    <p>$\hat{y} = 0.1$: $\text{BCE} = -\log 0.1 \approx 2.303$.</p>
+    <p><strong>Вывод:</strong> уверенный правильный ответ (0.9) — маленький штраф. Неуверенный — большой штраф. Уверенный неправильный (0.1) — огромный штраф.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 3. Categorical CE</div>
+  <p>3 класса. Истина: класс 1 (one-hot = [0,1,0]). Предсказания: $\hat{y} = [0.1, 0.8, 0.1]$. Считай CE.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$\text{CE} = -\sum_k y_k \log\hat{y}_k = -(0 \cdot \log 0.1 + 1 \cdot \log 0.8 + 0 \cdot \log 0.1) = -\log 0.8 \approx 0.223$.</p>
+    <p>Только правильный класс (класс 1) вносит в loss! Остальные не важны.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 4. ММП: гауссов шум</div>
+  <p>Предположим $y_i = \theta x_i + \varepsilon_i$, $\varepsilon_i \sim N(0, 1)$. Выборка: $(x_1, y_1) = (1, 2), (x_2, y_2) = (2, 4)$. Запиши loss функцию NLL.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$p(y_i | x_i, \theta) = \frac{1}{\sqrt{2\pi}} \exp(-(y_i - \theta x_i)^2 / 2)$.</p>
+    <p>$\text{NLL} = -\sum_i \log p(y_i | x_i, \theta) = -\sum_i [-\frac{1}{2}\log(2\pi) - \frac{(y_i - \theta x_i)^2}{2}]$</p>
+    <p>$= \sum_i [\frac{1}{2}\log(2\pi) + \frac{(y_i - \theta x_i)^2}{2}]$</p>
+    <p>$= \text{const} + \frac{1}{2}[(2 - \theta)^2 + (4 - 2\theta)^2]$ (константу можно опустить)</p>
+    <p>$= \frac{1}{2}[4 - 4\theta + \theta^2 + 16 - 16\theta + 4\theta^2] = \frac{1}{2}[5\theta^2 - 20\theta + 20]$.</p>
+    <p>Это MSE loss по определению!</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 5. Регуляризация и апостериор</div>
+  <p>Напиши логарифм апостериора $\log p(\theta|D)$ с гауссовым априором и покажи, что это = NLL + λ||θ||².</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$\log p(\theta|D) = \log p(D|\theta) + \log p(\theta) - \log p(D)$.</p>
+    <p>Игнорируем $-\log p(D)$ (не зависит от θ). Пусть $p(\theta) = N(0, \tau^2)$, тогда:</p>
+    <p>$\log p(\theta) = -\frac{\theta^2}{2\tau^2} + \text{const}$.</p>
+    <p>$\log p(\theta|D) \propto \log p(D|\theta) - \frac{\theta^2}{2\tau^2} = -\text{NLL} - \frac{\|θ\|^2}{2\tau^2}$.</p>
+    <p>Минимизируем MAP = максимизируем $\log p(\theta|D)$ = минимизируем NLL + λ||θ||² где $\lambda = \frac{1}{2\tau^2}$.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 6. Gradient CE vs MSE</div>
+  <p>Sigmoid выход, $y = 1, \hat{y} = 0.01$ (уверенная ошибка). Сравни $\frac{\partial L_{\text{CE}}}{\partial z}$ и $\frac{\partial L_{\text{MSE}}}{\partial z}$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$\sigma(z) = 0.01$, $\sigma'(z) = 0.01 \cdot 0.99 = 0.0099$.</p>
+    <p>$\frac{\partial L_{\text{CE}}}{\partial z} = \sigma(z) - y = 0.01 - 1 = -0.99$ (хороший градиент!).</p>
+    <p>$\frac{\partial L_{\text{MSE}}}{\partial z} = 2(\sigma(z) - y) \sigma'(z) = 2 \cdot (-0.99) \cdot 0.0099 \approx -0.0196$ (крошечный!).</p>
+    <p><strong>Вывод:</strong> CE даёт градиент 0.99, MSE даёт 0.0196 — почти в 50 раз меньше. CE намного лучше.</p>
+  </div></details>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+
+<div class="cheat">
+  <div class="bt">Скелет устного ответа на билет 3 (Loss и MLE)</div>
+  <ol>
+    <li><strong>Loss vs метрика.</strong> Loss — дифференцируема, минимизируем во время обучения. Метрика — понятна человеку, смотрим в конце. Пример: оптимизируем CE, смотрим accuracy.</li>
+    <li><strong>MSE.</strong> Формула $\frac{1}{N}\sum (y_i - \hat{y}_i)^2$. Квадратична, чувствительна к выбросам. Производная = 2e, линейна по ошибке.</li>
+    <li><strong>MAE.</strong> Формула $\frac{1}{N}\sum |y_i - \hat{y}_i|$. Линейна, робустна к выбросам. Производная = ±1 везде, константа.</li>
+    <li><strong>Huber loss.</strong> Квадратичный внутри [-δ,δ], линейный снаружи. Компромисс между MSE и MAE.</li>
+    <li><strong>MSE ↔ среднее, MAE ↔ медиана.</strong> $\min_a \sum (y_i-a)^2 \Rightarrow a = E[y]$. $\min_a \sum |y_i-a| \Rightarrow a = \text{median}(y)$. Доказывается приравниванием производной к нулю.</li>
+    <li><strong>Энтропия и кросс-энтропия.</strong> $H(p) = -\sum p_i \log p_i$ (неопределённость). $H(p,q) = -\sum p_i \log q_i$ (неожиданность кода q для p). KL$(p\|q) = H(p,q) - H(p)$ (расстояние).</li>
+    <li><strong>BCE.</strong> $-(y\log\hat{y} + (1-y)\log(1-\hat{y}))$. Для y=1 это $-\log\hat{y}$, большой штраф за уверенные ошибки.</li>
+    <li><strong>CE.</strong> $-\sum_k y_k \log\hat{y}_k$. Для one-hot это $-\log\hat{y}_{y^*}$, берём только правильный класс.</li>
+    <li><strong>Почему не MSE для классификации.</strong> (1) Градиент с sigmoid: $(\hat{y}-y) \sigma'$ насыщается. CE: $(\hat{y}-y)$ чистый. (2) Вероятностно: MSE → гауссов шум, классификация → категориальное.</li>
+    <li><strong>Метод максимального правдоподобия.</strong> $\theta^* = \arg\max_\theta \prod_i p(y_i|x_i,\theta) = \arg\min_\theta -\sum_i \log p(y_i|x_i,\theta)$ = NLL.</li>
+    <li><strong>ММП для регрессии: гауссов шум → MSE.</strong> Если $y = f(x,\theta) + \varepsilon, \varepsilon \sim N(0,\sigma^2)$, то $\log L \propto -\sum (y_i - f(x_i,\theta))^2 = $MSE.</li>
+    <li><strong>ММП для классификации: категориальное → CE.</strong> Если $y \sim \text{Categorical}(\hat{y}_\theta)$, то $\log L \propto \sum_i \log\hat{y}_{i,y_i^*} = $CE.</li>
+  </ol>
+</div>
+
+<div class="navrow">
+  <a class="backlink" href="02-autodiff-pinn.html">← Лекция 2. Автодифференцирование</a>
+  <a class="backlink" href="04-cnn-layers.html">Лекция 4. Слои свёрточных сетей →</a>
+</div>
+
+</div>
+</body>
+</html>

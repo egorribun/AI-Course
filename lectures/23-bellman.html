@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лекция 23. Уравнения Беллмана</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--sans); font-size:17px; line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line); padding:38px 24px 30px; margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+</style>
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]},
+  svg: {fontCache:'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Блок D · Вопрос 22 (Часть 1) · Обучение с подкреплением</div>
+  <h1>Лекция 23. Уравнения Беллмана для функций ценности</h1>
+  <p class="sub">Принцип оптимальности Беллмана, уравнения математического ожидания для $V^\pi(s)$ и $Q^\pi(s, a)$, уравнения оптимальности Беллмана для $V^*(s)$ и $Q^*(s, a)$, Backup-диаграммы, оператор сжатия и матричная форма.</p>
+  <div class="meta">
+    <span class="pill">⏱ 2 ч</span>
+    <span class="pill gray">10 вопросов препода</span>
+    <span class="pill gray">6 микро-задач</span>
+    <span class="pill good">Билет 22</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<a class="backlink" href="../index.html">← К оглавлению курса</a>
+
+<nav class="toc">
+  <div class="bt">Содержание лекции</div>
+  <ol>
+    <li><a href="#s1">Принцип динамического программирования Ричарда Беллмана (1957)</a></li>
+    <li><a href="#s2">Уравнение Беллмана для $V^\pi(s)$ и его математический вывод</a></li>
+    <li><a href="#s3">Уравнение Беллмана для $Q^\pi(s, a)$</a></li>
+    <li><a href="#s4">Backup-диаграммы (Диаграммы обратного обновления)</a></li>
+    <li><a href="#s5">Уравнения оптимальности Беллмана для $V^*(s)$ и $Q^*(s, a)$</a></li>
+    <li><a href="#s6">Матричная форма и сжимающее отображение (Contraction Mapping)</a></li>
+    <li><a href="#s7">Пошаговый расчет уравнений Беллмана на графе состояний</a></li>
+    <li><a href="#qa">Препод спросит</a></li>
+    <li><a href="#tasks">Микро-задачи</a></li>
+    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="s1"><span class="num">1.</span> Принцип динамического программирования Ричарда Беллмана (1957)</h2>
+
+<div class="box idea">
+  <div class="bt">💡 Принцип оптимальности Беллмана (Bellman's Principle of Optimality)</div>
+  <p><em>«Оптимальная стратегия обладает тем свойством, что каковы бы ни были первоначальное состояние и первоначальное решение, последующие решения должны составлять оптимальную стратегию относительно состояния, полученного в результате первого решения.»</em></p>
+</div>
+
+<p>Смысл принципа в том, что сложную многошаговую оптимизационную задачу на бесконечном горизонте можно свести к <strong>рекуррентной взаимосвязи между текущим состоянием и состояниями-преемниками</strong> через шаг времени на единицу вперед.</p>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> Уравнение Беллмана для $V^\pi(s)$ и его вывод</h2>
+
+<div class="box mathbox">
+  <div class="bt">📐 Строгий вывод уравнения Беллмана для $V^\pi(s)$</div>
+  <p>По определению функции ценности состояния:</p>
+  $$ V^\pi(s) = \mathbb{E}_\pi \left[ G_t \;\middle|\; S_t = s \right] $$
+  <p>Раскроем доход $G_t$ в рекуррентную форму $G_t = R_{t+1} + \gamma G_{t+1}$:</p>
+  $$ V^\pi(s) = \mathbb{E}_\pi \left[ R_{t+1} + \gamma G_{t+1} \;\middle|\; S_t = s \right] $$
+  <p>Применим закон полного математического ожидания, развернув его по действиям $a \sim \pi(a \mid s)$ и следующим состояниям $s' \sim \mathcal{P}(s' \mid s, a)$:</p>
+  $$ V^\pi(s) = \sum_{a \in \mathcal{A}} \pi(a \mid s) \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \left( \mathcal{R}(s, a, s') + \gamma \, \mathbb{E}_\pi [G_{t+1} \mid S_{t+1} = s'] \right) $$
+  <p>Заметим, что $\mathbb{E}_\pi [G_{t+1} \mid S_{t+1} = s'] = V^\pi(s')$. Получаем итоговое уравнение:</p>
+</div>
+
+<div class="formula">
+$$ V^\pi(s) = \sum_{a \in \mathcal{A}} \pi(a \mid s) \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \left[ \mathcal{R}(s, a, s') + \gamma V^\pi(s') \right] $$
+<span class="note">Уравнение Беллмана для $V^\pi$: ценность состояния $s$ равна средневзвешенной сумме немедленной награды и дисконтированной ценности следующего состояния $s'$.</span>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> Уравнение Беллмана для $Q^\pi(s, a)$</h2>
+
+<p>Аналогично раскрываем ценность действия $Q^\pi(s, a) = \mathbb{E}_\pi [R_{t+1} + \gamma G_{t+1} \mid S_t = s, A_t = a]$:</p>
+
+<div class="formula">
+$$ Q^\pi(s, a) = \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \left[ \mathcal{R}(s, a, s') + \gamma \sum_{a' \in \mathcal{A}} \pi(a' \mid s') Q^\pi(s', a') \right] $$
+<span class="note">Уравнение Беллмана для $Q^\pi$: ценность пары $(s, a)$ равна матожиданию награды плюс дисконтированное среднее $Q(s', a')$ по действиям стратегии в следующем состоянии.</span>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> Backup-диаграммы (Диаграммы обратного обновления)</h2>
+
+<div class="scheme">
+  BACKUP-ДИАГРАММА ДЛЯ V^π(s):                 BACKUP-ДИАГРАММА ДЛЯ Q^π(s, a):
+
+             ○ s (Состояние)                              ● (s, a) (Действие)
+          ╱  │  ╲  π(a|s)                              ╱  │  ╲  P(s'|s, a)
+         ●   ●   ● (Действия a)                       ○   ○   ○ (Состояния s')
+        ╱ ╲ ╱ ╲ ╱ ╲ P(s'|s, a)                       ╱ ╲ ╱ ╲ ╱ ╲ π(a'|s')
+       ○   ○   ○   ○ (Состояния s')                 ●   ●   ●   ● (Действия a')
+       │   │   │   │                                │   │   │   │
+     V(s') V(s') V(s')                            Q(s',a') Q(s',a')
+
+<span class="cap">Backup-диаграммы Саттона и Барто: визуализируют дерево усреднения по стохастичности стратегии и среды.</span></div>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> Уравнения оптимальности Беллмана для $V^*(s)$ и $Q^*(s, a)$</h2>
+
+<p>Стратегия $\pi^*$ называется <strong>оптимальной</strong>, если ее функция ценности превосходит или равна любой другой стратегии для всех состояний: $V^*(s) = \max_\pi V^\pi(s)$ для всех $s \in \mathcal{S}$.</p>
+
+<p>В оптимальной стратегии вместо взвешенного усреднения по действиям $\sum \pi(a|s)$ берется <strong>максимум по всем возможным действиям $\max_{a}$</strong>:</p>
+
+<h3>Уравнение оптимальности для $V^*(s)$:</h3>
+<div class="formula">
+$$ V^*(s) = \max_{a \in \mathcal{A}} \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \left[ \mathcal{R}(s, a, s') + \gamma V^*(s') \right] $$
+$$ V^*(s) = \max_{a \in \mathcal{A}} Q^*(s, a) $$
+</div>
+
+<h3>Уравнение оптимальности для $Q^*(s, a)$:</h3>
+<div class="formula">
+$$ Q^*(s, a) = \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \left[ \mathcal{R}(s, a, s') + \gamma \max_{a' \in \mathcal{A}} Q^*(s', a') \right] $$
+<span class="note">Уравнения оптимальности нелинейны из-за операции $\max$. Их нельзя решить простой матричной инверсией — требуется метод итераций (Value Iteration).</span>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s6"><span class="num">6.</span> Матричная форма и сжимающее отображение</h2>
+
+<h3>1. Матричная форма уравнения Беллмана для фиксированной стратегии $\pi$:</h3>
+<p>Для конечного пространства состоя $|\mathcal{S}| = N$ уравнение $V^\pi(s)$ превращается в систему линейных уравнений:</p>
+$$ V^\pi = \mathcal{R}^\pi + \gamma \mathcal{P}^\pi V^\pi $$
+$$ (I - \gamma \mathcal{P}^\pi) V^\pi = \mathcal{R}^\pi \implies V^\pi = (I - \gamma \mathcal{P}^\pi)^{-1} \mathcal{R}^\pi $$
+<p>Сложность прямого обращения матрицы: $O(|\mathcal{S}|^3)$. Применимо только для крошечных сред.</p>
+
+<h3>2. Оператор Беллмана и сжимающее отображение (Теорема Банаха):</h3>
+<div class="box okbox">
+  <div class="bt">🔒 Теорема о сжатии оператора Беллмана</div>
+  <p>Определим оператор Беллмана $(\mathcal{T}^* V)(s) = \max_a \sum_{s'} \mathcal{P}(s'|s,a) [\mathcal{R} + \gamma V(s')]$.</p>
+  <p>В Чебышевской норме $\|U - V\|_\infty = \max_s |U(s) - V(s)|$ оператор Беллмана является <strong>$\gamma$-сжимающим отображением</strong>:</p>
+  $$ \|\mathcal{T}^* U - \mathcal{T}^* V\|_\infty \le \gamma \|U - V\|_\infty $$
+  <p>Так как $\gamma < 1$, по теореме Банаха о неподвижной точке последовательность $V_{k+1} = \mathcal{T}^* V_k$ <strong>гарантированно сходится к единственной глобальной оптимальной функции $V^*$</strong> из любого начального приближения $V_0$ со скоростью геометрической прогрессии!</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s7"><span class="num">7.</span> Пошаговый расчет уравнений Беллмана на графе</h2>
+
+<p>Рассмотрим систему из двух состояний $A$ и $B$ ($\gamma = 0.5$):</p>
+<ul>
+  <li>Из состояния $A$: действие ведет в $B$ с вероятностью $1.0$, награда $r = 4$.</li>
+  <li>Из состояния $B$: действие ведет обратно в $A$ с вероятностью $1.0$, награда $r = 2$.</li>
+</ul>
+
+<p>Запишем систему уравнений Беллмана:</p>
+$$ \begin{cases} V(A) = 4 + 0.5 \cdot V(B) \\ V(B) = 2 + 0.5 \cdot V(A) \end{cases} $$
+
+<p>Подставим $V(B)$ в первое уравнение:</p>
+$$ V(A) = 4 + 0.5 \cdot (2 + 0.5 V(A)) = 4 + 1 + 0.25 V(A) = 5 + 0.25 V(A) $$
+$$ 0.75 V(A) = 5 \implies V(A) = \frac{5}{0.75} = \frac{20}{3} \approx 6.67 $$
+$$ V(B) = 2 + 0.5 \cdot \frac{20}{3} = 2 + \frac{10}{3} = \frac{16}{3} \approx 5.33 $$
+
+<!-- ============================================ -->
+<h2 id="qa">🎯 Препод спросит</h2>
+
+<details class="qa"><summary>В чем фундаментальное различие между уравнениями ожидания Беллмана и уравнениями оптимальности Беллмана?</summary>
+<div class="ans">
+<p><strong>Уравнение ожидания Беллмана (Bellman Expectation Equation):</strong> оценивает ценность состояний $V^\pi(s)$ или пар состояние-действие $Q^\pi(s, a)$ при следовании <strong>фиксированной политике $\pi$</strong>. Оно линейно по вектору ценностей, так как усредняет будущие доходы по распределению действий $\pi(a \mid s)$.</p>
+<p><strong>Уравнение оптимальности Беллмана (Bellman Optimality Equation):</strong> описывает ценности $V^*(s)$ и $Q^*(s, a)$ для <strong>наилучшей возможной политики $\pi^*$</strong>. Оно содержит оператор максимума $\max_{a \in \mathcal{A}}$, который связывает оптимальное действие с наивысшим ожидаемым будущим доходом. Из-за наличия $\max_a$ уравнение является строго нелинейным.</p>
+</div></details>
+
+<details class="qa"><summary>Приведите строгий математический вывод уравнения ожидания Беллмана для функции ценности состояния $V^\pi(s)$ через закон полного математического ожидания.</summary>
+<div class="ans">
+<p>По определению ценность состояния $s$ при политике $\pi$ равна матожиданию дисконтированного дохода:</p>
+$$ V^\pi(s) = \mathbb{E}_\pi [G_t \mid S_t = s] $$
+<p>Раскроем доход $G_t = R_{t+1} + \gamma G_{t+1}$:</p>
+$$ V^\pi(s) = \mathbb{E}_\pi [R_{t+1} + \gamma G_{t+1} \mid S_t = s] $$
+<p>Применяя закон полного математического ожидания (Law of Total Expectation) по действию $A_t = a$, следующему состоянию $S_{t+1} = s'$ и награде $R_{t+1} = r$:</p>
+$$ V^\pi(s) = \sum_{a \in \mathcal{A}} \pi(a \mid s) \sum_{s' \in \mathcal{S}} \sum_{r \in \mathcal{R}} p(s', r \mid s, a) \left[ r + \gamma \, \mathbb{E}_\pi [G_{t+1} \mid S_{t+1} = s'] \right] $$
+<p>По определению $\mathbb{E}_\pi [G_{t+1} \mid S_{t+1} = s'] = V^\pi(s')$, получаем итоговое уравнение ожидания Беллмана:</p>
+$$ V^\pi(s) = \sum_{a \in \mathcal{A}} \pi(a \mid s) \left[ \mathcal{R}(s, a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) V^\pi(s') \right] $$
+</div></details>
+
+<details class="qa"><summary>Запишите и выведите уравнение ожидания Беллмана для функции ценности действия $Q^\pi(s, a)$.</summary>
+<div class="ans">
+<p>Функция $Q^\pi(s, a)$ оценивает ожидаемый доход при совершении действия $a$ в состоянии $s$ с последующим следованием политике $\pi$:</p>
+$$ Q^\pi(s, a) = \mathbb{E}_\pi [G_t \mid S_t = s, A_t = a] = \mathbb{E}_\pi [R_{t+1} + \gamma G_{t+1} \mid S_t = s, A_t = a] $$
+<p>Усредняя по следующему состоянию $s'$ и награде $r$:</p>
+$$ Q^\pi(s, a) = \sum_{s' \in \mathcal{S}} \sum_{r \in \mathcal{R}} p(s', r \mid s, a) \left[ r + \gamma \, \mathbb{E}_\pi [G_{t+1} \mid S_{t+1} = s'] \right] $$
+<p>Учитывая, что $\mathbb{E}_\pi [G_{t+1} \mid S_{t+1} = s'] = V^\pi(s') = \sum_{a' \in \mathcal{A}} \pi(a' \mid s') Q^\pi(s', a')$, получаем:</p>
+$$ Q^\pi(s, a) = \mathcal{R}(s, a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \sum_{a' \in \mathcal{A}} \pi(a' \mid s') Q^\pi(s', a') $$
+</div></details>
+
+<details class="qa"><summary>Почему уравнения оптимальности Беллмана нельзя решить через аналитическую матричную инверсию $(I - \gamma P)^{-1} R$?</summary>
+<div class="ans">
+<p>Уравнение оптимальности Беллмана имеет вид:</p>
+$$ V^*(s) = \max_{a \in \mathcal{A}} \left[ \mathcal{R}(s, a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) V^*(s') \right] $$
+<p>Оператор $\max_{a}$ является кусочно-гладким и <strong>нелинейным</strong>: $\max(u + v) \ne \max(u) + \max(v)$. Выбор оптимального действия в каждом состоянии зависит от самих неизвестных значений $V^*(s')$, превращая систему в систему нелинейных уравнений. В отличие от линейного уравнения ожидания, нелинейные уравнения Беллмана решаются численными итерационными алгоритмами (Value Iteration, Policy Iteration).</p>
+</div></details>
+
+<details class="qa"><summary>Докажите, что оператор оптимальности Беллмана $\mathcal{T}^*$ является $\gamma$-сжатием в пространстве с sup-нормой $\|\cdot\|_\infty$.</summary>
+<div class="ans">
+<p>Определим оператор оптимальности Беллмана: $(\mathcal{T}^* V)(s) = \max_{a} \left[ \mathcal{R}(s, a) + \gamma \sum_{s'} \mathcal{P}(s' \mid s, a) V(s') \right]$.</p>
+<p>Используем алгебраическое свойство $|\max_x f(x) - \max_x g(x)| \le \max_x |f(x) - g(x)|$. Тогда для любого состояния $s$:</p>
+$$ |(\mathcal{T}^* U)(s) - (\mathcal{T}^* V)(s)| \le \max_{a \in \mathcal{A}} \left| \gamma \sum_{s'} \mathcal{P}(s' \mid s, a) (U(s') - V(s')) \right| \le \gamma \max_{a \in \mathcal{A}} \sum_{s'} \mathcal{P}(s' \mid s, a) |U(s') - V(s')| $$
+<p>Так как $|U(s') - V(s')| \le \|U - V\|_\infty$ и $\sum_{s'} \mathcal{P}(s' \mid s, a) = 1$:</p>
+$$ |(\mathcal{T}^* U)(s) - (\mathcal{T}^* V)(s)| \le \gamma \|U - V\|_\infty $$
+<p>Беря супремум по всем $s \in \mathcal{S}$, получаем:</p>
+$$ \|\mathcal{T}^* U - \mathcal{T}^* V\|_\infty \le \gamma \|U - V\|_\infty $$
+<p>При $\gamma < 1$ оператор $\mathcal{T}^*$ является сжимающим отображением на полном метрическом пространстве $(\mathbb{R}^{|\mathcal{S}|}, \|\cdot\|_\infty)$. По теореме Банаха существует строго единственная неподвижная точка $V^* = \mathcal{T}^* V^*$, к которой сходятся любые итерации.</p>
+</div></details>
+
+<details class="qa"><summary>Выведите теоретическую оценку погрешности $\|V_k - V^*\|_\infty \le \frac{\gamma^k}{1-\gamma} \|V_1 - V_0\|_\infty$ и ее практическое применение.</summary>
+<div class="ans">
+<p>По свойству $\gamma$-сжатия разность между соседними итерациями убывает геометрически: $\|V_{j+1} - V_j\|_\infty \le \gamma^j \|V_1 - V_0\|_\infty$.</p>
+<p>По неравенству треугольника для ряда $V^* - V_k = \sum_{j=k}^\infty (V_{j+1} - V_j)$:</p>
+$$ \|V_k - V^*\|_\infty \le \sum_{j=k}^\infty \|V_{j+1} - V_j\|_\infty \le \sum_{j=k}^\infty \gamma^j \|V_1 - V_0\|_\infty = \frac{\gamma^k}{1 - \gamma} \|V_1 - V_0\|_\infty $$
+<p><strong>Практическое значение:</strong> эта оценка дает критерий остановки в алгоритме Value Iteration: условие $\|V_{k+1} - V_k\|_\infty < \frac{\epsilon(1-\gamma)}{2\gamma}$ строго гарантирует, что результирующая жадная политика отклоняется от оптимальной не более чем на $\epsilon$: $\|V^{\pi_k} - V^*\|_\infty \le \epsilon$.</p>
+</div></details>
+
+<details class="qa"><summary>Как выглядит матричная форма уравнения ожидания Беллмана $V^\pi = (I - \gamma P^\pi)^{-1} R^\pi$ и почему матрица $(I - \gamma P^\pi)$ всегда обратима при $\gamma < 1$?</summary>
+<div class="ans">
+<p>Определим вектор наград $R^\pi(s) = \sum_a \pi(a \mid s) \mathcal{R}(s, a)$ и стохастическую матрицу переходов $P^\pi(s, s') = \sum_a \pi(a \mid s) \mathcal{P}(s' \mid s, a)$.</p>
+<p>Уравнение в матричном виде:</p>
+$$ V^\pi = R^\pi + \gamma P^\pi V^\pi \implies (I - \gamma P^\pi) V^\pi = R^\pi \implies V^\pi = (I - \gamma P^\pi)^{-1} R^\pi $$
+<p><strong>Доказательство обратимости:</strong> Поскольку $P^\pi$ — стохастическая матрица, ее спектральный радиус $\rho(P^\pi) \le 1$. При $\gamma < 1$ спектральный радиус $\rho(\gamma P^\pi) < 1$. Следовательно, матрица $(I - \gamma P^\pi)$ не имеет нулевых собственных значений, строго невырождена, и обратная матрица разлагается в сходящийся ряд Неймана $(I - \gamma P^\pi)^{-1} = \sum_{k=0}^\infty (\gamma P^\pi)^k$.</p>
+</div></details>
+
+<details class="qa"><summary>Как восстановить оптимальную стратегию $\pi^*(s)$, если мы нашли $V^*(s)$ или $Q^*(s, a)$?</summary>
+<div class="ans">
+<p>1. Через функцию $Q^*(s, a)$ (без знания модели среды):</p>
+$$ \pi^*(s) = \arg\max_{a \in \mathcal{A}} Q^*(s, a) $$
+<p>2. Через функцию ценности $V^*(s)$ (требуется 1-step lookahead с моделью $\mathcal{P}$ и $\mathcal{R}$):</p>
+$$ \pi^*(s) = \arg\max_{a \in \mathcal{A}} \left[ \mathcal{R}(s, a) + \gamma \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) V^*(s') \right] $$
+</div></details>
+
+<details class="qa"><summary>Что такое резервная диаграмма (Backup Diagram) и что означают ее узлы?</summary>
+<div class="ans">
+<p>Резервная диаграмма визуализирует поток обновления ценностей во времени на один шаг вперед:</p>
+<ul>
+  <li><strong>Белые круги:</strong> состояния $s \in \mathcal{S}$.</li>
+  <li><strong>Черные точки:</strong> действия $a \in \mathcal{A}$.</li>
+  <li>В диаграмме для $V^\pi(s)$ корень $s$ разветвляется по действиям $a$ согласно $\pi(a \mid s)$, а затем ветвится по состояниям $s'$ согласно вероятностям среды $\mathcal{P}(s' \mid s, a)$. Значение в корне вычисляется как взвешенное матожидание листьев.</li>
+  <li>В диаграмме для $V^*(s)$ вместо усреднения по действиям используется дуга оператора максимума $\max_a$.</li>
+</ul>
+</div></details>
+
+<details class="qa"><summary>Почему жадная политика относительно $V^*(s)$ является глобально оптимальной для всего бесконечного горизонта?</summary>
+<div class="ans">
+<p>Согласно принципу оптимальности Беллмана, оптимальное поведение обладает тем свойством, что каково бы ни было начальное состояние и начальное действие, все последующие решения должны быть оптимальными относительно результирующего состояния.</p>
+<p>Поскольку $V^*(s')$ по определению уже содержит в себе максимальный достижимый доход от момента времени $t+1$ до бесконечности, локальный выбор жадного действия $a^* = \arg\max_a [\mathcal{R}(s, a) + \gamma \sum_{s'} \mathcal{P}(s' \mid s, a) V^*(s')]$ максимизирует сумму немедленной награды и оптимального бесконечного продолжения. Локальная жадность относительно истинной функции $V^*$ строго эквивалентна глобальной оптимальности всей бесконечной траектории.</p>
+</div></details>
+
+
+<!-- ============================================ -->
+<h2 id="tasks">📝 Микро-задачи</h2>
+
+<div class="task">
+  <div class="tt">Задача 1. Расчет $V^*(s)$ по доступным $Q^*(s, a)$</div>
+  <p>В состоянии $s$ агент может пойти в 3 стороны: $Q^*(s, \text{влево}) = 5.2$, $Q^*(s, \text{прямо}) = 8.7$, $Q^*(s, \text{вправо}) = 4.1$. Чему равно оптимальное значение ценности состояния $V^*(s)$ и каково оптимальное действие $\pi^*(s)$?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Формула: $V^*(s) = \max_a Q^*(s, a)$.</p>
+    <p>$$ V^*(s) = \max(5.2, 8.7, 4.1) = 8.7 $$</p>
+    <p>$$ \pi^*(s) = \arg\max_a Q^*(s, a) = \text{«прямо»} $$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 2. Ручной расчет шага оператора Беллмана</div>
+  <p>Из состояния $s$ действие $a_1$ дает немедленную награду $r=3$ и переводит в $s_1$ ($V_0(s_1) = 10$). Действие $a_2$ дает $r=1$ и переводит в $s_2$ ($V_0(s_2) = 20$). Коэффициент $\gamma = 0.8$. Найдите $V_1(s) = (\mathcal{T}^* V_0)(s)$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>1. Для $a_1$: $Q(s, a_1) = 3 + 0.8 \cdot 10 = 3 + 8 = 11$.</p>
+    <p>2. Для $a_2$: $Q(s, a_2) = 1 + 0.8 \cdot 20 = 1 + 16 = 17$.</p>
+    <p>$$ V_1(s) = \max(11, 17) = 17 $$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 3. Матричное решение линейного уравнения Беллмана</div>
+  <p>В среде одно состояние $s$ с переходом в себя: $\mathcal{P}(s \mid s) = 1.0$, награда $r = 6$, $\gamma = 0.75$. Найдите $V^\pi(s)$ аналитически.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Уравнение: $V(s) = r + \gamma V(s) \implies (1 - \gamma) V(s) = r$.</p>
+    <p>$$ V(s) = \frac{r}{1 - \gamma} = \frac{6}{1 - 0.75} = \frac{6}{0.25} = 24.0 $$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 4. Оценка погрешности после $k$ итераций Беллмана</div>
+  <p>Начальная ошибка $\|V_0 - V^*\|_\infty = 100$. Коэффициент дисконтирования $\gamma = 0.5$. Сколько итераций оператора Беллмана нужно сделать, чтобы гарантировать ошибку $\|V_k - V^*\|_\infty \le 0.1$?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>По свойству сжатия: $\|V_k - V^*\|_\infty \le \gamma^k \|V_0 - V^*\|_\infty \le 0.1$.</p>
+    <p>$$ 0.5^k \cdot 100 \le 0.1 \implies 0.5^k \le 0.001 \implies 2^k \ge 1000 \implies k \ge 10 $$</p>
+    <p>Достаточно сделать 10 итераций.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 5. Расчет Беллмана для стохастической среды</div>
+  <p>Действие $a$ в состоянии $s$ дает награду $r=2$. Среда с вероятностью $0.7$ переходит в $s_1$ ($V(s_1)=10$) и с вероятностью $0.3$ в $s_2$ ($V(s_2)=0$). При $\gamma = 0.9$ найдите $Q(s, a)$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$$ Q(s, a) = r + \gamma \left( 0.7 \cdot V(s_1) + 0.3 \cdot V(s_2) \right) $$</p>
+    <p>$$ Q(s, a) = 2 + 0.9 \cdot (0.7 \cdot 10 + 0.3 \cdot 0) = 2 + 0.9 \cdot 7.0 = 2 + 6.3 = 8.3 $$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 6. Влияние сдвига наград на $V(s)$</div>
+  <p>Все награды в среде увеличили на константу $c$: $r' = r + c$. Как изменится истинное значение $V^\pi(s)$ для всех состояний при бесконечном горизонте?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$$ G'_t = \sum_{k=0}^\infty \gamma^k (r_{t+k+1} + c) = G_t + c \sum_{k=0}^\infty \gamma^k = G_t + \frac{c}{1 - \gamma} $$</p>
+    <p>Значение $V^\pi(s)$ в каждом состоянии увеличится на строго постоянную величину $\frac{c}{1 - \gamma}$.</p>
+  </div></details>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+
+<div class="cheat">
+  <div class="bt">Скелет устного ответа по билету 22 (ч. 1, Уравнения Беллмана)</div>
+  <ol>
+    <li><strong>Принцип Беллмана.</strong> Оптимальное поведение на всем пути состоит из оптимального первого шага и оптимального поведения из нового состояния.</li>
+    <li><strong>Уравнение ожидания для $V^\pi(s)$.</strong> $V^\pi(s) = \sum_a \pi(a|s) \sum_{s'} \mathcal{P}(s'|s,a) [ \mathcal{R} + \gamma V^\pi(s') ]$. Средневзвешенная сумма наград и ценностей преемников.</li>
+    <li><strong>Уравнение ожидания для $Q^\pi(s, a)$.</strong> $Q^\pi(s, a) = \sum_{s'} \mathcal{P}(s'|s,a) [ \mathcal{R} + \gamma \sum_{a'} \pi(a'|s') Q^\pi(s', a') ]$.</li>
+    <li><strong>Backup-диаграммы.</strong> Графическое представление обратного распространения ценности: белые кружки (состояния), черные (действия).</li>
+    <li><strong>Уравнение оптимальности для $V^*(s)$.</strong> $V^*(s) = \max_a \sum_{s'} \mathcal{P}(s'|s,a) [ \mathcal{R} + \gamma V^*(s') ] = \max_a Q^*(s, a)$.</li>
+    <li><strong>Уравнение оптимальности для $Q^*(s, a)$.</strong> $Q^*(s, a) = \sum_{s'} \mathcal{P}(s'|s,a) [ \mathcal{R} + \gamma \max_{a'} Q^*(s', a') ]$.</li>
+    <li><strong>Сжатие оператора Беллмана.</strong> Оператор $\mathcal{T}^*$ сжимает расстояние в Чебышевской норме с коэффициентом $\gamma < 1$. По теореме Банаха итерации гарантированно сходятся к единственной $V^*$.</li>
+    <li><strong>Матричный вид.</strong> $V^\pi = (I - \gamma \mathcal{P}^\pi)^{-1} \mathcal{R}^\pi$ (только для линейного ожидания, не для $\max$).</li>
+  </ol>
+</div>
+
+<div class="navrow">
+  <a class="backlink" href="22-rl-intro.html">← Лекция 22. Введение в RL и MDP</a>
+  <a class="backlink" href="24-vi-pi-mc.html">Лекция 24. Итерация ценности и методы Монте-Карло →</a>
+</div>
+
+</div>
+</body>
+</html>

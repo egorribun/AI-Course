@@ -1,0 +1,1144 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лекция 1. Полносвязные сети, активации, backprop</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:17px;
+  line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line);
+  padding:38px 24px 30px;
+  margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация назад ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление лекции ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+/* ---------- Сетка карточек (главная) ---------- */
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px; margin:20px 0}
+.lec{
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:17px 19px; text-decoration:none; color:var(--text);
+  display:block; transition:.16s; position:relative;
+}
+.lec:hover{border-color:var(--accent); transform:translateY(-2px); background:var(--card-2)}
+.lec .n{
+  font-family:var(--mono); font-size:12px; color:var(--accent);
+  font-weight:700; letter-spacing:.05em;
+}
+.lec .t{font-weight:700; margin:5px 0 6px; font-size:16.5px; line-height:1.35; color:#fff}
+.lec .d{color:var(--text-dim); font-size:13.5px; line-height:1.5}
+.lec .time{
+  margin-top:10px; font-size:12px; color:var(--text-dim);
+  font-family:var(--mono); border-top:1px solid var(--line); padding-top:8px;
+}
+
+/* ---------- Плашка дня ---------- */
+.day{
+  margin:44px 0 8px; padding:16px 22px; border-radius:12px;
+  background:linear-gradient(90deg, rgba(110,168,254,.14), transparent);
+  border-left:4px solid var(--accent);
+}
+.day h2{border:none; margin:0; padding:0; font-size:24px}
+.day p{margin:6px 0 0; color:var(--text-dim); font-size:15px}
+
+hr{border:none; border-top:1px solid var(--line); margin:44px 0}
+
+.small{font-size:14px; color:var(--text-dim)}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+
+</style>
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]},
+  svg: {fontCache:'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Блок A · Основы · Вопрос 1</div>
+  <h1>Лекция 1. Однослойные и многослойные полносвязные сети. Функции активации. Прямое и обратное распространение ошибки</h1>
+  <p class="sub">Фундамент всего курса. Если эта лекция понята — 70% остальных тем становятся вариациями на тему.</p>
+  <div class="meta">
+    <span class="pill">⏱ 2 ч 30 мин</span>
+    <span class="pill gray">12 вопросов препода</span>
+    <span class="pill gray">6 микро-задач</span>
+    <span class="pill warn">Критическая тема</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<a class="backlink" href="../index.html">← К оглавлению курса</a>
+
+<nav class="toc">
+  <div class="bt">Содержание лекции</div>
+  <ol>
+    <li><a href="#s1">Зачем вообще нейросеть</a></li>
+    <li><a href="#s2">Нейрон: устройство</a></li>
+    <li><a href="#s3">Однослойная сеть = линейная модель</a></li>
+    <li><a href="#s4">Почему нужна нелинейность</a></li>
+    <li><a href="#s5">Многослойная сеть (MLP)</a></li>
+    <li><a href="#s6">Матричная запись forward pass</a></li>
+    <li><a href="#s7">Функции активации: полный разбор</a></li>
+    <li><a href="#s8">Выходной слой: регрессия vs классификация</a></li>
+    <li><a href="#s9">Обратное распространение ошибки</a></li>
+    <li><a href="#s10">Backprop на числах вручную</a></li>
+    <li><a href="#s11">Затухание и взрыв градиентов</a></li>
+    <li><a href="#s12">Теорема об универсальной аппроксимации</a></li>
+    <li><a href="#s13">Код на PyTorch</a></li>
+    <li><a href="#qa">Препод спросит</a></li>
+    <li><a href="#tasks">Микро-задачи</a></li>
+    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="s1"><span class="num">1.</span> Зачем вообще нейросеть</h2>
+
+<p>Есть задача: по <em>входу</em> предсказать <em>выход</em>. Вход — вектор чисел $x \in \mathbb{R}^n$ (пиксели картинки, признаки клиента банка, координаты точки). Выход — либо число (<strong>регрессия</strong>: цена квартиры, температура), либо метка класса (<strong>классификация</strong>: кошка/собака, спам/не спам).</p>
+
+<p>Формально мы ищем функцию $f: \mathbb{R}^n \to \mathbb{R}^m$. Проблема в том, что мы не знаем, как эта функция выглядит. Мы знаем только набор примеров — <em>обучающую выборку</em> $\{(x_i, y_i)\}_{i=1}^N$.</p>
+
+<div class="box idea">
+  <div class="bt">💡 Ключевая идея всего глубокого обучения</div>
+  <p>Мы не пишем функцию руками. Мы берём <strong>параметризованное семейство функций</strong> $f_\theta$ (нейросеть с параметрами $\theta$), и <strong>подбираем параметры</strong> $\theta$ так, чтобы на обучающих примерах $f_\theta(x_i)$ было близко к $y_i$.</p>
+  <p>«Близко» измеряет <strong>loss-функция</strong> $L(\theta)$. Подбор — <strong>градиентный спуск</strong>. Всё. Нейросеть = гибкое семейство функций + способ настроить его под данные.</p>
+</div>
+
+<p>Три компонента, которые встретятся в каждой теме курса:</p>
+
+<div class="scheme">
+   ┌─────────────────┐    ┌──────────────────┐    ┌───────────────────┐
+   │  1. АРХИТЕКТУРА │ →  │  2. LOSS-ФУНКЦИЯ │ →  │  3. ОПТИМИЗАТОР   │
+   │                 │    │                  │    │                   │
+   │  какое семейство│    │  как измеряем    │    │  как ищем минимум │
+   │  функций f_θ    │    │  «плохость» θ    │    │  L(θ) по θ        │
+   │                 │    │                  │    │                   │
+   │  MLP, CNN, RNN, │    │  MSE, MAE,       │    │  SGD, Momentum,   │
+   │  Transformer    │    │  cross-entropy   │    │  Adam, RMSProp    │
+   └─────────────────┘    └──────────────────┘    └───────────────────┘
+        Лекции 1,4,5,          Лекция 3               Лекция 6
+        14,16
+<span class="cap">Три кита. Любая тема курса — это либо новая архитектура, либо новый loss, либо новый способ оптимизации. Держи эту схему в голове: она структурирует ответ на почти любой вопрос.</span></div>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> Нейрон: устройство</h2>
+
+<p>Искусственный нейрон — простейший строительный блок. Он делает ровно две вещи.</p>
+
+<div class="scheme">
+      x₁ ──w₁──┐
+               │
+      x₂ ──w₂──┤        ┌──────────────┐        ┌──────────┐
+               ├───────▶│  z = Σwᵢxᵢ+b │───────▶│   φ(z)   │────▶ a
+      x₃ ──w₃──┤        │              │        │          │
+               │        │  ЛИНЕЙНАЯ    │        │НЕЛИНЕЙНАЯ│
+      xₙ ──wₙ──┘        │   часть      │        │  часть   │
+               │        └──────────────┘        └──────────┘
+         b ────┘             ↑                       ↑
+        (смещение)          предактивация          активация
+                          (logit, z)              (выход, a)
+<span class="cap">Шаг 1 — взвешенная сумма входов плюс смещение b. Шаг 2 — пропустить результат через нелинейную функцию φ. Обозначения: w — веса (weights), b — смещение (bias), z — предактивация, a — активация.</span></div>
+
+<div class="formula">
+$$ z = \sum_{i=1}^{n} w_i x_i + b = w^\top x + b, \qquad a = \varphi(z) $$
+<span class="note">$w \in \mathbb{R}^n$ — вектор весов, $b \in \mathbb{R}$ — скаляр-смещение, $\varphi$ — функция активации</span>
+</div>
+
+<h4>Геометрический смысл: что делает нейрон</h4>
+
+<p>Уравнение $w^\top x + b = 0$ задаёт <strong>гиперплоскость</strong> в $\mathbb{R}^n$ (в 2D — прямую, в 3D — плоскость). Вектор $w$ перпендикулярен этой плоскости и указывает в сторону, где $z > 0$.</p>
+
+<p>Значит нейрон:</p>
+<ul>
+  <li>Проводит гиперплоскость в пространстве признаков.</li>
+  <li>$z$ — это (с точностью до масштаба $\|w\|$) <strong>расстояние со знаком</strong> от точки $x$ до этой плоскости.</li>
+  <li>$b$ сдвигает плоскость от начала координат. Без $b$ плоскость всегда проходила бы через $0$ — сильное и вредное ограничение.</li>
+  <li>$\varphi$ превращает расстояние в «ответ»: например, sigmoid переводит его в вероятность.</li>
+</ul>
+
+<div class="box exambox">
+  <div class="bt">🎯 Готовый ответ, если спросят «зачем нужен bias»</div>
+  <p>Без bias гиперплоскость обязана проходить через начало координат, и модель не может выразить простейшие вещи. Пример: одномерная задача «класс 1, если $x > 5$». Без bias мы можем задать только $wx = 0$, то есть порог всегда в нуле — задача нерешаема. С bias: $wx - 5b' = 0$ даёт нужный порог. Bias = свободный член, он сдвигает разделяющую поверхность.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> Однослойная сеть = линейная модель</h2>
+
+<p>Однослойная сеть (исторически — <strong>перцептрон Розенблатта</strong>) — это слой нейронов, работающих параллельно от одного входа. Скрытых слоёв нет: вход сразу идёт в выход.</p>
+
+<div class="scheme">
+     ВХОД              ВЫХОДНОЙ СЛОЙ (он же единственный)
+
+      x₁ ──────┬───────▶ ( нейрон 1 ) ──▶ ŷ₁     "кошка"
+               ├───────▶ ( нейрон 2 ) ──▶ ŷ₂     "собака"
+      x₂ ──────┼───────▶ ( нейрон 3 ) ──▶ ŷ₃     "птица"
+               │
+      x₃ ──────┘
+
+      Каждая линия = свой вес wᵢⱼ.  Всего 3×3 = 9 весов + 3 bias.
+<span class="cap">«Полносвязный» (fully connected, dense, linear) слой = каждый вход соединён с каждым выходом. Название «однослойная» относится к числу слоёв с обучаемыми весами, входной слой не считается.</span></div>
+
+<h4>Что умеет и что не умеет</h4>
+
+<p><strong>Умеет:</strong> линейная регрессия (если $\varphi$ = тождественная функция) и логистическая регрессия / softmax-классификация (если $\varphi$ = sigmoid/softmax). Обучается быстро, интерпретируема: вес $w_i$ прямо показывает вклад признака $x_i$.</p>
+
+<p><strong>Не умеет:</strong> ничего, что требует нелинейной границы. Классический контрпример — <strong>XOR</strong>.</p>
+
+<div class="scheme">
+   Задача XOR: y = 1, если ровно один из входов равен 1
+
+    x₂
+     │
+   1 ●(0,1)→1        ○(1,1)→0
+     │
+     │
+   0 ○(0,0)→0        ●(1,0)→1
+     └──────────────────────── x₁
+     0                1
+
+   ● класс 1     ○ класс 0
+
+   Любая ПРЯМАЯ отделит максимум 3 точки из 4 правильно.
+   Нужна кривая / две прямые → нужен скрытый слой.
+<span class="cap">XOR не линейно разделим. Это исторически убило первую волну интереса к перцептронам (Минский и Пейперт, 1969) до появления backprop.</span></div>
+
+<div class="box exambox">
+  <div class="bt">🎯 Классический вопрос: «решите XOR руками»</div>
+  <p>Достаточно одного скрытого слоя из 2 нейронов. Идея: первый нейрон реализует OR ($x_1+x_2 \ge 1$), второй — AND ($x_1+x_2 \ge 2$), выходной берёт «OR, но не AND».</p>
+  <p>С активацией-ступенькой: $h_1 = \text{step}(x_1 + x_2 - 0.5)$ (это OR), $h_2 = \text{step}(x_1 + x_2 - 1.5)$ (это AND), выход $\hat y = \text{step}(h_1 - h_2 - 0.5)$.</p>
+  <p>Проверка: $(1,1)$: $h_1=1, h_2=1 \Rightarrow \hat y = \text{step}(-0.5) = 0$ ✓. $(1,0)$: $h_1=1,h_2=0 \Rightarrow \text{step}(0.5)=1$ ✓. $(0,0)$: $h_1=0,h_2=0 \Rightarrow 0$ ✓.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> Почему нужна нелинейность — доказательство в 3 строки</h2>
+
+<p>Это <strong>любимый вопрос преподавателей</strong>. Ответ должен быть мгновенным.</p>
+
+<p>Пусть у нас два слоя <em>без</em> активации:</p>
+
+<div class="formula">
+$$ h = W_1 x + b_1, \qquad \hat y = W_2 h + b_2 $$
+$$ \hat y = W_2(W_1 x + b_1) + b_2 = \underbrace{(W_2 W_1)}_{\tilde W} x + \underbrace{(W_2 b_1 + b_2)}_{\tilde b} = \tilde W x + \tilde b $$
+<span class="note">Композиция линейных отображений — снова линейное отображение</span>
+</div>
+
+<div class="box errbox">
+  <div class="bt">⚠️ Вывод, который надо произнести на экзамене</div>
+  <p>Сеть из 100 слоёв без функций активации математически эквивалентна <strong>одному</strong> линейному слою. Все дополнительные слои не добавляют выразительной силы — только избыточную параметризацию. <strong>Нелинейность — единственное, что делает глубину осмысленной.</strong></p>
+</div>
+
+<p>Дополнительная тонкость, которую можно добавить для эффекта: ранг $\tilde W = W_2 W_1$ не превосходит $\min(\text{rank } W_1, \text{rank } W_2)$. Если скрытый слой узкий, то глубокая линейная сеть даже <em>беднее</em> одного слоя — она может выражать только матрицы ограниченного ранга.</p>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> Многослойная сеть (MLP)</h2>
+
+<p><strong>MLP</strong> (Multi-Layer Perceptron) — несколько полносвязных слоёв подряд, между ними нелинейные активации.</p>
+
+<div class="scheme">
+  ВХОД        СКРЫТЫЙ 1      СКРЫТЫЙ 2       ВЫХОД
+   (4)          (5)            (3)            (2)
+
+   x₁ ○─┐    ┌─▶ ○ ─┐       ┌─▶ ○ ─┐
+        ├────┼─▶ ○ ─┼───────┼─▶ ○ ─┼───────▶ ○  ŷ₁
+   x₂ ○─┤    ├─▶ ○ ─┤       ├─▶ ○ ─┤
+        ├────┼─▶ ○ ─┼───────┘      ├───────▶ ○  ŷ₂
+   x₃ ○─┤    ├─▶ ○ ─┘              │
+        │    │                     │
+   x₄ ○─┘    └────  ReLU  ─────────┘  ReLU        softmax
+
+   W₁: 5×4      W₂: 3×5       W₃: 2×3
+   b₁: 5        b₂: 3         b₃: 2
+
+   Параметров: (4·5+5) + (5·3+3) + (3·2+2) = 25 + 18 + 8 = 51
+<span class="cap">Считать число параметров — типичная микро-задача. Формула для полносвязного слоя: (вход × выход) + выход. Второе слагаемое — bias'ы.</span></div>
+
+<h4>Что происходит содержательно</h4>
+
+<p>Каждый слой — это <strong>обучаемое преобразование пространства признаков</strong>. Сеть постепенно «распрямляет» данные: то, что во входном пространстве было переплетено нелинейно, к последнему слою становится линейно разделимым.</p>
+
+<div class="box idea">
+  <div class="bt">💡 Мощная формулировка для экзамена</div>
+  <p>Глубокая сеть = <strong>обучаемое извлечение признаков</strong> + <strong>простой линейный классификатор сверху</strong>. Все слои кроме последнего учат представление (representation), последний слой — обычная логистическая регрессия над этим представлением.</p>
+  <p>Именно поэтому работает <em>transfer learning</em> (лекция 5): признаки, выученные на одной задаче, полезны для другой — меняем только последний слой.</p>
+</div>
+
+<h4>Глубина vs ширина</h4>
+
+<table>
+<thead><tr><th>Аспект</th><th>Широкая мелкая сеть</th><th>Узкая глубокая сеть</th></tr></thead>
+<tbody>
+<tr><td>Выразительность</td><td>Теоретически любая функция (теорема об универсальной аппроксимации), но нужно экспоненциально много нейронов</td><td>Те же функции с полиномиально меньшим числом параметров — за счёт <em>переиспользования</em> признаков</td></tr>
+<tr><td>Иерархия признаков</td><td>Плоская, одноуровневая</td><td>Иерархическая: края → текстуры → части → объекты</td></tr>
+<tr><td>Обучаемость</td><td>Легко обучается, устойчиво</td><td>Проблемы затухания градиента, нужны skip-connections, BatchNorm</td></tr>
+<tr><td>Практика</td><td>Почти не используется</td><td>Стандарт: ResNet-50, GPT — десятки и сотни слоёв</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s6"><span class="num">6.</span> Прямое распространение (forward pass) в матричной форме</h2>
+
+<p>Считать по одному нейрону неэффективно. Всё делается матрицами — так работает GPU.</p>
+
+<div class="formula">
+$$ a^{(0)} = x $$
+$$ z^{(l)} = W^{(l)} a^{(l-1)} + b^{(l)}, \qquad a^{(l)} = \varphi^{(l)}\!\left(z^{(l)}\right), \qquad l = 1 \dots L $$
+$$ \hat y = a^{(L)} $$
+<span class="note">Индекс сверху в скобках — номер слоя. $\varphi$ применяется <b>поэлементно</b>.</span>
+</div>
+
+<h4>Размерности — где студенты чаще всего путаются</h4>
+
+<p>Пусть слой $l$ имеет $n_l$ нейронов, а предыдущий — $n_{l-1}$.</p>
+
+<table>
+<thead><tr><th>Объект</th><th>Один объект</th><th>Батч из $B$ объектов</th><th>Смысл</th></tr></thead>
+<tbody>
+<tr><td>$a^{(l-1)}$</td><td>$n_{l-1} \times 1$</td><td>$B \times n_{l-1}$</td><td>вход слоя</td></tr>
+<tr><td>$W^{(l)}$</td><td colspan="2">$n_l \times n_{l-1}$</td><td>веса (от батча не зависят)</td></tr>
+<tr><td>$b^{(l)}$</td><td colspan="2">$n_l \times 1$</td><td>смещения, broadcast по батчу</td></tr>
+<tr><td>$z^{(l)}, a^{(l)}$</td><td>$n_l \times 1$</td><td>$B \times n_l$</td><td>выход слоя</td></tr>
+</tbody>
+</table>
+
+<div class="box warnbox">
+  <div class="bt">⚠️ Две конвенции — не запутайся</div>
+  <p><strong>Математическая (столбцы):</strong> $x$ — вектор-столбец, $z = Wx + b$, матрица $W$ размера $(\text{выход} \times \text{вход})$.</p>
+  <p><strong>Фреймворковая (строки, PyTorch/TF):</strong> батч $X$ размера $(B \times \text{вход})$, тогда $Z = XW^\top + b$ или, если хранить веса транспонированными, $Z = XW + b$ с $W$ размера $(\text{вход} \times \text{выход})$.</p>
+  <p>На экзамене используй первую и просто скажи, что в PyTorch данные хранятся построчно, поэтому там появляется транспонирование. Это признак понимания, а не путаницы.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s7"><span class="num">7.</span> Функции активации: полный разбор</h2>
+
+<p>Это отдельный подвопрос билета — надо знать формулы, производные, плюсы, минусы и где применяется.</p>
+
+<h3>7.1 Sigmoid (логистическая)</h3>
+
+<div class="formula">
+$$ \sigma(z) = \frac{1}{1 + e^{-z}} \in (0,1), \qquad \sigma'(z) = \sigma(z)\bigl(1 - \sigma(z)\bigr) $$
+</div>
+
+<div class="scheme">
+   σ(z)
+   1.0 ┤                    ╭────────────
+       │                 ╭──╯
+   0.75┤              ╭──╯
+       │            ╭─╯
+   0.5 ┼───────────╱────────────────────
+       │        ╭─╯
+   0.25┤     ╭──╯
+       │  ╭──╯
+   0.0 ┤──╯
+       └───┬────┬────┬────┬────┬────┬───
+          -6   -4   -2    0    2    4   6
+
+   Производная σ'(z):  максимум 0.25 при z=0,
+                        →0 при |z|>4  ← ЗОНА НАСЫЩЕНИЯ
+<span class="cap">Ключевой факт: max σ'(z) = σ'(0) = 0.5·0.5 = 0.25. Это меньше единицы — отсюда затухание градиента.</span></div>
+
+<p><strong>Плюсы:</strong> выход в $(0,1)$ — интерпретируется как вероятность; гладкая; была исторически первой.</p>
+
+<p><strong>Минусы:</strong></p>
+<ul>
+  <li><strong>Насыщение / затухание градиента.</strong> При $|z| > 4$ производная почти ноль → градиент не проходит назад, нейрон «умирает».</li>
+  <li><strong>Выход не центрирован в нуле</strong> (всегда положителен). Из-за этого градиенты по всем весам одного нейрона имеют одинаковый знак → зигзагообразная траектория оптимизации.</li>
+  <li>Экспонента дороже, чем max.</li>
+</ul>
+
+<p><strong>Где применяется сейчас:</strong> только на выходе для бинарной классификации и как «вентиль» (gate) в LSTM/GRU — там нужен именно множитель от 0 до 1. В скрытых слоях — не используется.</p>
+
+<h3>7.2 Tanh (гиперболический тангенс)</h3>
+
+<div class="formula">
+$$ \tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}} \in (-1,1), \qquad \tanh'(z) = 1 - \tanh^2(z) $$
+$$ \tanh(z) = 2\sigma(2z) - 1 \quad \text{— это растянутая сигмоида} $$
+</div>
+
+<p><strong>Плюсы:</strong> центрирован в нуле (это главное преимущество перед sigmoid), максимум производной = 1 (лучше, чем 0.25).</p>
+<p><strong>Минусы:</strong> всё равно насыщается при $|z| > 3$.</p>
+<p><strong>Где применяется:</strong> в RNN и LSTM (для candidate state $\tilde c$ и выхода), в генераторе GAN на выходе, если картинка нормализована в $[-1,1]$.</p>
+
+<h3>7.3 ReLU (Rectified Linear Unit) — рабочая лошадка</h3>
+
+<div class="formula">
+$$ \text{ReLU}(z) = \max(0, z), \qquad \text{ReLU}'(z) = \begin{cases} 1, & z > 0 \\ 0, & z < 0 \\ \text{(в 0 не определена, берут 0 или 1)} \end{cases} $$
+</div>
+
+<div class="scheme">
+   ReLU(z)                        LeakyReLU(z)
+    3 ┤          ╱                  3 ┤          ╱
+    2 ┤        ╱                    2 ┤        ╱
+    1 ┤      ╱                      1 ┤      ╱
+    0 ┼────────────                 0 ┼────╱───────
+      │                              ╱
+   -1 ┤                          -1 ┤ (наклон 0.01)
+      └──┬───┬───┬───┬──            └──┬───┬───┬───
+        -2  -1   0   1  2             -2  -1   0   1
+<span class="cap">ReLU просто обнуляет отрицательные значения. LeakyReLU оставляет им маленький наклон, чтобы градиент не был строго нулевым.</span></div>
+
+<p><strong>Плюсы:</strong></p>
+<ul>
+  <li><strong>Не насыщается справа:</strong> при $z > 0$ производная ровно 1 — градиент проходит без ослабления. Это главная причина, почему стали возможны глубокие сети.</li>
+  <li>Считается за одну операцию сравнения — очень быстро.</li>
+  <li>Даёт <strong>разреженность</strong>: около половины нейронов выдают ноль, представление становится разреженным (это скорее плюс — экономия и регуляризация).</li>
+</ul>
+
+<p><strong>Минусы:</strong></p>
+<ul>
+  <li><strong>«Умирающий ReLU» (dying ReLU).</strong> Если из-за большого шага градиента веса сместились так, что $z < 0$ на <em>всех</em> объектах выборки, то производная всегда 0, градиент по этим весам всегда 0, и нейрон навсегда выключен. Лечится: LeakyReLU, меньший learning rate, правильная инициализация.</li>
+  <li>Выход не центрирован в нуле.</li>
+  <li>Не дифференцируема в нуле (на практике не мешает — вероятность попасть ровно в 0 нулевая).</li>
+</ul>
+
+<h3>7.4 Модификации ReLU</h3>
+
+<table>
+<thead><tr><th>Функция</th><th>Формула</th><th>Идея</th></tr></thead>
+<tbody>
+<tr><td><strong>LeakyReLU</strong></td><td>$\max(\alpha z, z)$, $\alpha \approx 0.01$</td><td>Дать отрицательной части маленький наклон → нейрон не умирает</td></tr>
+<tr><td><strong>PReLU</strong></td><td>то же, но $\alpha$ обучается</td><td>Пусть сеть сама выберет наклон</td></tr>
+<tr><td><strong>ELU</strong></td><td>$z$ при $z > 0$; $\alpha(e^z-1)$ иначе</td><td>Гладкая, среднее ближе к нулю, но дороже (экспонента)</td></tr>
+<tr><td><strong>GELU</strong></td><td>$z \cdot \Phi(z)$, $\Phi$ — CDF нормального</td><td>«Вероятностный» вариант ReLU. <b>Стандарт в трансформерах</b> (BERT, GPT)</td></tr>
+<tr><td><strong>Swish/SiLU</strong></td><td>$z \cdot \sigma(z)$</td><td>Найдена автопоиском, гладкая, часто чуть лучше ReLU</td></tr>
+</tbody>
+</table>
+
+<h3>7.5 Softmax — не совсем активация</h3>
+
+<div class="formula">
+$$ \text{softmax}(z)_i = \frac{e^{z_i}}{\sum_{j=1}^{K} e^{z_j}}, \qquad \sum_i \text{softmax}(z)_i = 1 $$
+</div>
+
+<p>Отличие от остальных: softmax — <strong>не поэлементная</strong> функция. Каждый выход зависит от <em>всех</em> входов. Она превращает вектор произвольных чисел («логитов») в распределение вероятностей по $K$ классам. Применяется только на выходном слое многоклассовой классификации.</p>
+
+<div class="box warnbox">
+  <div class="bt">⚠️ Численная стабильность — могут спросить</div>
+  <p>Если $z_i = 1000$, то $e^{1000}$ переполняет float. Решение: вычесть максимум, softmax от этого не меняется:</p>
+  <p>$$\text{softmax}(z)_i = \frac{e^{z_i - \max_j z_j}}{\sum_k e^{z_k - \max_j z_j}}$$</p>
+  <p>Именно поэтому в PyTorch используют <code>CrossEntropyLoss</code>, которому подают <em>логиты</em>, а не вероятности: внутри он делает стабильный <code>log_softmax</code>.</p>
+</div>
+
+<h3>7.6 Сводная таблица — выучить наизусть</h3>
+
+<table>
+<thead><tr><th>Функция</th><th>Область значений</th><th>Производная</th><th>Насыщается</th><th>Где применять</th></tr></thead>
+<tbody>
+<tr><td>Sigmoid</td><td>$(0,1)$</td><td>$\sigma(1-\sigma)$, макс 0.25</td><td>с обеих сторон</td><td>выход бинарной классификации, гейты LSTM</td></tr>
+<tr><td>Tanh</td><td>$(-1,1)$</td><td>$1-\tanh^2$, макс 1</td><td>с обеих сторон</td><td>RNN/LSTM, выход генератора GAN</td></tr>
+<tr><td>ReLU</td><td>$[0,+\infty)$</td><td>0 или 1</td><td>только слева</td><td><b>скрытые слои по умолчанию</b>, CNN</td></tr>
+<tr><td>LeakyReLU</td><td>$(-\infty,+\infty)$</td><td>$\alpha$ или 1</td><td>нет</td><td>дискриминатор GAN, когда ReLU умирает</td></tr>
+<tr><td>GELU</td><td>$\approx(-0.17,+\infty)$</td><td>гладкая</td><td>нет</td><td>трансформеры</td></tr>
+<tr><td>Softmax</td><td>симплекс</td><td>матрица Якоби</td><td>—</td><td>выход многоклассовой классификации</td></tr>
+<tr><td>Linear (нет)</td><td>$\mathbb{R}$</td><td>1</td><td>нет</td><td>выход регрессии</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s8"><span class="num">8.</span> Выходной слой: регрессия vs классификация</h2>
+
+<p>Разница между задачами живёт <strong>только в двух местах</strong>: последняя активация и loss-функция. Вся остальная сеть идентична. Это очень важный тезис для экзамена.</p>
+
+<table>
+<thead><tr><th>Задача</th><th>Нейронов на выходе</th><th>Активация</th><th>Loss</th><th>Целевая переменная</th></tr></thead>
+<tbody>
+<tr><td>Регрессия (одно число)</td><td>1</td><td>нет (linear)</td><td>MSE или MAE</td><td>$y \in \mathbb{R}$</td></tr>
+<tr><td>Регрессия (вектор)</td><td>$m$</td><td>нет</td><td>MSE покомпонентно</td><td>$y \in \mathbb{R}^m$</td></tr>
+<tr><td>Бинарная классификация</td><td>1</td><td>sigmoid</td><td>Binary cross-entropy</td><td>$y \in \{0,1\}$</td></tr>
+<tr><td>Многоклассовая (1 класс)</td><td>$K$</td><td>softmax</td><td>Cross-entropy</td><td>one-hot вектор</td></tr>
+<tr><td>Multi-label (много меток)</td><td>$K$</td><td>sigmoid покомпонентно</td><td>сумма BCE</td><td>$y \in \{0,1\}^K$</td></tr>
+</tbody>
+</table>
+
+<div class="box errbox">
+  <div class="bt">⚠️ Ловушка, на которой валят</div>
+  <p><strong>Нельзя ставить sigmoid или ReLU на выход регрессии</strong> — вы искусственно ограничите область значений. Если сеть должна предсказывать цену от 0 до 100 млн, а вы поставили sigmoid, максимум предсказания — 1.</p>
+  <p><strong>Нельзя ставить softmax и потом ещё раз применять softmax в loss.</strong> В PyTorch <code>nn.CrossEntropyLoss</code> уже содержит softmax внутри — на вход ему подают сырые логиты.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s9"><span class="num">9.</span> Обратное распространение ошибки (backpropagation)</h2>
+
+<div class="box idea">
+  <div class="bt">💡 Что такое backprop одним предложением</div>
+  <p>Backpropagation — это <strong>эффективное применение цепного правила дифференцирования</strong> для вычисления градиента loss-функции по всем параметрам сети за один проход назад. Это <em>не</em> алгоритм обучения — обучает градиентный спуск. Backprop только считает градиенты.</p>
+</div>
+
+<h3>9.1 Зачем нужен градиент</h3>
+
+<p>Мы минимизируем $L(\theta)$ градиентным спуском:</p>
+
+<div class="formula">
+$$ \theta \leftarrow \theta - \eta \,\frac{\partial L}{\partial \theta} $$
+<span class="note">$\eta$ — скорость обучения (learning rate)</span>
+</div>
+
+<p>Значит для каждого веса $w_{ij}^{(l)}$ нужно знать $\partial L / \partial w_{ij}^{(l)}$. Наивный способ — численно, через конечные разности: $\frac{L(w+\varepsilon) - L(w)}{\varepsilon}$. Но это требует <strong>отдельного forward pass на каждый вес</strong>. При 25 млн параметров — 25 млн проходов на один шаг обучения. Нереально.</p>
+
+<p>Backprop даёт все градиенты <strong>за один проход назад</strong>, по стоимости примерно равный одному forward pass. Это ключевое достижение.</p>
+
+<h3>9.2 Цепное правило — весь фундамент</h3>
+
+<p>Если $L$ зависит от $z$, а $z$ от $w$, то:</p>
+
+<div class="formula">
+$$ \frac{\partial L}{\partial w} = \frac{\partial L}{\partial z} \cdot \frac{\partial z}{\partial w} $$
+</div>
+
+<p>Сеть — это длинная композиция функций:</p>
+
+<div class="formula">
+$$ L\bigl(\varphi(W^{(L)} \varphi(W^{(L-1)} \cdots \varphi(W^{(1)} x)))\bigr) $$
+</div>
+
+<p>Градиент по $W^{(1)}$ — это произведение множителей по всей цепочке. Backprop вычисляет эти произведения <strong>справа налево</strong>, переиспользуя результаты.</p>
+
+<h3>9.3 Ключевая величина: ошибка слоя $\delta$</h3>
+
+<p>Определим <strong>дельту</strong> — градиент loss по предактивации слоя:</p>
+
+<div class="formula">
+$$ \delta^{(l)} \;\stackrel{\text{def}}{=}\; \frac{\partial L}{\partial z^{(l)}} $$
+<span class="note">«Сколько ошибки пришло на вход нелинейности слоя $l$». Размерность: $n_l \times 1$.</span>
+</div>
+
+<p>Если мы знаем $\delta^{(l)}$, то градиенты по параметрам этого слоя получаются мгновенно.</p>
+
+<h3>9.4 Четыре формулы backprop</h3>
+
+<div class="box mathbox">
+  <div class="bt">📐 Уравнения обратного распространения</div>
+
+  <p><strong>(1) Дельта на выходном слое</strong> — старт рекурсии:</p>
+  <p>$$ \delta^{(L)} = \nabla_{a} L \odot \varphi'\!\left(z^{(L)}\right) $$</p>
+
+  <p><strong>(2) Рекуррентный шаг назад</strong> — сердце алгоритма:</p>
+  <p>$$ \delta^{(l)} = \left( W^{(l+1)\top} \delta^{(l+1)} \right) \odot \varphi'\!\left(z^{(l)}\right) $$</p>
+
+  <p><strong>(3) Градиент по весам:</strong></p>
+  <p>$$ \frac{\partial L}{\partial W^{(l)}} = \delta^{(l)} \left(a^{(l-1)}\right)^{\!\top} $$</p>
+
+  <p><strong>(4) Градиент по смещениям:</strong></p>
+  <p>$$ \frac{\partial L}{\partial b^{(l)}} = \delta^{(l)} $$</p>
+
+  <p class="small">$\odot$ — поэлементное умножение (произведение Адамара).</p>
+</div>
+
+<p>Разберём смысл каждой:</p>
+
+<ul>
+  <li><strong>(1)</strong> На выходе мы напрямую знаем, насколько ошиблись. Например, для MSE $L = \frac12\|a^{(L)}-y\|^2$ получаем $\nabla_a L = a^{(L)} - y$.</li>
+  <li><strong>(2)</strong> $W^{(l+1)\top}\delta^{(l+1)}$ — «раздача» ошибки следующего слоя назад пропорционально весам: нейрон, чей вес больше, получает больше вины. Затем домножаем на $\varphi'(z^{(l)})$ — <em>«пропустил бы этот нейрон сигнал вперёд?»</em> Если нейрон в насыщении ($\varphi' \approx 0$), он и назад ничего не пропустит.</li>
+  <li><strong>(3)</strong> Градиент по весу $w_{ij}$ = (ошибка на выходе $i$) × (вход $j$). Логично: если вход был нулевой, вес не влиял, градиент ноль.</li>
+  <li><strong>(4)</strong> У bias «вход» всегда равен 1, поэтому градиент просто равен дельте.</li>
+</ul>
+
+<h3>9.5 Схема forward + backward</h3>
+
+<div class="scheme">
+  ═══════════════ FORWARD PASS (слева направо) ═══════════════
+
+   x ──▶[ W¹ ]──▶ z¹ ──▶[φ]──▶ a¹ ──▶[ W² ]──▶ z² ──▶[φ]──▶ a² ──▶ L
+        b¹                            b²                       ↑
+                                                             y ┘
+   Сохраняем в памяти: x, z¹, a¹, z², a²   ← нужны для backward!
+
+  ═══════════════ BACKWARD PASS (справа налево) ══════════════
+
+        ∂L/∂W¹          ∂L/∂W²
+           ▲               ▲
+           │               │
+   ◀── δ¹ ◀┴─[ W²ᵀ ]── δ² ◀┴──── ∂L/∂a² ◀──── L
+        ⊙φ'(z¹)         ⊙φ'(z²)
+
+   Каждый шаг: (1) прокинуть через Wᵀ  (2) умножить на φ'(z)
+               (3) попутно записать ∂L/∂W = δ·aᵀ
+
+  ═══════════════ ОБНОВЛЕНИЕ ═════════════════════════════════
+
+   W ← W − η·∂L/∂W        b ← b − η·∂L/∂b
+<span class="cap">Важно: forward обязан сохранить промежуточные z и a. Отсюда расход памяти при обучении ~ в 3 раза больше, чем при инференсе. Это готовый ответ на вопрос «почему обучение требует столько видеопамяти».</span></div>
+
+<div class="box exambox">
+  <div class="bt">🎯 Частый вопрос: «почему backprop эффективен?»</div>
+  <p>Потому что он идёт <strong>справа налево</strong> и на каждом шаге умножает <em>вектор на матрицу</em>, а не матрицу на матрицу. Если бы мы считали производные слева направо (forward-mode), пришлось бы тащить полные якобианы размера (число параметров × размер слоя).</p>
+  <p>Формально: у нас функция $\mathbb{R}^{\text{много параметров}} \to \mathbb{R}^{1}$. Для таких функций reverse-mode дифференцирование стоит $O(1)$ forward-проходов, а forward-mode — $O(\text{число параметров})$. Подробнее — в лекции 2 про автодифференцирование.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s10"><span class="num">10.</span> Backprop на числах — считаем вручную</h2>
+
+<p>Такую задачу преподаватель вполне может дать у доски. Разберём полностью.</p>
+
+<div class="box mathbox">
+  <div class="bt">📐 Условие</div>
+  <p>Сеть: 1 вход → 1 скрытый нейрон (sigmoid) → 1 выход (linear). Loss = MSE $= \frac12 (\hat y - y)^2$.</p>
+  <p>Параметры: $w_1 = 0.5$, $b_1 = 0$, $w_2 = 2.0$, $b_2 = 0$. Пример: $x = 1$, $y = 1$. Learning rate $\eta = 0.1$.</p>
+</div>
+
+<h4>Forward</h4>
+
+<div class="formula">
+$$ z_1 = w_1 x + b_1 = 0.5 \cdot 1 + 0 = 0.5 $$
+$$ a_1 = \sigma(0.5) = \frac{1}{1+e^{-0.5}} \approx 0.6225 $$
+$$ z_2 = w_2 a_1 + b_2 = 2.0 \cdot 0.6225 = 1.2450 $$
+$$ \hat y = z_2 = 1.2450 \qquad L = \tfrac12(1.2450 - 1)^2 = \tfrac12 (0.2450)^2 \approx 0.0300 $$
+</div>
+
+<h4>Backward</h4>
+
+<p><strong>Шаг 1. Дельта выходного слоя.</strong> Активация линейная, $\varphi' = 1$:</p>
+<div class="formula">
+$$ \delta_2 = \frac{\partial L}{\partial z_2} = (\hat y - y)\cdot 1 = 0.2450 $$
+</div>
+
+<p><strong>Шаг 2. Градиенты второго слоя:</strong></p>
+<div class="formula">
+$$ \frac{\partial L}{\partial w_2} = \delta_2 \cdot a_1 = 0.2450 \cdot 0.6225 \approx 0.1525 $$
+$$ \frac{\partial L}{\partial b_2} = \delta_2 = 0.2450 $$
+</div>
+
+<p><strong>Шаг 3. Прокидываем назад и умножаем на производную sigmoid:</strong></p>
+<div class="formula">
+$$ \sigma'(z_1) = a_1(1-a_1) = 0.6225 \cdot 0.3775 \approx 0.2350 $$
+$$ \delta_1 = (w_2 \cdot \delta_2)\cdot \sigma'(z_1) = (2.0 \cdot 0.2450)\cdot 0.2350 = 0.4900 \cdot 0.2350 \approx 0.1152 $$
+</div>
+
+<p><strong>Шаг 4. Градиенты первого слоя:</strong></p>
+<div class="formula">
+$$ \frac{\partial L}{\partial w_1} = \delta_1 \cdot x = 0.1152 \cdot 1 = 0.1152, \qquad \frac{\partial L}{\partial b_1} = 0.1152 $$
+</div>
+
+<p><strong>Шаг 5. Обновление весов:</strong></p>
+<div class="formula">
+$$ w_2 \leftarrow 2.0 - 0.1 \cdot 0.1525 = 1.9847 \qquad w_1 \leftarrow 0.5 - 0.1\cdot 0.1152 = 0.4885 $$
+</div>
+
+<div class="box okbox">
+  <div class="bt">✓ Проверка здравого смысла</div>
+  <p>$\hat y = 1.245 > y = 1$, то есть мы <em>переоценили</em>. Значит веса должны уменьшиться — и действительно оба уменьшились. Если на экзамене получилось наоборот, значит где-то потерян знак.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s11"><span class="num">11.</span> Затухание и взрыв градиентов</h2>
+
+<p>Прямое следствие формулы (2): дельта на слое $l$ — это произведение множителей по всем слоям справа:</p>
+
+<div class="formula">
+$$ \delta^{(1)} \sim \left(\prod_{l=2}^{L} W^{(l)\top}\right) \cdot \left(\prod_{l=1}^{L}\varphi'(z^{(l)})\right)\cdot \nabla_a L $$
+</div>
+
+<div class="scheme">
+  Сеть из 10 слоёв с sigmoid. Каждый множитель φ'(z) ≤ 0.25.
+
+  Слой 10 ──▶ δ = 1.0
+  Слой  9 ──▶ δ ≈ 0.25
+  Слой  8 ──▶ δ ≈ 0.0625
+  Слой  7 ──▶ δ ≈ 0.0156
+  Слой  6 ──▶ δ ≈ 0.0039
+  Слой  5 ──▶ δ ≈ 0.00098
+  ...
+  Слой  1 ──▶ δ ≈ 0.25⁹ ≈ 0.0000038     ← ГРАДИЕНТ ИСЧЕЗ
+
+  Первые слои практически не обучаются.
+<span class="cap">Это ровно то, что мешало обучать глубокие сети до 2010-х. Наглядная иллюстрация: 0.25^9 ≈ 4·10⁻⁶.</span></div>
+
+<table>
+<thead><tr><th>Проблема</th><th>Причина</th><th>Симптом</th><th>Лечение</th></tr></thead>
+<tbody>
+<tr><td><strong>Vanishing gradient</strong></td><td>Множители $< 1$ перемножаются: насыщающие активации, малые веса</td><td>Первые слои не меняются, loss стоит на плато</td><td>ReLU вместо sigmoid; skip-connections (ResNet); BatchNorm; правильная инициализация (He/Xavier); LSTM вместо ванильной RNN</td></tr>
+<tr><td><strong>Exploding gradient</strong></td><td>Множители $> 1$: большие веса, длинные RNN</td><td>Loss улетает в NaN, веса огромные</td><td>Gradient clipping ($\|g\| \le c$); меньший learning rate; нормализация; аккуратная инициализация</td></tr>
+</tbody>
+</table>
+
+<h4>Инициализация весов — почему нельзя нулями</h4>
+
+<div class="box errbox">
+  <div class="bt">⚠️ Проблема симметрии</div>
+  <p>Если инициализировать все веса <strong>одинаково</strong> (например, нулями), то все нейроны слоя вычислят одно и то же, получат одинаковые дельты и обновятся одинаково. Они навсегда останутся идентичными — слой из 100 нейронов будет работать как один. Это называется <em>проблема симметрии</em>. Веса надо инициализировать <strong>случайно</strong>; bias можно нулями.</p>
+</div>
+
+<table>
+<thead><tr><th>Схема</th><th>Дисперсия</th><th>Для каких активаций</th></tr></thead>
+<tbody>
+<tr><td><strong>Xavier / Glorot</strong></td><td>$\text{Var}(w) = \dfrac{2}{n_{in}+n_{out}}$</td><td>tanh, sigmoid (симметричные)</td></tr>
+<tr><td><strong>He / Kaiming</strong></td><td>$\text{Var}(w) = \dfrac{2}{n_{in}}$</td><td>ReLU и его варианты</td></tr>
+</tbody>
+</table>
+
+<p>Логика He-инициализации в одну фразу: ReLU обнуляет половину активаций, значит дисперсия сигнала после неё падает вдвое — компенсируем множителем 2 в числителе, чтобы дисперсия сигнала сохранялась от слоя к слою.</p>
+
+<!-- ============================================ -->
+<h2 id="s12"><span class="num">12.</span> Теорема об универсальной аппроксимации</h2>
+
+<div class="box mathbox">
+  <div class="bt">📐 Формулировка (Цыбенко, 1989 / Хорник, 1991)</div>
+  <p>Пусть $\varphi$ — непрерывная, ограниченная, неполиномиальная функция. Тогда для любой непрерывной функции $f$ на компакте $K \subset \mathbb{R}^n$ и любого $\varepsilon > 0$ существует сеть с <strong>одним скрытым слоем</strong> конечной ширины $N$:</p>
+  <p>$$ g(x) = \sum_{i=1}^{N} c_i\, \varphi(w_i^\top x + b_i) $$</p>
+  <p>такая, что $\displaystyle\sup_{x \in K} |f(x) - g(x)| < \varepsilon$.</p>
+</div>
+
+<div class="box warnbox">
+  <div class="bt">⚠️ Что теорема НЕ утверждает — на этом ловят</div>
+  <ul>
+    <li><strong>Не говорит, сколько нейронов нужно.</strong> Число $N$ может быть экспоненциально большим по размерности входа.</li>
+    <li><strong>Не говорит, что мы такую сеть найдём.</strong> Существование ≠ обучаемость. Градиентный спуск может не сойтись к этому решению.</li>
+    <li><strong>Ничего не говорит про обобщение.</strong> Речь только про приближение на компакте, не про качество на новых данных.</li>
+    <li><strong>Не объясняет успех глубокого обучения.</strong> Наоборот: она про <em>мелкие</em> сети. Практическая ценность глубины — в экспоненциальной экономии параметров, а это уже другие теоремы.</li>
+  </ul>
+  <p>Правильный вывод: теорема — это ответ на вопрос «а не слишком ли бедный класс функций?». Ответ: нет, класс достаточно богат. Всё остальное — вопрос практики.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s13"><span class="num">13.</span> Как это выглядит в коде</h2>
+
+<p>Полезно увидеть, чтобы формулы перестали быть абстракцией.</p>
+
+<h4>Backprop руками на NumPy (2 слоя)</h4>
+
+<pre><code><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> sigmoid(z): <span class="kw">return</span> <span class="num2">1</span> / (<span class="num2">1</span> + np.exp(-z))
+
+<span class="cmt"># Инициализация (He для скрытого слоя)</span>
+W1 = np.random.randn(<span class="num2">4</span>, <span class="num2">3</span>) * np.sqrt(<span class="num2">2</span>/<span class="num2">3</span>);  b1 = np.zeros((<span class="num2">4</span>, <span class="num2">1</span>))
+W2 = np.random.randn(<span class="num2">1</span>, <span class="num2">4</span>) * np.sqrt(<span class="num2">2</span>/<span class="num2">4</span>);  b2 = np.zeros((<span class="num2">1</span>, <span class="num2">1</span>))
+x  = np.random.randn(<span class="num2">3</span>, <span class="num2">1</span>);  y = np.array([[<span class="num2">1.0</span>]]);  eta = <span class="num2">0.1</span>
+
+<span class="cmt"># ---------- FORWARD ----------</span>
+z1 = W1 @ x  + b1                 <span class="cmt"># (4,1)</span>
+a1 = np.maximum(<span class="num2">0</span>, z1)            <span class="cmt"># ReLU</span>
+z2 = W2 @ a1 + b2                 <span class="cmt"># (1,1)</span>
+y_hat = z2                        <span class="cmt"># линейный выход (регрессия)</span>
+loss = <span class="num2">0.5</span> * np.sum((y_hat - y)**<span class="num2">2</span>)
+
+<span class="cmt"># ---------- BACKWARD ----------</span>
+d2 = (y_hat - y)                  <span class="cmt"># δ⁽²⁾ = ∂L/∂z2, формула (1)</span>
+dW2 = d2 @ a1.T                   <span class="cmt"># формула (3)</span>
+db2 = d2                          <span class="cmt"># формула (4)</span>
+
+d1 = (W2.T @ d2) * (z1 &gt; <span class="num2">0</span>)      <span class="cmt"># δ⁽¹⁾, формула (2); (z1>0) = ReLU'</span>
+dW1 = d1 @ x.T
+db1 = d1
+
+<span class="cmt"># ---------- ШАГ ГРАДИЕНТНОГО СПУСКА ----------</span>
+W2 -= eta * dW2;  b2 -= eta * db2
+W1 -= eta * dW1;  b1 -= eta * db1</code></pre>
+
+<h4>То же самое на PyTorch</h4>
+
+<pre><code><span class="kw">import</span> torch, torch.nn <span class="kw">as</span> nn
+
+model = nn.Sequential(
+    nn.Linear(<span class="num2">3</span>, <span class="num2">4</span>),   <span class="cmt"># W1 (4×3) и b1 создаются автоматически</span>
+    nn.ReLU(),
+    nn.Linear(<span class="num2">4</span>, <span class="num2">1</span>),   <span class="cmt"># выход регрессии — без активации</span>
+)
+loss_fn = nn.MSELoss()
+opt = torch.optim.SGD(model.parameters(), lr=<span class="num2">0.1</span>)
+
+y_hat = model(x)              <span class="cmt"># forward: строит граф вычислений</span>
+loss  = loss_fn(y_hat, y)
+
+opt.zero_grad()               <span class="cmt"># обнулить старые градиенты (иначе накопятся!)</span>
+loss.backward()               <span class="cmt"># ← ВЕСЬ BACKPROP: одна строка</span>
+opt.step()                    <span class="cmt"># W ← W − η·grad</span></code></pre>
+
+<div class="box warnbox">
+  <div class="bt">⚠️ Зачем zero_grad()</div>
+  <p>PyTorch <strong>накапливает</strong> градиенты в <code>.grad</code> (складывает с прошлыми). Это сделано специально — чтобы можно было эмулировать большой батч несколькими проходами (gradient accumulation). Но если забыть <code>zero_grad()</code>, градиенты просуммируются со всех прошлых шагов и обучение сломается. Классическая ошибка.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="qa">🎯 Препод спросит</h2>
+
+<details class="qa"><summary>Что такое нейрон и что он вычисляет?</summary>
+<div class="ans">
+<p>Нейрон вычисляет $a = \varphi(w^\top x + b)$ — сначала линейную комбинацию входов со своими весами плюс смещение, затем применяет нелинейную функцию активации. Геометрически линейная часть задаёт гиперплоскость, а $z = w^\top x + b$ — расстояние со знаком от точки до неё, масштабированное на $\|w\|$.</p>
+</div></details>
+
+<details class="qa"><summary>Почему нельзя обойтись без функции активации?</summary>
+<div class="ans">
+<p>Композиция линейных отображений линейна: $W_2(W_1x + b_1)+b_2 = (W_2W_1)x + (W_2b_1+b_2)$. Значит любая глубокая сеть без активаций сворачивается в один линейный слой и не может выразить ничего, кроме линейной модели — например, не решит XOR. Нелинейность — единственное, что делает глубину осмысленной.</p>
+</div></details>
+
+<details class="qa"><summary>В чём разница между однослойной и многослойной сетью?</summary>
+<div class="ans">
+<p>Однослойная (перцептрон) реализует линейную модель: линейную либо логистическую регрессию. Её разделяющая поверхность — гиперплоскость, поэтому нелинейно разделимые задачи (XOR) ей недоступны. Многослойная за счёт скрытых слоёв с нелинейностями строит произвольные разделяющие поверхности. Содержательно: скрытые слои учат <em>представление</em> данных, а последний слой — обычный линейный классификатор поверх него.</p>
+</div></details>
+
+<details class="qa"><summary>Сколько параметров в сети 784 → 128 → 64 → 10?</summary>
+<div class="ans">
+<p>Полносвязный слой $n_{in} \to n_{out}$ имеет $n_{in}\cdot n_{out} + n_{out}$ параметров.</p>
+<p>$784\cdot128 + 128 = 100\,352 + 128 = 100\,480$<br>
+$128\cdot64 + 64 = 8\,192 + 64 = 8\,256$<br>
+$64\cdot10 + 10 = 640 + 10 = 650$</p>
+<p><strong>Итого 109 386.</strong> Обрати внимание: 92% параметров в первом слое — это типично для MLP на изображениях и одна из причин, почему для картинок используют свёртки.</p>
+</div></details>
+
+<details class="qa"><summary>Backprop — это алгоритм обучения?</summary>
+<div class="ans">
+<p>Нет, и это важное различие. Backprop <strong>вычисляет градиенты</strong>. Обучает <strong>градиентный спуск</strong> (SGD, Adam и т. д.), который использует эти градиенты для обновления весов. Backprop = эффективная реализация цепного правила, оптимизатор — отдельная сущность.</p>
+</div></details>
+
+<details class="qa"><summary>Почему backprop идёт справа налево, а не слева направо?</summary>
+<div class="ans">
+<p>Loss — скалярная функция от многих параметров: $\mathbb{R}^{P} \to \mathbb{R}$, где $P$ огромно. При обходе справа налево (reverse mode) мы на каждом шаге умножаем <em>вектор на матрицу</em> — стоимость сопоставима с forward pass, и все $P$ градиентов получаются за один проход. При обходе слева направо (forward mode) пришлось бы делать отдельный проход на каждый параметр, то есть $P$ проходов.</p>
+<p>Правило: reverse mode выгоден, когда выходов мало, а входов много; forward mode — наоборот.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое $\delta$ и какой у неё смысл?</summary>
+<div class="ans">
+<p>$\delta^{(l)} = \partial L/\partial z^{(l)}$ — градиент функции потерь по предактивации слоя $l$, то есть «сколько ошибки приходится на этот слой». Зная $\delta^{(l)}$, градиенты по параметрам получаются тривиально: $\partial L/\partial W^{(l)} = \delta^{(l)}(a^{(l-1)})^\top$ и $\partial L/\partial b^{(l)} = \delta^{(l)}$. Рекуррентно $\delta$ пересчитывается назад: $\delta^{(l)} = (W^{(l+1)\top}\delta^{(l+1)})\odot\varphi'(z^{(l)})$.</p>
+</div></details>
+
+<details class="qa"><summary>Почему при обучении нужно втрое больше памяти, чем при инференсе?</summary>
+<div class="ans">
+<p>Для backward pass нужны промежуточные активации $a^{(l)}$ и предактивации $z^{(l)}$ всех слоёв — они входят в формулы градиентов. Поэтому forward обязан их сохранить. Плюс хранятся сами градиенты и состояния оптимизатора (у Adam — два дополнительных буфера размера с веса). При инференсе ничего сохранять не нужно, память переиспользуется послойно.</p>
+<p>Отсюда приём <em>gradient checkpointing</em>: не хранить активации, а пересчитывать их заново при backward — экономия памяти ценой ~30% времени.</p>
+</div></details>
+
+<details class="qa"><summary>Почему нельзя инициализировать веса нулями?</summary>
+<div class="ans">
+<p>Проблема симметрии: все нейроны слоя выдадут одинаковый выход, получат одинаковые $\delta$ и обновятся одинаково. Они останутся идентичными навсегда, и слой из $n$ нейронов будет эквивалентен одному. Поэтому веса инициализируют случайно (Xavier для tanh/sigmoid, He для ReLU), а bias можно нулями — симметрию уже нарушают веса.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое «умирающий ReLU» и как с ним бороться?</summary>
+<div class="ans">
+<p>Если после большого шага градиента веса нейрона стали такими, что $z < 0$ на всех объектах обучающей выборки, то $\text{ReLU}'(z) = 0$ всегда, градиент по этим весам всегда нулевой, и нейрон больше никогда не обновится — он мёртв.</p>
+<p>Средства: LeakyReLU или ELU (ненулевая производная слева), меньший learning rate, He-инициализация, BatchNorm (удерживает $z$ около нуля).</p>
+</div></details>
+
+<details class="qa"><summary>Sigmoid или ReLU в скрытых слоях и почему?</summary>
+<div class="ans">
+<p>ReLU. У sigmoid максимум производной 0.25, и при перемножении по $L$ слоям градиент затухает экспоненциально ($0.25^{10} \approx 10^{-6}$). У ReLU производная в положительной области ровно 1 — градиент проходит без ослабления. Плюс ReLU в разы дешевле вычислительно. Sigmoid оставляют только там, где нужен именно выход в $(0,1)$: бинарная классификация на выходе и гейты в LSTM.</p>
+</div></details>
+
+<details class="qa"><summary>Как связаны число слоёв и выразительная сила? Не лучше ли просто сделать один очень широкий слой?</summary>
+<div class="ans">
+<p>По теореме об универсальной аппроксимации одного скрытого слоя достаточно для приближения любой непрерывной функции на компакте. Но теорема не ограничивает <em>ширину</em>: для многих функций она растёт экспоненциально с размерностью входа.</p>
+<p>Глубина даёт экспоненциальную экономию параметров за счёт переиспользования признаков: слой $l$ строит признаки из признаков слоя $l-1$. Аналогия: в булевых схемах есть функции, требующие экспоненциального размера при глубине 2, но полиномиального при глубине $O(\log n)$. Цена глубины — проблемы обучения (затухание градиента), которые решают ReLU, BatchNorm и skip-connections.</p>
+</div></details>
+
+<!-- ============================================ -->
+<h2 id="tasks">📝 Микро-задачи</h2>
+
+<div class="task">
+  <div class="tt">Задача 1. Число параметров</div>
+  <p>MLP: вход 100 признаков, три скрытых слоя по 50 нейронов, выход на 5 классов. Сколько обучаемых параметров?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$100\cdot50+50 = 5\,050$<br>$50\cdot50+50 = 2\,550$ (дважды: $5\,100$)<br>$50\cdot5+5 = 255$</p>
+    <p>Итого: $5\,050 + 2\,550 + 2\,550 + 255 = \mathbf{10\,405}$.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 2. Проверка размерностей</div>
+  <p>Батч $X$ размера $(32, 64)$ подаётся в слой <code>nn.Linear(64, 16)</code>. Какого размера $W$, $b$ и выход?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>В PyTorch <code>Linear(in, out)</code> хранит <code>weight</code> размера $(\text{out}, \text{in}) = (16, 64)$ и <code>bias</code> размера $(16,)$. Вычисляется $Y = XW^\top + b$: $(32,64)\times(64,16) = (32,16)$.</p>
+    <p><strong>Выход: $(32, 16)$.</strong> Размер батча никогда не меняется полносвязным слоем.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 3. Один шаг backprop</div>
+  <p>Один нейрон, sigmoid, $w = 1$, $b = 0$, вход $x = 2$, цель $y = 0$, loss = MSE $= \frac12(a-y)^2$, $\eta = 1$. Найдите новое $w$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>Forward:</strong> $z = 2$, $a = \sigma(2) \approx 0.8808$, $L = \frac12(0.8808)^2 \approx 0.3879$.</p>
+    <p><strong>Backward:</strong> $\dfrac{\partial L}{\partial a} = a - y = 0.8808$; $\ \sigma'(z) = a(1-a) = 0.8808\cdot0.1192 \approx 0.1050$.</p>
+    <p>$\delta = 0.8808 \cdot 0.1050 \approx 0.0925$; $\ \dfrac{\partial L}{\partial w} = \delta\cdot x = 0.0925\cdot 2 = 0.1850$.</p>
+    <p><strong>Обновление:</strong> $w \leftarrow 1 - 1\cdot 0.1850 = \mathbf{0.815}$.</p>
+    <p><em>Смысл:</em> предсказали 0.88, надо было 0 — вес уменьшился. ✓ Заодно видно проблему: $\sigma'$ уже всего 0.105, шаг маленький — сигмоида начинает насыщаться.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 4. Затухание градиента численно</div>
+  <p>Сеть из 20 слоёв с sigmoid, все $z^{(l)} = 0$ (наилучший случай для градиента). Во сколько раз $\delta^{(1)}$ меньше $\delta^{(20)}$, если веса $\approx 1$?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>При $z=0$ производная максимальна: $\sigma'(0) = 0.25$. На каждом шаге назад градиент домножается на 0.25.</p>
+    <p>За 19 шагов: $0.25^{19} = 4^{-19} = 2^{-38} \approx 3.6\cdot10^{-12}$.</p>
+    <p>Градиент упал <strong>примерно в $2.8\cdot10^{11}$ раз</strong>. Для float32 (точность ~$10^{-7}$) это уже машинный ноль. Вывод: глубокая сеть на сигмоидах не обучается в принципе — отсюда переход на ReLU и skip-connections.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 5. Выбор выходного слоя</div>
+  <p>Какую активацию и loss выбрать: (а) предсказание температуры завтра; (б) диагноз из 5 болезней, ровно одна; (в) теги статьи, их может быть несколько из 20?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>(а)</strong> 1 нейрон, <em>без активации</em>, MSE (или MAE, если в данных есть выбросы). Ставить sigmoid нельзя — обрежется область значений.</p>
+    <p><strong>(б)</strong> 5 нейронов, <em>softmax</em>, categorical cross-entropy. Классы взаимоисключающие, сумма вероятностей = 1.</p>
+    <p><strong>(в)</strong> 20 нейронов, <em>sigmoid покомпонентно</em> (не softmax!), сумма 20 бинарных cross-entropy. Метки независимы, сумма вероятностей не обязана быть 1.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 6. Найдите ошибку в коде</div>
+<pre><code>model = nn.Sequential(nn.Linear(10, 32), nn.ReLU(),
+                      nn.Linear(32, 3),  nn.Softmax(dim=1))
+loss_fn = nn.CrossEntropyLoss()
+for x, y in loader:
+    loss = loss_fn(model(x), y)
+    loss.backward()
+    opt.step()</code></pre>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>Две ошибки.</strong></p>
+    <p><strong>1) Двойной softmax.</strong> <code>nn.CrossEntropyLoss</code> внутри применяет <code>log_softmax</code> и ожидает <em>сырые логиты</em>. Здесь softmax применяется дважды — распределение «сглаживается», градиенты становятся крошечными, обучение почти останавливается. Убрать <code>nn.Softmax</code> из модели.</p>
+    <p><strong>2) Нет <code>opt.zero_grad()</code>.</strong> PyTorch накапливает градиенты, поэтому на шаге $k$ будет использована сумма градиентов всех предыдущих батчей. Обучение разойдётся.</p>
+    <p>Исправленный цикл: <code>opt.zero_grad(); loss.backward(); opt.step()</code>.</p>
+  </div></details>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+
+<div class="cheat">
+  <div class="bt">Скелет устного ответа по билету 1</div>
+  <ol>
+    <li><strong>Постановка.</strong> Ищем функцию $f_\theta: \mathbb{R}^n \to \mathbb{R}^m$ по обучающей выборке. Три компонента: архитектура, loss, оптимизатор.</li>
+    <li><strong>Нейрон.</strong> $a = \varphi(w^\top x + b)$: линейная часть задаёт гиперплоскость, $z$ — расстояние со знаком, $\varphi$ — нелинейность.</li>
+    <li><strong>Однослойная сеть.</strong> = линейная/логистическая регрессия. Граница — гиперплоскость. XOR не решает.</li>
+    <li><strong>Почему нужна нелинейность.</strong> $W_2(W_1x+b_1)+b_2 = \tilde Wx + \tilde b$ — глубина без активаций бесполезна.</li>
+    <li><strong>MLP.</strong> Скрытые слои учат представление, последний — линейный классификатор поверх. Отсюда transfer learning.</li>
+    <li><strong>Forward.</strong> $z^{(l)} = W^{(l)}a^{(l-1)}+b^{(l)}$, $a^{(l)} = \varphi(z^{(l)})$. Размерности: $W$ = (выход × вход).</li>
+    <li><strong>Активации.</strong> ReLU в скрытых (не насыщается, быстрая, но dying ReLU); sigmoid/tanh — только гейты и выходы; softmax — многоклассовый выход.</li>
+    <li><strong>Выходной слой.</strong> Регрессия — linear + MSE; бинарная — sigmoid + BCE; многоклассовая — softmax + CE.</li>
+    <li><strong>Backprop.</strong> Цепное правило справа налево. Ввести $\delta^{(l)} = \partial L/\partial z^{(l)}$, дать четыре формулы. Стоимость ≈ один forward pass вместо $P$ проходов.</li>
+    <li><strong>Проблемы.</strong> Затухание/взрыв градиента — из произведения множителей. Лечение: ReLU, He-инициализация, BatchNorm, skip-connections, gradient clipping.</li>
+    <li><strong>Универсальная аппроксимация.</strong> Один скрытый слой достаточен теоретически, но ширина может быть экспоненциальной — глубина экономит параметры.</li>
+  </ol>
+</div>
+
+<div class="navrow">
+  <a class="backlink" href="00-intro-ml.html">← Лекция 0. Введение в ML</a>
+  <a class="backlink" href="02-autodiff-pinn.html">Лекция 2. Автодифференцирование и PINN →</a>
+</div>
+
+</div>
+</body>
+</html>

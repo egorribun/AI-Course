@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лекция 7. Повышение качества: аугментация, гиперпараметры, байесовская оптимизация</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:17px;
+  line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line);
+  padding:38px 24px 30px;
+  margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация назад ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление лекции ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+/* ---------- Сетка карточек (главная) ---------- */
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px; margin:20px 0}
+.lec{
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:17px 19px; text-decoration:none; color:var(--text);
+  display:block; transition:.16s; position:relative;
+}
+.lec:hover{border-color:var(--accent); transform:translateY(-2px); background:var(--card-2)}
+.lec .n{
+  font-family:var(--mono); font-size:12px; color:var(--accent);
+  font-weight:700; letter-spacing:.05em;
+}
+.lec .t{font-weight:700; margin:5px 0 6px; font-size:16.5px; line-height:1.35; color:#fff}
+.lec .d{color:var(--text-dim); font-size:13.5px; line-height:1.5}
+.lec .time{
+  margin-top:10px; font-size:12px; color:var(--text-dim);
+  font-family:var(--mono); border-top:1px solid var(--line); padding-top:8px;
+}
+
+/* ---------- Плашка дня ---------- */
+.day{
+  margin:44px 0 8px; padding:16px 22px; border-radius:12px;
+  background:linear-gradient(90deg, rgba(110,168,254,.14), transparent);
+  border-left:4px solid var(--accent);
+}
+.day h2{border:none; margin:0; padding:0; font-size:24px}
+.day p{margin:6px 0 0; color:var(--text-dim); font-size:15px}
+
+hr{border:none; border-top:1px solid var(--line); margin:44px 0}
+
+.small{font-size:14px; color:var(--text-dim)}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+
+</style>
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]},
+  svg: {fontCache:'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Блок A · Обучение · Вопрос 7</div>
+  <h1>Лекция 7. Повышение качества обучения: аугментация, выбор и настройка гиперпараметров, байесовская оптимизация</h1>
+  <p class="sub">Как из 70% accuracy прыгнуть на 90%. Две стратегии: больше информации (аугментация) и умная поиск гиперпараметров.</p>
+  <div class="meta">
+    <span class="pill">⏱ 2 ч</span>
+    <span class="pill gray">10 вопросов препода</span>
+    <span class="pill gray">6 микро-задач</span>
+    <span class="pill warn">Байесова оптимизация часто тупит</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<a class="backlink" href="../index.html">← К оглавлению курса</a>
+
+<nav class="toc">
+  <div class="bt">Содержание лекции</div>
+  <ol>
+    <li><a href="#s1">Диагностика: с чего начинать</a></li>
+    <li><a href="#s2">Sanity checks: как отличить баг от плохой модели</a></li>
+    <li><a href="#s3">Аугментация данных: идея и типы</a></li>
+    <li><a href="#s4">Геометрические и цветовые трансформации</a></li>
+    <li><a href="#s5">Mixup, CutMix и другие смешивающие техники</a></li>
+    <li><a href="#s6">Автоматическая аугментация</a></li>
+    <li><a href="#s7">Гиперпараметры: полный список и диапазоны</a></li>
+    <li><a href="#s8">Методы поиска гиперпараметров</a></li>
+    <li><a href="#s9">Байесовская оптимизация: идея и алгоритм</a></li>
+    <li><a href="#s10">Гауссовский процесс и acquisition функции</a></li>
+    <li><a href="#s11">Сравнение методов поиска</a></li>
+    <li><a href="#s12">Прочие способы поднять качество</a></li>
+    <li><a href="#qa">Препод спросит</a></li>
+    <li><a href="#tasks">Микро-задачи</a></li>
+    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="s1"><span class="num">1.</span> Диагностика: с чего начинать</h2>
+
+<p>Модель обучена, и качество плохое (75% accuracy вместо нужных 95%). Что делать? <strong>Дерево решений</strong> по кривым train/val loss помогает за 30 секунд понять причину:</p>
+
+<div class="scheme">
+   ЧЕТЫРЕ СЦЕНАРИЯ ПО КРИВЫМ
+
+   ┌──────────────────────────────────────────────────────────┐
+   │ Посмотри на train loss и val loss в конце обучения       │
+   └──────────────────────────────────────────────────────────┘
+                              ▼
+
+   ┌─────────────────────────────────────────────────────────┐
+   │  СЦЕНАРИЙ 1: НЕДООБУЧЕНИЕ (Underfitting)               │
+   │                                                           │
+   │  Loss                      Оба loss высокие и не падают    │
+   │   1.0 ├─────────────────────  train                      │
+   │       │                   ╱                              │
+   │   0.5 ├─────────────────╱─────  val                      │
+   │       │             ╱                                    │
+   │   0.0 └────────────────────────────────                  │
+   │         0   5   10   15   20  (эпохи)                    │
+   │                                                           │
+   │  Что делать:                                             │
+   │  • Увеличить модель (больше слоёв/нейронов)              │
+   │  • Обучать дольше (больше эпох)                          │
+   │  • Меньший learning rate (может, не сходимся)            │
+   │  • Лучше признаки / признаки важны?                      │
+   └─────────────────────────────────────────────────────────┘
+
+   ┌─────────────────────────────────────────────────────────┐
+   │  СЦЕНАРИЙ 2: ПЕРЕОБУЧЕНИЕ (Overfitting)                │
+   │                                                           │
+   │  Loss                      train падает, val растёт      │
+   │   1.0 ├────────────                                      │
+   │       │        ╲                                         │
+   │   0.5 ├──────────╲╲  train                               │
+   │       │      ╱╱╱╱╱╲╲                                     │
+   │   0.2 ├────╱──────╲╲╲  val                               │
+   │       │                                                   │
+   │   0.0 └────────────────────────────────                  │
+   │         0   5   10   15   20                             │
+   │                                                           │
+   │  Что делать:                                             │
+   │  • Регуляризация: L2, dropout, BatchNorm                 │
+   │  • Аугментация данных (бесплатные примеры)              │
+   │  • Меньше параметров (меньше модель)                     │
+   │  • Остановиться раньше (early stopping)                  │
+   └─────────────────────────────────────────────────────────┘
+
+   ┌─────────────────────────────────────────────────────────┐
+   │  СЦЕНАРИЙ 3: ХОРОШО (Goldilocks)                        │
+   │                                                           │
+   │  Loss                      Оба падают, val выше train    │
+   │   1.0 ├──────                                            │
+   │       │      ╲                                           │
+   │   0.5 ├────────╲     train                               │
+   │       │          ╲                                       │
+   │   0.2 ├─────────── ╲    val                              │
+   │       │              ╲                                   │
+   │   0.1 └────────────────────────────────                  │
+   │         0   5   10   15   20                             │
+   │                                                           │
+   │  Что делать:                                             │
+   │  • Ничего не менять! Обучение работает                   │
+   │  • Можно обучать ещё (если не переобучается)            │
+   │  • Мелкие улучшения: аугментация, LR расписание         │
+   └─────────────────────────────────────────────────────────┘
+
+   ┌─────────────────────────────────────────────────────────┐
+   │  СЦЕНАРИЙ 4: БАГ (Bug in code)                           │
+   │                                                           │
+   │  Loss                      loss не двигается или NaN      │
+   │  1e10 ├──────  ← loss → ∞ (взрыв)                       │
+   │       │                                                   │
+   │   1.0 ├──────────────────  ← loss ≈ const (не меняется)  │
+   │       │                                                   │
+   │   0.0 └────────────────────────────────                  │
+   │         0   5   10   15   20                             │
+   │                                                           │
+   │  Что делать:                                             │
+   │  • Проверить код (forward, backward)                     │
+   │  • Снизить learning rate (если NaN)                      │
+   │  • Запустить sanity checks (см. ниже)                    │
+   └─────────────────────────────────────────────────────────┘
+
+<span class="cap">Быстрая диагностика за 30 секунд. Кривые говорят всё.</span></div>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> Sanity checks: как отличить баг от плохой модели</h2>
+
+<p>Перед тем как выясняться с гиперпараметрами, убедись, что в коде нет ошибок:</p>
+
+<table>
+<thead><tr><th>Sanity check</th><th>Как делать</th><th>Что должно быть</th></tr></thead>
+<tbody>
+<tr><td><strong>1. Переобучить на 10 объектах</strong></td><td>Возьми первые 10 примеров, обучай модель без регуляризации. Смотри на train loss.</td><td>Train loss должен упасть до почти нуля. Если нет → bug в forward, backward или обновлении весов.</td></tr>
+<tr><td><strong>2. Начальный loss</strong></td><td>На первой итерации посмотри на loss (<em>до</em> обновления).</td><td>Для классификации на K классов должен быть $-\log(1/K)$. Для K=10 это $-\log(0.1) \approx 2.3$. Если не совпадает → неправильно считается loss.</td></tr>
+<tr><td><strong>3. Отключить регуляризацию</strong></td><td>Обнули L2 вес, dropout rate, батч-норм. Обучай на полной выборке.</td><td>Train loss должен упасть намного ниже val loss. Если они одинаковые → регуляризация слишком сильная или баг.</td></tr>
+<tr><td><strong>4. Проверить данные и метки</strong></td><td>Вывести несколько примеров и визуально проверить. Совпадают ли картинка и метка?</td><td>Если данные и метки перепутаны, модель обучается неправильно. Например, кот помечен как собака.</td></tr>
+<tr><td><strong>5. Случайный baseline</strong></td><td>Случайные предсказания. Для K классов это 1/K accuracy.</td><td>Модель должна быть намного лучше случайного. Если нет → либо баг, либо задача нерешаема.</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> Аугментация данных: идея и типы</h2>
+
+<p>Основная идея: <strong>искусственно расширить выборку</strong> преобразованиями, которые сохраняют метку. Это способ внедрить в модель <strong>инвариантности</strong> к преобразованиям.</p>
+
+<div class="box idea">
+  <div class="bt">💡 Почему аугментация работает</div>
+  <p>Модель видит не оригинальные примеры, а их варианты — повёрнутые, обрезанные, с шумом. Это как если бы датасет был в несколько раз больше. Плюс аугментация действует как регуляризация: модель вынуждена учить инвариантные признаки, а не запоминать пиксели. Финальный результат: лучше обобщает.</p>
+</div>
+
+<h4>Правило 1: Аугментация только для train</h4>
+
+<p><strong>ВАЖНО:</strong> аугментацию применяй <em>только</em> к обучающему набору. На валидации и тесте используй оригинальные изображения, иначе качество будет переоценено (особенно если аугментация меняет семантику).</p>
+
+<h4>Правило 2: Аугментация должна сохранять семантику</h4>
+
+<div class="box errbox">
+  <div class="bt">⚠️ Контрпримеры</div>
+  <p><strong>Плохое:</strong> повернуть цифру 6 на 180° → станет 9. Loss гарантированно не упадёт, потому что гта аугментация меняет класс.</p>
+  <p><strong>Плохое:</strong> наклонить рентгеновский снимок — может быть неверно. Врач не читает снимки наклонными.</p>
+  <p><strong>Хорошее:</strong> горизонтальный flip для кошки — кошка остаётся кошкой. Маленький rotate (±5°), небольшой zoom, сдвиг.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> Геометрические и цветовые трансформации</h2>
+
+<h3>4.1 Геометрические</h3>
+
+<table>
+<thead><tr><th>Трансформация</th><th>Параметры</th><th>Когда использовать</th><th>Осторожность</th></tr></thead>
+<tbody>
+<tr><td><strong>Flip (горизонтальный)</strong></td><td>50% вероятность перевернуть</td><td>Практически всегда (кроме текста, цифр)</td><td>Для цифр flip меняет класс (6→9). Для лиц не naturalistic.</td></tr>
+<tr><td><strong>Rotate</strong></td><td>±5…15°</td><td>Когда ориентация не фиксирована</td><td>Сильный rotate может сделать объект неузнаваемым</td></tr>
+<tr><td><strong>RandomResizedCrop</strong></td><td>Масштаб 0.8…1.0, aspect ratio 0.75…1.33</td><td>Почти всегда (имитирует фокусировку на разной части)</td><td>Может обрезать важные детали</td></tr>
+<tr><td><strong>Scale (Zoom)</strong></td><td>0.9…1.1 (минус/плюс 10%)</td><td>Объект может быть разного размера</td><td>Сильный zoom может потерять контекст</td></tr>
+<tr><td><strong>Translate (сдвиг)</strong></td><td>±5…10% от размера</td><td>Объект может быть в разном месте кадра</td><td>Мало помогает, редко используется</td></tr>
+<tr><td><strong>Shear (сдвиг косой)</strong></td><td>±5…10°</td><td>Редко, только если знаешь что надо</td><td>Неестественно выглядит</td></tr>
+<tr><td><strong>Perspective</strong></td><td>Небольшие углы</td><td>Для задач 3D</td><td>Сложно, редко используется</td></tr>
+</tbody>
+</table>
+
+<h3>4.2 Цветовые</h3>
+
+<table>
+<thead><tr><th>Трансформация</th><th>Что делает</th><th>Когда использовать</th></tr></thead>
+<tbody>
+<tr><td><strong>ColorJitter</strong></td><td>Меняет brightness, contrast, saturation, hue на 10-20%</td><td>Практически всегда для RGB</td></tr>
+<tr><td><strong>Grayscale</strong></td><td>Превращает в чёрно-белое</td><td>Если цвет не важен, или для сильной регуляризации</td></tr>
+<tr><td><strong>Gaussian Blur</strong></td><td>Размытие (Гаусс с σ=1-2)</td><td>Имитирует размытие камеры, регуляризирует</td></tr>
+<tr><td><strong>Noise (Gaussian, salt & pepper)</strong></td><td>Добавляет случайный шум</td><td>Редко (обычно вредит), разве что для noise-robust задач</td></tr>
+<tr><td><strong>Posterize, solarize</strong></td><td>Уменьшает цветовую палитру или инвертирует</td><td>AutoAugment предлагает, но редко помогает</td></tr>
+</tbody>
+</table>
+
+<h3>4.3 Стирающие (masking)</h3>
+
+<p><strong>Cutout / RandomErasing:</strong> закрыть случайный прямоугольник чёрным цветом (или средним цветом). Идея: модель учится опираться не на один признак, а на комбинацию.</p>
+
+<div class="scheme">
+   CUTOUT
+
+   Исходное изображение кошки:        С Cutout (20% области):
+
+   ╔════════════════╗               ╔════════════════╗
+   ║   😺😺😺😺😺😺   ║               ║   😺██████😺   ║
+   ║   😺😺😺😺😺😺   ║       →       ║   😺██████😺   ║
+   ║   😺😺😺😺😺😺   ║               ║   😺██████😺   ║
+   ╚════════════════╝               ╚════════════════╝
+
+   Модель должна угадать кошку и без целой части морды!
+   Это работает как регуляризация.
+
+<span class="cap">Cutout: маска перекрывает часть изображения. Помогает и регуляризирует.</span></div>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> Mixup, CutMix и смешивающие техники</h2>
+
+<h3>5.1 Mixup (Zhang et al., 2017)</h3>
+
+<p>Идея: вместо того чтобы использовать примеры как есть, <strong>смешивать два примера</strong> линейной комбинацией:</p>
+
+<div class="formula">
+$$ x' = \lambda x_i + (1-\lambda) x_j, \quad y' = \lambda y_i + (1-\lambda) y_j, \quad \lambda \sim \text{Beta}(\alpha, \alpha), \alpha=1 $$
+<span class="note">$\lambda$ — случайный коэффициент из распределения Beta. Параметр $\alpha$ часто близок к 1, что даёт много значений близ 0 и 1, но и средние.</span>
+</div>
+
+<p><strong>Визуально:</strong> смешанное изображение — это 60% кошка + 40% собака; метка — то же (60% кот, 40% собака).</p>
+
+<p><strong>Почему работает:</strong></p>
+<ul>
+  <li>Модель учит линейно интерполировать между примерами, то есть гладко менять решение.</li>
+  <li>Решающая граница становится "толще" — модель более robust к возмущениям.</li>
+  <li>Как побочный эффект: улучшение, похожее на label smoothing (метка "размазана").</li>
+</ul>
+
+<h3>5.2 CutMix (Yun et al., 2019)</h3>
+
+<p>Вместо линейной комбинации пикселей, <strong>вырезаем кусок из одного изображения и вставляем в другое</strong>:</p>
+
+<div class="formula">
+x'_{i,j} = \begin{cases}
+x_b(i,j) & \text{если } (i,j) \in M \\
+x_a(i,j) & \text{иначе}
+\end{cases}
+, \quad M \text{ — случайный прямоугольник}
+$$
+$$ y' = \lambda y_a + (1-\lambda) y_b, \quad \lambda = 1 - \frac{|M|}{H \times W}
+<span class="note">Метка масштабируется по доле пиксе́лей. Если вырезали 40% примера B, то метка = 60% A + 40% B.</span>
+</div>
+
+<div class="scheme">
+   CUTMIX
+
+   Изображение A (кошка):     Изображение B (собака):     Результат (кошка + кусок собаки):
+   ╔════════════════╗         ╔════════════════╗          ╔════════════════╗
+   ║   😺😺😺😺😺😺   ║         ║   🐶🐶🐶🐶🐶🐶   ║          ║   😺😺😺😺😺😺   ║
+   ║   😺😺😺😺😺😺   ║   +     ║   🐶🐶🐶🐶🐶🐶   ║    →    ║   😺▓▓▓▓▓😺   ║
+   ║   😺😺😺😺😺😺   ║         ║   🐶🐶🐶🐶🐶🐶   ║          ║   😺🐶🐶🐶😺   ║
+   ╚════════════════╝         ╚════════════════╝         ╚════════════════╝
+
+   Метка: 75% кот, 25% собака (в зависимости от размера вырезанного куска)
+
+<span class="cap">CutMix: вырезаем куск и вставляем. Часто работает лучше Mixup на изображениях.</span></div>
+
+<p><strong>Почему работает лучше Mixup:</strong> реальное изображение выглядит более natural (не размыто), модель видит настоящие текстуры.</p>
+
+<!-- ============================================ -->
+<h2 id="s6"><span class="num">6.</span> Автоматическая аугментация</h2>
+
+<p>Вручную выбирать трансформации — скучно. Есть методы, которые учат, какие трансформации применять:</p>
+
+<table>
+<thead><tr><th>Метод</th><th>Как работает</th><th>Плюсы / Минусы</th></tr></thead>
+<tbody>
+<tr><td><strong>AutoAugment</strong> (Cubuk et al., 2018)</td><td>Поиск оптимальной политики через reinforcement learning. Пробует разные комбинации трансформаций, ищет ту, что максимизирует accuracy.</td><td>Плюс: SOTA результаты. Минус: дорого (сотни часов поиска), результат зависит от датасета.</td></tr>
+<tr><td><strong>RandAugment</strong> (Cubuk et al., 2019)</td><td>Упрощение: случайно выбираем N трансформаций из фиксированного набора, случайный magnitude (0…9). Два гиперпараметра: N и magnitude.</td><td>Плюс: быстро, хорошо работает. Минус: не optimal, нужна подборка N и magnitude.</td></tr>
+<tr><td><strong>TrivialAugment</strong> (Folk et al., 2021)</td><td>Ещё более простое: одна случайная трансформация случайного magnitude, всё. Два параметра: список трансформаций и range magnitude.</td><td>Плюс: super простое, обычно хорошо. Минус: может быть слабее AutoAugment.</td></tr>
+</tbody>
+</table>
+
+<p>Практический совет: <strong>начни с RandAugment или TrivialAugment</strong> (они в torchvision). AutoAugment имеет смысл только если у тебя свой специализированный датасет и месяц на поиск.</p>
+
+<!-- ============================================ -->
+<h2 id="s7"><span class="num">7.</span> Гиперпараметры: полный список и диапазоны</h2>
+
+<p>Слово «гиперпараметр» = параметр модели или обучения, который <strong>не обучается</strong> градиентным спуском, а <strong>выбирается вручную</strong> или через поиск.</p>
+
+<table>
+<thead><tr><th>Гиперпараметр</th><th>Типичный диапазон</th><th>Шкала поиска</th><th>Важность</th><th>Заметки</th></tr></thead>
+<tbody>
+<tr><td><strong>Learning rate η</strong></td><td>$10^{-5}$ … $10^{-1}$</td><td>логарифмическая</td><td>⭐⭐⭐⭐⭐</td><td>Самый важный! Влияет на всё.</td></tr>
+<tr><td><strong>Batch size B</strong></td><td>16, 32, 64, 128, 256, 512</td><td>степени 2</td><td>⭐⭐⭐⭐</td><td>Больше батч = меньше шум, больше память. Linear scaling rule.</td></tr>
+<tr><td><strong>Weight decay (L2 λ)</strong></td><td>$10^{-5}$ … $10^{-2}$</td><td>логарифмическая</td><td>⭐⭐⭐</td><td>Регуляризация. Снижает переобучение.</td></tr>
+<tr><td><strong>Dropout rate p</strong></td><td>0.1 … 0.5</td><td>линейная</td><td>⭐⭐⭐</td><td>Чем больше p, тем больше регуляризация.</td></tr>
+<tr><td><strong>Число слоёв L</strong></td><td>2 … 50 (зависит от задачи)</td><td>дискретное</td><td>⭐⭐⭐</td><td>Архитектурный выбор. Трансформеры — 12…100 слоёв.</td></tr>
+<tr><td><strong>Ширина слоя (нейронов)</strong></td><td>32 … 2048</td><td>степени 2</td><td>⭐⭐</td><td>Обычно масштабируется вместе с размером батча.</td></tr>
+<tr><td><strong>Momentum β (для SGD+M)</strong></td><td>0.8 … 0.99</td><td>линейная</td><td>⭐⭐</td><td>Дефолт 0.9 обычно работает. Редко менять.</td></tr>
+<tr><td><strong>β₁, β₂ (для Adam)</strong></td><td>0.9, 0.999 (дефолт)</td><td>—</td><td>⭐</td><td>Редко менять от дефолта. Попытка рискована.</td></tr>
+<tr><td><strong>Число эпох E</strong></td><td>10 … 500</td><td>дискретное</td><td>⭐⭐</td><td>Часто определяется early stopping, не подбирается.</td></tr>
+<tr><td><strong>LR schedule</strong></td><td>step, cosine, warmup, …</td><td>категориальная</td><td>⭐⭐</td><td>Влияет на финальное качество, но не критично.</td></tr>
+<tr><td><strong>Размер ядра свёртки</strong></td><td>3, 5, 7 (для CNN)</td><td>дискретное</td><td>⭐⭐</td><td>3×3 — стандарт. 5×5 — редче.</td></tr>
+</tbody>
+</table>
+
+<div class="box exambox">
+  <div class="bt">🎯 Правило: с чего начинать подбор</div>
+  <p>Всегда начни с learning rate. Это самый важный параметр. Методика: сначала найди range, где loss падает (не NaN, не плато). Обычно это $10^{-3}$ … $10^{-4}$ для CNN и $10^{-5}$ для трансформеров. Потом уточняй внутри этого диапазона. Остальные параметры менее критичны — часто работают дефолты.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s8"><span class="num">8.</span> Методы поиска гиперпараметров</h2>
+
+<h3>8.1 Ручной поиск (Graduate Student Descent)</h3>
+
+<p>Человек вручную выбирает конфигурацию, запускает обучение, смотрит результат, меняет параметры. Плюсы: интуиция, дёшево при опыте. Минусы: невоспроизводимо, субъективно, не масштабируется на 20+ параметров.</p>
+
+<h3>8.2 Grid Search</h3>
+
+<p>Перебрать все комбинации параметров на сетке:</p>
+
+<div class="scheme">
+   GRID SEARCH на двух параметрах
+
+   LR
+   0.01│    ●  ●  ●     каждый узел = одна проба (обучение модели)
+       │
+   0.005│   ●  ●  ●     Сетка: 3×3 = 9 проб
+       │
+   0.001│   ●  ●  ●
+       └────────────────── Batch size
+        32  64  128
+
+   Проблема: при 5 параметрах по 3 значения = 3⁵ = 243 пробы
+             Если обучение 1 час, то неделю считаем.
+
+<span class="cap">Grid search: полная сетка. Полнота, но взрыв комбинаций.</span></div>
+
+<p><strong>Плюсы:</strong> полнота, параллелится, всегда можно сказать "искал везде".</p>
+
+<p><strong>Минусы:</strong> экспоненциальный взрыв (проклятие размерности), тратит бюджет на неважные параметры, неэффективно.</p>
+
+<h3>8.3 Random Search</h3>
+
+<p>Вместо сетки, генерируем случайные конфигурации из диапазонов:</p>
+
+<div class="scheme">
+   RANDOM SEARCH на двух параметрах
+
+   LR
+   0.01│ ◇  ◆   ◆        случайные точки (не сетка)
+       │   ◆ ◇      ◆
+   0.005│◇   ◆  ◆    ◆    Выборка: 9 точек, но разбросаны
+       │ ◆  ◇     ◆
+   0.001│  ◇ ◆  ◆      ◆
+       └────────────────── Batch size
+        32  64  128
+
+   КЛЮЧЕВОЕ НАБЛЮДЕНИЕ (Bergstra & Bengio):
+   ═════════════════════════════════════════════════
+   Grid: в диапазон LR попадает только 3 значения
+   Random: в диапазон LR попадает все 9 значений!
+
+   Вывод: random лучше, когда параметры имеют неравную важность.
+
+<span class="cap">Random search: раскидываем точки. Лучше для неравной важности.</span></div>
+
+<p><strong>Плюсы:</strong> часто лучше grid (параметры неравной важности), любой бюджет, параллелится.</p>
+
+<p><strong>Минусы:</strong> не использует информацию от прошлых проб, может быть везучим/невезучим.</p>
+
+<h3>8.4 Hyperband / ASHA (Асинхронная сукцессивная пошаговая остановка)</h3>
+
+<p>Идея: многие конфигурации можно отсеять рано. Запустим много конфигураций на <strong>малом бюджете</strong> (мало эпох), оставим лучшую половину, дадим им <strong>вдвое больше</strong> бюджета, повторим.</p>
+
+<div class="formula">
+$$ \text{Раунд 1: } 80 \text{ конфиг × 4 эпохи} \Rightarrow \text{выбери топ-40} $$
+$$ \text{Раунд 2: } 40 \text{ конфиг × 12 эпох} \Rightarrow \text{выбери топ-20} $$
+$$ \text{Раунд 3: } 20 \text{ конфиг × 36 эпох} \Rightarrow \text{выбери топ-10} $$
+$$ \text{Раунд 4: } 10 \text{ конфиг × 108 эпох} $$
+<span class="note">Каждый раунд = утроение бюджета, отсеивание половины. Общий бюджет ≈ как обучить несколько полных моделей.</span>
+</div>
+
+<p><strong>Плюсы:</strong> значительно экономнее, чем grid/random, много параллелизма.</p>
+
+<p><strong>Минусы:</strong> по-прежнему случайный поиск, качество хуже байесовской оптимизации, нужна хорошая инициализация.</p>
+
+<!-- ============================================ -->
+<h2 id="s9"><span class="num">9.</span> Байесовская оптимизация: идея</h2>
+
+<p><strong>Задача:</strong> минимизировать «чёрный ящик» $f(\lambda)$ = accuracy на валидации при гиперпараметрах $\lambda$. Вычисление дорогое (часы обучения), градиента нет, шумный.</p>
+
+<p><strong>Идея:</strong> построить <strong>дешёвую суррогатную модель</strong> $\hat f(\lambda)$, которая интерполирует наблюдённые точки. На основе этой модели выбрать следующую точку для пробы.</p>
+
+<div class="scheme">
+   БАЙЕСОВСКАЯ ОПТИМИЗАЦИЯ: ШАГ ЗА ШАГОМ
+
+   Шаг 1. Начать: случайно выбрать ~5 конфигураций, обучить модели.
+           Получены точки (λ₁, f₁), (λ₂, f₂), …, (λ₅, f₅).
+
+           Accuracy
+           0.95 ┤
+                │       ● f₁
+           0.90 ┤   ●
+                │  ● f₂   ●
+           0.85 ┤   ● f₃
+                │
+                └─────────────────── Learning rate
+               10⁻⁵  10⁻⁴  10⁻³  10⁻²
+
+
+   Шаг 2. Построить суррогат (гауссовский процесс).
+           Средняя кривая через точки, плюс «труба» неопределённости.
+
+           Accuracy
+           0.95 ┤
+                │     ╭─────● ╭─────  ← верхняя граница неопределённости
+           0.90 ┤  ╭──╱ ● ╲  ╱    ╱
+                │╭─╱   ●   ╲╱    ╱    ← средняя (суррогат)
+           0.85 ┤  ╲     ●  ╲  ╱
+                │   ╰───────╰──      ← нижняя граница
+                └─────────────────
+                10⁻⁵  10⁻⁴  10⁻³
+
+   Шаг 3. Выбрать следующую точку (acquisition function).
+           Максимизировать Expected Improvement (EI) или UCB.
+
+           EI/UCB
+           0.2 ┤
+               │      ╭───╮
+           0.1 ┤    ╭─╯   ╰─╮
+               │  ╭─╯       ╰──
+           0.0 ┤─╯────────────╯
+               └────────────────  λ
+              10⁻⁵ 10⁻⁴ 10⁻³  ← стрелка на максимум = следующая проба
+
+   Шаг 4. Обучить модель с новой λ, добавить в датасет.
+
+   Повтори шаги 2-4 пока не кончатся вычисления.
+
+<span class="cap">Байесова оптимизация: строим суррогат, выбираем точку, пробуем, повторяем.</span></div>
+
+<h3>9.1 Гауссовский процесс (GP) на пальцах</h3>
+
+<p>Суррогат $\hat f(\lambda)$ — это <strong>вероятностная модель</strong>, которая на каждой точке $\lambda$ выдаёт не только среднее предсказание $\mu(\lambda)$, но и неопределённость $\sigma(\lambda)$:</p>
+
+<ul>
+  <li><strong>Где данных нет:</strong> $\sigma$ большой (мы ничего не знаем).</li>
+  <li><strong>Где данные есть:</strong> $\sigma$ маленький (мы уверены в интерполяции).</li>
+  <li><strong>Между точками:</strong> $\mu$ и $\sigma$ плавно интерполируют.</li>
+</ul>
+
+<p>Практически можно думать как: GP = взвешенная комбинация гауссиан, центрированных на наблюдённые точки. Выбор kernel (функция расстояния между λ) — это гиперпараметр GP.</p>
+
+<h3>9.2 Acquisition functions: что максимизировать</h3>
+
+<table>
+<thead><tr><th>Acquisition функция</th><th>Формула</th><th>Поведение</th></tr></thead>
+<tbody>
+<tr><td><strong>Expected Improvement (EI)</strong></td><td>$\text{EI}(\lambda) = \mathbb{E}[\max(f(\lambda) - f^*, 0)]$</td><td>Максимизирует ожидаемый прирост. Баланс: исследовать неизвестное, но не за счёт очевидно плохих областей.</td></tr>
+<tr><td><strong>Upper Confidence Bound (UCB)</strong></td><td>$\text{UCB}(\lambda) = \mu(\lambda) + \kappa \sigma(\lambda)$</td><td>$\mu$ = где ожидается лучший результат, $\sigma$ = где неуверены. Параметр $\kappa$ балансирует.</td></tr>
+<tr><td><strong>Probability of Improvement (PI)</strong></td><td>$\text{PI}(\lambda) = P(f(\lambda) > f^*)$</td><td>Вероятность улучшить рекорд. Часто слишком консервативна.</td></tr>
+</tbody>
+</table>
+
+<p><strong>Дилемма Exploration vs Exploitation:</strong></p>
+<ul>
+  <li><strong>Exploitation:</strong> пробовать там, где $\mu$ максимален (ожидаемо лучший результат).</li>
+  <li><strong>Exploration:</strong> пробовать там, где $\sigma$ максимален (много неизвестного, может быть лучше).</li>
+  <li><strong>Баланс (UCB):</strong> $\mu + \kappa \sigma$ даёт оба: сначала explore, потом exploit.</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s10"><span class="num">10.</span> Сравнение методов поиска</h2>
+
+<table>
+<thead><tr><th>Метод</th><th>Параллелизуемость</th><th>Использует прошлое</th><th>Число проб</th><th>Применить когда</th><th>Плюсы</th><th>Минусы</th></tr></thead>
+<tbody>
+<tr><td><strong>Ручной поиск</strong></td><td>—</td><td>Да (мозг помнит)</td><td>~5-20</td><td>Первая итерация, исследование пространства</td><td>Интуиция, дёшево если опытный</td><td>Невоспроизводимо, не масштабируется</td></tr>
+<tr><td><strong>Grid Search</strong></td><td>Отлично</td><td>Нет</td><td>$d^k$ (взрыв!)</td><td>Очень мало параметров (&lt; 2), небольшой датасет</td><td>Полнота, можно сказать "везде искал"</td><td>Экспоненциальный взрыв, неэффективно при неравной важности</td></tr>
+<tr><td><strong>Random Search</strong></td><td>Отлично</td><td>Нет</td><td>N (любое)</td><td>Стандартный вариант, когда не знаешь что делать</td><td>Лучше grid при неравной важности параметров, недорого</td><td>Часто везучим/невезучим, может пройти мимо оптимума</td></tr>
+<tr><td><strong>Bayesian Optimization</strong></td><td>Плохо (последовательная по природе)</td><td>Да (суррогат + история)</td><td>~50-200</td><td>Когда каждая проба дорогая и параметров ~5-15</td><td>Значительно меньше проб, чем random/grid; учитывает историю; robust к шуму</td><td>Последовательна, имеет свои гиперпараметры (kernel, κ), масштабируется плохо на &gt;20 параметров</td></tr>
+<tr><td><strong>Hyperband / ASHA</strong></td><td>Отлично</td><td>Отчасти (ранняя остановка)</td><td>~100-500</td><td>Бюджет среднего размера, много ядер для параллелизма</td><td>Хороший баланс время/качество, параллелится, меньше проб</td><td>Всё ещё random по сути — может быть хуже Bayesian при малом бюджете</td></tr>
+<tr><td><strong>BOHB</strong></td><td>Хорошо</td><td>Да</td><td>~100-300</td><td>SOTA поиск: баланс Bayesian + Hyperband</td><td>Лучше обоих, параллелится лучше, учитывает историю</td><td>Сложнее в имплементации, требует опыта</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s11"><span class="num">11.</span> Правильный протокол и кроссвалидация</h2>
+
+<p><strong>Это важно для экзамена:</strong> правильный способ поиска гиперпараметров имеет структуру:</p>
+
+<div class="scheme">
+   ПРАВИЛЬНЫЙ ПРОТОКОЛ РАЗБИЕНИЯ
+
+   Исходный датасет
+   ┌───────────────────────────────────┐
+   │                                   │
+   │     Train (50%)                   │
+   │  ┌──────────────────┐             │
+   │  │ (используется     │             │
+   │  │ для обучения      │             │
+   │  │ весов сети)       │             │
+   │  └──────────────────┘             │
+   │                                   │
+   │  ┌──────────────────┐             │
+   │  │ Val (25%)        │  ← ДЛЯ ПОИСКА ГИПЕРПАРАМЕТРОВ
+   │  │ (используется    │    (выбираем λ* = argmax accuracy на val)
+   │  │ для выбора λ)    │             │
+   │  └──────────────────┘             │
+   │                                   │
+   │  ┌──────────────────┐             │
+   │  │ Test (25%)       │  ← ОДИН РАЗ В КОНЦЕ
+   │  │ (финальная       │    (оценка обобщения, не трогаем!)
+   │  │ оценка,      │             │
+   │  │ не трогаем!)     │             │
+   │  └──────────────────┘             │
+   └───────────────────────────────────┘
+
+   ⚠️ ОШИБКИ, КОТОРЫЕ ВАЛЯТ:
+   ═════════════════════════════════════════════════════════
+   1. Переборка гиперпараметров по test set
+      → Результат переоценён, качество падает на новых данных
+
+   2. Слишком много проб по val
+      → Даже val становится "тренировочным", переобучение
+
+   3. Использовать test для debug, и потом отчитываться о результатах
+      → Данные пролиты, результаты некорректны
+
+<span class="cap">Три раздела: train (обучение), val (поиск λ), test (финальная оценка, один раз).</span></div>
+
+<h4>Кросс-валидация</h4>
+
+<p>Если датасет маленький (тысячи примеров), используй <strong>k-fold cross-validation</strong>: разбей на k частей, каждый раз одна часть = test, другие = train, усредни результаты. Это снижает дисперсию оценки. На больших датасетах (миллионы) обычного train/val/test достаточно.</p>
+
+<!-- ============================================ -->
+<h2 id="s12"><span class="num">12.</span> Прочие способы поднять качество</h2>
+
+<h4>Ансамбли</h4>
+
+<p>Обучить несколько моделей и усреднить их предсказания. Обычно даёт +2-5% accuracy. Почему? Модели ошибаются на разных примерах, усреднение сокращает дисперсию ошибок.</p>
+
+<h4>Snapshot ensembling</h4>
+
+<p>Обучить одну модель с циклическим learning rate, сохранять "снимки" (snapshots) на каждом цикле. Усредни их предсказания. Дёшев (один проход обучения, но много snapshots).</p>
+
+<h4>EMA весов (Exponential Moving Average)</h4>
+
+<p>Вместо финальных весов после обучения, использовать экспоненциальное среднее весов по всем шагам:</p>
+
+<div class="formula">
+$$ W_\text{EMA} \leftarrow 0.999 \cdot W_\text{EMA} + 0.001 \cdot W_t $$
+<span class="note">Это часто даёт лучше обобщение, чем финальные веса (особенно в конце обучения, когда есть переобучение)</span>
+</div>
+
+<h4>Label smoothing</h4>
+
+<p>Вместо one-hot метки, использовать «размазанную»: класс $k$ получает вероятность $1 - \epsilon + \epsilon/K$ вместо 1, остальные — $\epsilon/K$ вместо 0. Это регуляризирует, даёт калибровку вероятностей.</p>
+
+<h4>Test-Time Augmentation (TTA)</h4>
+
+<p>На тесте (инференс) применять аугментацию, потом усреднять предсказания по аугментированным вариантам. Медленнее (обычно ~10x), но качество лучше, особенно если данные трудные. Используется в соревнованиях.</p>
+
+<!-- ============================================ -->
+<h2 id="qa">🎯 Препод спросит</h2>
+
+<details class="qa"><summary>Как диагностировать недообучение и переобучение?</summary>
+<div class="ans">
+<p>Посмотри на кривые train и val loss по эпохам. Если оба loss высокие и не падают → недообучение (модель слабая). Если train падает, а val растёт → переобучение (модель запоминает). Если оба падают, val чуть выше train → норма. Быстрая диагностика за 30 секунд.</p>
+</div></details>
+
+<details class="qa"><summary>Зачем нужна аугментация, если она меняет данные?</summary>
+<div class="ans">
+<p>Аугментация расширяет выборку: модель видит варианты одного объекта (повёрнутые, обрезанные, с шумом). Это как если бы датасет был в несколько раз больше. Плюс аугментация работает как регуляризация: модель не может запомнить пиксели, вынуждена учить инвариантные признаки. Результат: лучше обобщает на новые данные.</p>
+</div></details>
+
+<details class="qa"><summary>Mixup vs CutMix: чем отличаются и когда какой?</summary>
+<div class="ans">
+<p>Mixup: смешиваем пиксели двух изображений линейно (60% кот + 40% собака). Размазанное изображение. CutMix: вырезаем куск из одного, вставляем в другое (кот с куском собаки). Реальнее выглядит. На практике CutMix часто работает лучше на изображениях (более natural), Mixup проще в реализации. Для текста Mixup редко используется, обычно back-translation.</p>
+</div></details>
+
+<details class="qa"><summary>Learning rate: самый важный гиперпараметр? Почему?</summary>
+<div class="ans">
+<p>Да. Слишком маленький LR → обучение медленное, может час потребоваться вместо 10 минут. Слишком большой → loss → NaN, расходимся. Правильный LR → сходимся быстро к хорошему решению. LR влияет на всё. Поэтому всегда начинай с выбора LR.</p>
+</div></details>
+
+<details class="qa"><summary>Grid vs Random search: какой лучше?</summary>
+<div class="ans">
+<p>Random обычно лучше. Причина: параметры имеют неравную важность. Grid может пройти мимо оптимума по важному параметру, если он не на сетке. Random распределит пробы по всему диапазону, не только по сетке. Практический вывод: используй random, если бюджет ограничен и параметры неравной важности. Grid — только если параметров очень мало (&lt;2-3).</p>
+</div></details>
+
+<details class="qa"><summary>Байесовская оптимизация: зачем нужен суррогат?</summary>
+<div class="ans">
+<p>Суррогат (гауссовский процесс) — это дешёвая модель, которая интерполирует уже проведённые пробы. На основе суррогата выбираем следующую точку умно: не случайно, а там, где ожидаем улучшение (high expected improvement или UCB). Результат: гораздо меньше проб, чем random search (50 вместо 200).</p>
+</div></details>
+
+<details class="qa"><summary>Гауссовский процесс: как он работает на пальцах?</summary>
+<div class="ans">
+<p>GP — это вероятностная модель. На каждой точке λ она выдаёт два числа: среднее $\mu(\lambda)$ (предсказанное значение) и стандартное отклонение $\sigma(\lambda)$ (неопределённость). Где данные есть, $\sigma$ мал (мы уверены). Где данных нет, $\sigma$ большой (мы не знаем). GP строится как взвешенная сумма гауссиан, центрированных на наблюдённые точки.</p>
+</div></details>
+
+<details class="qa"><summary>Гиперпараметры: с какого начинать подбирать?</summary>
+<div class="ans">
+<p>Learning rate. Это самый важный и чувствительный параметр. Сначала найди range, где loss падает (не NaN, не плато): обычно $10^{-3}$ … $10^{-4}$ для CNN. Потом уточняй внутри. Остальные параметры менее критичны, дефолты часто работают. Исключение: batch size — большой батч требует пропорционально больший LR (linear scaling rule).</p>
+</div></details>
+
+<details class="qa"><summary>Early stopping: как правильно использовать?</summary>
+<div class="ans">
+<p>Во время обучения мониторь loss (или accuracy) на валидационном наборе. Если он не падает K эпох подряд, остановись и верни лучшие веса. Это предотвращает переобучение. Параметр K обычно 10-20. Плюс: экономия времени, лучшее обобщение. Минус: требует дополнительного кода.</p>
+</div></details>
+
+<details class="qa"><summary>Test-Time Augmentation (TTA): что это и зачем?</summary>
+<div class="ans">
+<p>На инференс (тесте) вместо одного предсказания модели подаём несколько аугментированных вариантов изображения и усредняем предсказания. Медленнее (~10x), но качество лучше, особенно если тестовые данные трудные. Используется в соревнованиях (Kaggle). Не используется на train, только на test.</p>
+</div></details>
+
+<!-- ============================================ -->
+<h2 id="tasks">📝 Микро-задачи</h2>
+
+<div class="task">
+  <div class="tt">Задача 1. Диагностика по кривым</div>
+  <p>На эпохе 100: train loss = 0.1, val loss = 2.5. Что это означает? Что делать?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>Диагноз:</strong> переобучение (overfitting). Train loss низкий (модель хорошо запомнила), val loss высокий (на новых данных плохо).</p>
+    <p><strong>Что делать:</strong></p>
+    <ul>
+      <li>Аугментация данных (бесплатное расширение train)</li>
+      <li>Регуляризация: L2 (weight decay), dropout</li>
+      <li>Меньше параметров (меньше модель)</li>
+      <li>Early stopping (остановиться при росте val loss)</li>
+      <li>Больше данных (если возможно)</li>
+    </ul>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 2. Grid vs Random на двух параметрах</div>
+  <p>Есть 9 проб бюджета. Параметры: learning rate (важность ⭐⭐⭐⭐⭐) и dropout rate (⭐⭐). Grid: 3×3 сетка. Random: 9 случайных точек. Какой выбрать и почему?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>Выбор: Random search.</strong></p>
+    <p><strong>Причина:</strong> Learning rate гораздо важнее dropout. Grid покроет LR тремя значениями, Random — девятью (во всём диапазоне). Random лучше исследует важный параметр. Хотя dropout покрыт хуже (3 vs 3), это приемлемо, потому что он менее важен. При неравной важности Random лучше.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 3. Sanity check: начальный loss</div>
+  <p>Классификация 10 классов. Модель перед обучением выдаёт loss = 1.0. Правильно ли это? Дефолт Softmax + Cross-entropy.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>Неправильно.</strong> Для 10 классов и unifom вероятностей (дефолт в начале) loss должен быть $-\log(1/10) = \log 10 \approx 2.3$, а не 1.0.</p>
+    <p><strong>Диагноз:</strong> возможно, веса инициализированы не случайно, а смещены. Или есть ошибка в loss-функции. Нужно проверить код инициализации и cross-entropy.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 4. Linear Scaling Rule</div>
+  <p>Модель обучается с batch size 64, learning rate 0.01, accuracy падает хорошо. Решили увеличить batch size до 256. Какой новый learning rate по linear scaling rule?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>Новый LR:</strong> $0.01 \times (256/64) = 0.01 \times 4 = 0.04$.</p>
+    <p><strong>Объяснение:</strong> батч в 4 раза больше → дисперсия градиента падает в 4 раза → шаги становятся меньше (мы видим меньший шум). Масштабируем LR на 4, чтобы сохранить ожидаемый размер шага.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 5. Байесовская оптимизация vs Random</div>
+  <p>Параметр: learning rate в диапазоне $[10^{-5}, 10^{-1}]$. Бюджет: 100 проб. Какой метод (Random search или Bayesian Optimization) и почему?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>Выбор: Bayesian Optimization.</strong></p>
+    <p><strong>Причина:</strong> одна проба дорогая (часы обучения), параметр один. BO сможет найти оптимум за ~50 проб (половину бюджета), Random тратит все 100. При дорогих пробах BO выигрывает.</p>
+    <p><strong>Если бюджет был бы 10 проб (очень маленький):</strong> Random часто лучше (меньше overhead на построение суррогата).</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 6. Mixup численно</div>
+  <p>Два примера: кошка с меткой 1, собака с меткой 0. Mixup с λ = 0.7. Какая метка новой примера?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>Новая метка:</strong> $y' = 0.7 \times 1 + 0.3 \times 0 = 0.7$.</p>
+    <p><strong>Интерпретация:</strong> новый пример — это 70% кошка и 30% собака. Модель учится на примере с "мягкой" меткой 0.7, а не hard one-hot. Это как label smoothing: помогает регуляризации и калибровке.</p>
+  </div></details>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+
+<div class="cheat">
+  <div class="bt">Скелет устного ответа по билету 7</div>
+  <ol>
+    <li><strong>Диагностика.</strong> Посмотри кривые train/val loss → 4 сценария: недообучение, переобучение, норма, баг. Кривые в 30 сек скажут, что делать.</li>
+    <li><strong>Sanity checks.</strong> Перед поиском гиперпараметров: переобучить на 10 объектах (должно упасть в ноль); проверить начальный loss; отключить регуляризацию; проверить данные/метки.</li>
+    <li><strong>Аугментация:</strong> искусственно расширяем train набор трансформациями (flip, rotate, crop, zoom, цветовые). Работает как регуляризация. ВАЖНО: только на train, не на val/test.</li>
+    <li><strong>Геометрические:</strong> flip (осторожно с цифрами), rotate (±5-15°), RandomResizedCrop (стандарт), scale, translate, shear (редко).</li>
+    <li><strong>Цветовые:</strong> ColorJitter (яркость/контраст), grayscale, blur. Cutout/RandomErasing (стирание).</li>
+    <li><strong>Mixup:</strong> $x' = \lambda x_i + (1-\lambda) x_j$, $y' = \lambda y_i + (1-\lambda) y_j$, $\lambda \sim \text{Beta}$. Регуляризирует, гладкие границы.</li>
+    <li><strong>CutMix:</strong> вырезаем куск и вставляем. Реальнее Mixup, часто лучше на картинках.</li>
+    <li><strong>AutoAugment / RandAugment / TrivialAugment:</strong> автоматический выбор трансформаций. RandAugment — практичный компромисс.</li>
+    <li><strong>Гиперпараметры (важность):</strong> LR ⭐⭐⭐⭐⭐; batch size, weight decay, dropout ⭐⭐⭐; число слоёв, momentum ⭐⭐; ширина ⭐. Остальное редко.</li>
+    <li><strong>Методы поиска:</strong> Grid (полнота, но взрыв), Random (лучше при неравной важности), Bayesian Optimization (мало проб за счёт суррогата), Hyperband/ASHA (ранняя остановка).</li>
+    <li><strong>Байесовская оптимизация:</strong> строим суррогат (GP) по наблюдённым точкам, максимизируем acquisition function (EI или UCB), пробуем новую точку, повторяем. Дороговизна: последовательна, но экономит пробы.</li>
+    <li><strong>Таблица сравнения:</strong> Grid vs Random: Random лучше. Random vs BO: BO дешевле при дорогих пробах. Hyperband: хороший баланс параллелизма и качества. BOHB: BO + Hyperband = SOTA.</li>
+  </ol>
+</div>
+
+<div class="navrow">
+  <a class="backlink" href="06-optimizers.html">← Лекция 6. Оптимизация: SGD, Adam</a>
+  <a class="backlink" href="08-metric-learning.html">Лекция 8. Метрические методы →</a>
+</div>
+
+</div>
+
+</body>
+</html>

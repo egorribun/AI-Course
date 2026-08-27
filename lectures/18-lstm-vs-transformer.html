@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лекция 18. LSTM vs Трансформер</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--sans); font-size:17px; line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line); padding:38px 24px 30px; margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+</style>
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]},
+  svg: {fontCache:'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Блок C · Вопрос 17 · Сравнительный анализ</div>
+  <h1>Лекция 18. LSTM vs Трансформер: фундаментальное сравнение</h1>
+  <p class="sub">Глубокое сопоставление архитектур по всем осям: параллелизм, длина пути градиента, сложность по времени и памяти, индуктивные смещения, инференс, KV-кэш, новые модели State-Space (Mamba, RWKV) и дерево решений «когда что выбирать».</p>
+  <div class="meta">
+    <span class="pill">⏱ 1 ч 15 мин</span>
+    <span class="pill gray">10 вопросов препода</span>
+    <span class="pill gray">6 микро-задач</span>
+    <span class="pill good">Билет 17</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<a class="backlink" href="../index.html">← К оглавлению курса</a>
+
+<nav class="toc">
+  <div class="bt">Содержание лекции</div>
+  <ol>
+    <li><a href="#s1">Сводная матрица сравнения по всем осям</a></li>
+    <li><a href="#s2">Параллелизм при обучении vs последовательность</a></li>
+    <li><a href="#s3">Длина пути градиента (Maximum Path Length)</a></li>
+    <li><a href="#s4">Сложность по длине $T$: когда побеждает LSTM, а когда Transformer?</a></li>
+    <li><a href="#s5">Индуктивные смещения (Inductive Biases) и потребность в данных</a></li>
+    <li><a href="#s6">Инференс: $O(1)$ память в LSTM vs растущий KV-кэш в Трансформере</a></li>
+    <li><a href="#s7">Современный синтез: State-Space Models (Mamba, RWKV, RetNet)</a></li>
+    <li><a href="#s8">Дерево решений: когда что выбирать на практике</a></li>
+    <li><a href="#qa">Препод спросит</a></li>
+    <li><a href="#tasks">Микро-задачи</a></li>
+    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="s1"><span class="num">1.</span> Сводная матрица сравнения по всем осям</h2>
+
+<p>Вопрос сравнения рекуррентных сетей и трансформеров — один из самых популярных на устных экзаменах и технических собеседованиях. Ниже представлена полная сводная таблица:</p>
+
+<table>
+<thead><tr><th>Критерий сравнения</th><th>LSTM / biLSTM / GRU</th><th>Transformer (Self-Attention)</th></tr></thead>
+<tbody>
+<tr><td><strong>Параллелизм обучения</strong></td><td><strong>Низкий ($O(T)$ последовательных шагов).</strong> Шаг $t$ строго ждет завершения $t-1$. GPU недогружены.</td><td><strong>Идеальный ($O(1)$ параллельных операций).</strong> Все $T$ токенов обучаются параллельно через матричные умножения.</td></tr>
+<tr><td><strong>Длина пути градиента</strong></td><td><strong>$O(T)$</strong> (через цепочку шагов BPTT). Информация о начале фразы затухает.</td><td><strong>$O(1)$</strong> (прямое скалярное произведение $q_i \cdot k_j$ между любыми двумя токенами).</td></tr>
+<tr><td><strong>Вычислительная сложность слоя</strong></td><td>$O(T \cdot d^2)$ (линейно по длине $T$, квадратично по скрытой размерности $d$).</td><td>$O(T^2 \cdot d + T \cdot d^2)$ (квадратично по длине $T$, линейно/квадратично по $d$).</td></tr>
+<tr><td><strong>Память при инференсе (1 токен)</strong></td><td><strong>$O(1)$ (константа).</strong> Хранит только текущий вектор $h_t, C_t \in \mathbb{R}^{d}$. Размер не зависит от длины истории!</td><td><strong>$O(T)$ (растущий KV-кэш).</strong> Обязан хранить ключи и значения всех прошлых $T$ токенов.</td></tr>
+<tr><td><strong>Индуктивное смещение (Inductive Bias)</strong></td><td><strong>Сильное.</strong> Порядок и причинность «зашиты» в саму топологию сети. Отлично учится на маленьких датасетах.</td><td><strong>Слабое.</strong> Порядок неизвестен (требует Positional Encoding). Требует огромных массивов данных (Data-Hungry).</td></tr>
+<tr><td><strong>Дальнодействие (Context Span)</strong></td><td>Эффективно держит ~100–300 токенов. Дальше контекст размывается.</td><td>Уверенно держит десятки и сотни тысяч токенов ($32\text{k} \dots 1\text{M}+$ с FlashAttention / RoPE).</td></tr>
+<tr><td><strong>Интерпретируемость</strong></td><td>Низкая («черный ящик» вектора $h_t$).</td><td>Высокая (прямой анализ карт и матриц внимания $\alpha_{i, j}$).</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> Параллелизм при обучении vs последовательность</h2>
+
+<div class="scheme">
+  ОБУЧЕНИЕ LSTM (ПОСЛЕДОВАТЕЛЬНОЕ):
+  x_1 ──▶ [ LSTM ] ──▶ h_1 ──▶ [ LSTM ] ──▶ h_2 ──▶ ... ──▶ h_T  (Время: T тактов GPU)
+                       (Ждем)               (Ждем)
+
+  ОБУЧЕНИЕ TRANSFORMER (ПОЛНОСТЬЮ ПАРАЛЛЕЛЬНОЕ):
+  ┌ x_1 ┐                                           ┌ y_1 ┐
+  │ x_2 │ ──▶ [ Матричное умножение Q·K^T на GPU ] ──▶│ y_2 │  (Время: 1 такт GPU!)
+  │ ... │                                           │ ... │
+  └ x_T ┘                                           └ y_T ┘
+
+<span class="cap">Параллелизм обучения: Трансформер утилизирует тензорные ядра GPU на 100%, сокращая время обучения моделей с месяцев до дней.</span></div>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> Длина пути градиента (Maximum Path Length)</h2>
+
+<p><strong>Maximum Path Length (Максимальная длина пути)</strong> — это число шагов прямого и обратного распространения между любыми двумя входными и выходными позициями в вычислительном графе:</p>
+
+<ul>
+  <li>В <strong>LSTM</strong> расстояние между словом 1 и словом 100 равно <strong>99 шагам</strong>. Градиент проходит через 99 матричных умножений на $W_{hh}$ и гейты. Даже с учетом Constant Error Carousel в $C_t$ сигнал зашумляется и ослабевает.</li>
+  <li>В <strong>Transformer</strong> расстояние между словом 1 и словом 100 равно <strong>1 шагу</strong> (прямое скалярное произведение $q_{100} \cdot k_1$). Градиент течет напрямую через матрицу внимания за $O(1)$.</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> Сложность по длине $T$: когда побеждает LSTM, а когда Transformer?</h2>
+
+<p>Сравним число операций с плавающей точкой (FLOPs) на один слой:</p>
+
+<div class="formula">
+$$ \text{FLOPs}_{\text{LSTM}} = 8 \cdot T \cdot d^2 $$
+$$ \text{FLOPs}_{\text{Transformer}} = 4 \cdot T \cdot d^2 + 2 \cdot T^2 \cdot d + 8 \cdot T \cdot d^2 = 12 \cdot T \cdot d^2 + 2 \cdot T^2 \cdot d $$
+</div>
+
+<h3>Точка пересечения (Crossover Point):</h3>
+<p>При малых и средних длинах текстов ($T < d_{\text{model}}$, например $T=512, d=4096$) член $T \cdot d^2$ абсолютно доминирует, и Transformer работает с огромной скоростью за счет параллелизма GPU. Но при сверхдлинных последовательностях ($T \gg d$, например $T=100\,000$ в ДНК или длинных аудиорядах) член $T^2 \cdot d$ становится неподъемным, и асимптотика $O(T)$ у LSTM теоретически эффективнее.</p>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> Индуктивные смещения (Inductive Biases) и потребность в данных</h2>
+
+<div class="box idea">
+  <div class="bt">💡 Индуктивное смещение (Inductive Bias)</div>
+  <p>Это априорные предположения об устройстве мира, заложенные в саму архитектуру нейросети до обучения:</p>
+  <ul>
+    <li><strong>CNN:</strong> Инвариантность к сдвигу (пространственная локальность пикселей).</li>
+    <li><strong>LSTM:</strong> Временная причинность и строгий порядок следования слева направо.</li>
+    <li><strong>Transformer:</strong> Практически <em>нулевое индуктивное смещение</em>. Сеть рассматривает последовательность как неупорядоченное множество (Bag of Words) и вынуждена <strong>с нуля выучивать и структуру языка, и порядок слов</strong> по огромным массивам данных.</li>
+  </ul>
+</div>
+
+<p><strong>Практический вывод:</strong> На маленьком датасете (1000 примеров временного ряда) LSTM часто побеждает Трансформер, потому что ей не нужно тратить параметры на обучение концепции времени. Но на больших данных (Internet-Scale) Трансформер выигрывает всухую, так как жесткие ограничения LSTM ограничивают емкость модели.</p>
+
+<!-- ============================================ -->
+<h2 id="s6"><span class="num">6.</span> Инференс: $O(1)$ память в LSTM vs растущий KV-кэш в Трансформере</h2>
+
+<div class="scheme">
+  ИНФЕРЕНС (ГЕНЕРАЦИЯ ТОКЕНОВ ПО ОДНОМУ):
+
+  LSTM:
+  Токен y_{t-1} + Состояние h_{t-1} ──▶ [ LSTM ] ──▶ Выход y_t + Новое состояние h_t (Память ВСЕГДА 1 КБ)
+
+  TRANSFORMER:
+  Токен y_{t-1} + [ KV-Кэш всех прошлых токенов 1...t-1 ] ──▶ [ Attention ] ──▶ Выход y_t
+                    ▲
+                    └─ Растет на каждом шаге! При t=8000 кэш весит гигабайты VRAM.
+
+<span class="cap">Ахиллесова пята Трансформера на инференсе: генерация каждого нового слова требует обращения ко всей истории через KV-кэш.</span></div>
+
+<!-- ============================================ -->
+<h2 id="s7"><span class="num">7.</span> Современный синтез: State-Space Models (Mamba, RWKV, RetNet)</h2>
+
+<p>Современные исследования (2023–2026 гг.) пытаются объединить лучшее из обоих миров:</p>
+
+<div class="box okbox">
+  <div class="bt">🚀 Mamba (Selective State-Space Model, Gu & Dao, 2023)</div>
+  <ul>
+    <li><strong>При обучении:</strong> Разворачивается в параллельную форму через ассоциативное параллельное сканирование (Parallel Associative Scan), обучаясь так же быстро, как Трансформер ($O(1)$ по времени).</li>
+    <li><strong>При инференсе:</strong> Сворачивается в рекуррентную форму $h_t = A_t h_{t-1} + B_t x_t$, генерируя токены с постоянной памятью $O(1)$ без KV-кэша!</li>
+    <li><strong>Линейная сложность $O(T)$</strong> позволяет обрабатывать контексты в миллионы токенов.</li>
+  </ul>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s8"><span class="num">8.</span> Дерево решений: когда что выбирать на практике</h2>
+
+<table>
+<thead><tr><th>Сценарий и задача</th><th>Что выбрать</th><th>Почему?</th></tr></thead>
+<tbody>
+<tr><td>Большие языковые модели (LLM), машинный перевод, суммаризация, код</td><td><strong>Transformer</strong></td><td>Масштабируемость, удержание сверхдлинного контекста, параллельное обучение на терабайтах текста.</td></tr>
+<tr><td>Временные ряды на небольших датасетах (прогноз датчиков, телеметрия)</td><td><strong>LSTM / GRU</strong></td><td>Сильное индуктивное смещение, нет переобучения, легкая настройка.</td></tr>
+<tr><td>Edge-устройства, микроконтроллеры, носимая электроника с 1 МБ RAM</td><td><strong>LSTM / GRU</strong></td><td>$O(1)$ константная память при инференсе, нулевые накладные расходы на KV-кэш.</td></tr>
+<tr><td>Потоковая обработка аудио/видео в реальном времени с низкой задержкой (Low Latency)</td><td><strong>Streaming Transformer / Mamba / GRU</strong></td><td>Минимизация задержки первого токена (TTFT).</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="qa">🎯 Препод спросит</h2>
+
+<details class="qa"><summary>Почему обучение LSTM медленнее обучения Трансформера в десятки раз?</summary>
+<div class="ans">
+<p>В LSTM для вычисления скрытого состояния на шаге $t$ необходимо обязательно дождаться готовности состояния $h_{t-1}$ с предыдущего шага. Граф вычислений строго последователен во времени ($O(T)$ тактов), что не позволяет загрузить параллельные ядра GPU. В Трансформере вычисление $Q K^T$ выполняется одним гигантским матричным умножением для всех позиций одновременно за $O(1)$ тактов.</p>
+</div></details>
+
+<details class="qa"><summary>В чем преимущество LSTM перед Трансформером на этапе генерации (Inference)?</summary>
+<div class="ans">
+<p>При инференсе LSTM хранит только компактный вектор текущего состояния $h_t, C_t$, требуя строго константный объем памяти $O(1)$ и фиксированное число операций на токен. Трансформер вынужден поддерживать KV-кэш, объем которого растет линейно $O(T)$, а вычислительная сложность каждого следующего шага растет с увеличением длины диалога.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое «индуктивное смещение» (Inductive Bias) и у кого оно сильнее: у CNN, LSTM или Transformer?</summary>
+<div class="ans">
+<p>Индуктивное смещение — это встроенные в архитектуру априорные предположения о структуре данных. Сильнее всего оно у <strong>CNN</strong> (пространственная инвариантность к сдвигам и локальность) и <strong>LSTM</strong> (строгая временная причинность и порядок). У <strong>Transformer</strong> индуктивное смещение самое слабое (он видит данные как множество без порядка), поэтому Трансформеру требуется гораздо больше данных для обучения.</p>
+</div></details>
+
+<details class="qa"><summary>Какова сложность слоя по времени и памяти для LSTM и Transformer?</summary>
+<div class="ans">
+<p><strong>LSTM:</strong> Время $O(T \cdot d^2)$, Память активаций $O(T \cdot d)$.<br>
+<strong>Transformer:</strong> Время $O(T^2 \cdot d + T \cdot d^2)$, Память матрицы внимания $O(T^2)$ (без FlashAttention) или $O(T \cdot d)$ (с FlashAttention).</p>
+</div></details>
+
+<details class="qa"><summary>Почему в Трансформере длина пути градиента равна $O(1)$, а в LSTM — $O(T)$?</summary>
+<div class="ans">
+<p>В механизме внимания скалярное произведение $q_i \cdot k_j$ связывает любые две позиции $i$ и $j$ напрямую через одну операцию, градиент течет без промежуточных шагов ($O(1)$). В LSTM сигнал обязан последовательно пройти через все промежуточные ячейки от $j$ до $i$, преодолевая $i - j$ матричных преобразований ($O(T)$).</p>
+</div></details>
+
+<details class="qa"><summary>Что такое KV-кэш и почему он становится проблемой для современных LLM?</summary>
+<div class="ans">
+<p>KV-кэш — это сохраненные в видеопамяти тензоры ключей ($K$) и значений ($V$) для всех ранее сгенерированных токенов, чтобы не пересчитывать их на каждом шаге генерации. При длинных контекстах (например, 128k токенов) и больших батчах KV-кэш может занимать десятки гигабайт VRAM, вытесняя саму модель и ограничивая параллелизм генерации.</p>
+</div></details>
+
+<details class="qa"><summary>Как архитектура Mamba решает проблему квадратичной сложности Трансформера?</summary>
+<div class="ans">
+<p>Mamba использует селективные пространства состояний (Selective SSM), где матрицы переходов зависят от входных данных. При обучении она вычисляется параллельно как свёртка / ассоциативное сканирование, а при генерации — как рекуррентная сеть с $O(1)$ памятью и $O(T)$ линейным временем.</p>
+</div></details>
+
+<details class="qa"><summary>Как детально рассчитывается объем видеопамяти под KV-кэш для батча при авторегрессионной генерации в LLM?</summary>
+<div class="ans">
+<p>Для батча размера $B$ и длины контекста $L$ токенов в модели с $n_{\text{layers}}$ слоями, $n_{\text{kv\_heads}}$ головами ключей/значений и размерностью головы $d_{\text{head}}$ точная формула объема памяти (в байтах):</p>
+$$\text{Memory}_{\text{KV}} = 2 \times n_{\text{layers}} \times n_{\text{kv\_heads}} \times d_{\text{head}} \times L \times B \times \text{bytes\_per\_element}$$
+<ul>
+  <li>Множитель $2$ учитывает раздельное хранение тензоров ключей $K$ и значений $V$;</li>
+  <li>Для <code>float16</code> / <code>bfloat16</code> множитель $\text{bytes\_per\_element} = 2$, для <code>FP8</code> — $1$.</li>
+</ul>
+<p><strong>Пример для LLaMA-3-8B ($n_{\text{layers}}=32, n_{\text{kv\_heads}}=8 \text{ (GQA)}, d_{\text{head}}=128$, float16):</strong><br>
+На один токен для батча $B=1$ кэш требует $2 \times 32 \times 8 \times 128 \times 2 = 131\,072$ байт ($128$ КБ).<br>
+При контексте $L = 128\,000$ токенов и батче $B = 4$ объем KV-кэша составит: $128 \text{ КБ} \times 128\,000 \times 4 \approx 65.5 \text{ ГБ}$ памяти GPU, что превышает размер самих весов модели!</p>
+</div></details>
+
+<details class="qa"><summary>Что такое индукционные головы (Induction Heads) в трансформерах и как они объясняют механизм In-Context Learning?</summary>
+<div class="ans">
+<p>Исследования интерпретируемости трансформеров (Elhage et al., Anthropic, 2021) показали, что способность LLM обучаться на примерах в промпте (In-Context Learning) обеспечивается специализированными двухслойными цепочками внимания — <strong>Induction Heads</strong>:</p>
+<ol>
+  <li><strong>Голова 1-го слоя (Previous Token Head):</strong> Сдвигает представление предыдущего токена $[A]$ в позицию следующего за ним токена $[B]$, записывая информацию «токену $[B]$ предшествовал токен $[A]$».</li>
+  <li><strong>Голова 2-го слоя (Induction Head):</strong> При появлении нового вхождения токена $[A]$ в конце контекста голова формирует запрос $Q$, который ищет в истории ключ $K$, соответствующий токену $[A]$, и переносит значение $V$, указывающее на токен $[B]$.</li>
+</ol>
+<p>В результате модель без градиентных обновлений весов воспроизводит паттерн $[A][B] \dots [A] \implies [B]$. Индукционные головы спонтанно формируются во время обучения и служат фундаментальным алгоритмическим механизмом выполнения инструкций по аналогии.</p>
+</div></details>
+
+<details class="qa"><summary>В чем фундаментальный компромисс между Linear Attention / State Space Models (Mamba, S4) и классическим Softmax Attention?</summary>
+<div class="ans">
+<p>Линейное внимание заменяет операцию $\text{Softmax}(Q K^\top)$ на скалярное произведение признаковых отображений $\phi(Q) \phi(K)^\top$. Благодаря ассоциативности матричного умножения порядок операций меняется:</p>
+$$(\phi(Q) \phi(K)^\top) V = \phi(Q) (\phi(K)^\top V)$$
+<p>Матрица памяти $S = \phi(K)^\top V \in \mathbb{R}^{d \times d}$ накапливается рекуррентно за $O(T d^2)$ времени и $O(d^2)$ памяти, возвращаясь к эффективности RNN.</p>
+<p><strong>Компромисс:</strong></p>
+<ul>
+  <li><em>Softmax Attention:</em> Обладает бесконечной емкостью точного ассоциативного поиска (Associative Recall) — может найти редкий токен в глубине контекста («иголка в стоге сена»), поскольку матрица $T \times T$ хранит все парные взаимодействия.</li>
+  <li><em>Linear Attention / SSM:</em> Сжимает весь предшествующий контекст в матрицу фиксированного размера $d \times d$. Это неизбежно приводит к размытию информации при сверхдлинных последовательностях и снижает точность на задачах точного цитирования (хотя Mamba нивелирует это за счет механизма селективного шлюзования $B(t), C(t), \Delta(t)$).</li>
+</ul>
+</div></details>
+
+<!-- ============================================ -->
+<h2 id="tasks">📝 Микро-задачи</h2>
+
+<div class="task">
+  <div class="tt">Задача 1. Расчет памяти KV-кэша в Трансформере</div>
+  <p>Модель имеет $L = 32$ слоя, $h = 32$ головы, размерность головы $d_k = 128$. Контекст $T = 4096$ токенов, тип данных float16 (2 байта). Сколько мегабайт занимает KV-кэш для одного запроса ($B=1$)?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Формула размера KV-кэша:</p>
+    <p>$$ \text{Память} = 2 \times L \times h \times d_k \times T \times \text{sizeof(float16)} $$</p>
+    <p>(Множитель 2 — для сохранения и $K$, и $V$).</p>
+    <p>$$ \text{Память} = 2 \times 32 \times 32 \times 128 \times 4096 \times 2 \text{ байта} = 2\,147\,483\,648 \text{ байт} = 2.0 \text{ ГБ}! $$</p>
+    <p><strong>Для сравнения:</strong> LSTM на том же контексте заняла бы всего $32 \times 4096 \times 2 \text{ байта} \approx 256 \text{ КБ}$.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 2. Сравнение числа FLOPs при $T < d$ и $T > d$</div>
+  <p>Слой $d=1024$. Рассчитайте число операций FLOPs для LSTM ($8 T d^2$) и Attention ($4 T d^2 + 2 T^2 d$) при: (а) коротком тексте $T=128$; (б) длинном тексте $T=8192$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>(а) При $T=128$ ($T \ll d$):</strong></p>
+    <p>LSTM: $8 \times 128 \times 1024^2 \approx 1.07 \times 10^9$ FLOPs (1.07 GFLOPs).</p>
+    <p>Attention: $4 \times 128 \times 1024^2 + 2 \times 128^2 \times 1024 = 0.537 \times 10^9 + 0.033 \times 10^9 = 0.57 \text{ GFLOPs}$.</p>
+    <p><em>Attention требует в ~2 раза МЕНЬШЕ операций, чем 4 гейта LSTM!</em></p>
+    <p><strong>(б) При $T=8192$ ($T \gg d$):</strong></p>
+    <p>LSTM: $8 \times 8192 \times 1024^2 \approx 68.7 \text{ GFLOPs}$.</p>
+    <p>Attention: $4 \times 8192 \times 1024^2 + 2 \times 8192^2 \times 1024 = 34.36 \times 10^9 + 137.44 \times 10^9 = 171.8 \text{ GFLOPs}$.</p>
+    <p><em>Квадратичный член $2 T^2 d$ привел к тому, что Attention требует в 2.5 раза БОЛЬШЕ операций, чем LSTM.</em></p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 3. Максимальная длина пути градиента</div>
+  <p>В последовательности из 500 токенов посчитайте число нелинейных переходов между токеном 1 и токеном 500 в: (а) однослойной LSTM; (б) 6-слойном Transformer.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>(а) В LSTM: 499 последовательных переходов по времени $\to O(T)$.</p>
+    <p>(б) В 6-слойном Transformer: ровно 6 слоев внимания $\to O(L) = 6$ переходов (не зависит от длины 500!).</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 4. Преимущество индуктивного смещения на игрушечном датасете</div>
+  <p>У нас есть датасет из 200 временных рядов (по 30 точек). Модель A — LSTM (10k параметров), модель B — Transformer (10k параметров). Какая модель с большей вероятностью переобучится без регуляризации?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>Модель B (Transformer)</strong> переобучится сильнее.</p>
+    <p><strong>Причина:</strong> Трансформер не имеет встроенного понимания порядка времени и локальности соседних точек. Ему нужно выучить структуру взаимосвязей с нуля. LSTM за счет рекуррентной топологии жестко ограничена марковской структурой времени, что служит мощным регуляризатором на микровыборках.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 5. Пропускная способность при инференсе</div>
+  <p>На генерацию 1 токена LSTM тратит 0.1 мс независимо от шага. Трансформер тратит $0.05 + 0.0001 \times t$ мс на шаге $t$. На каком шаге $t$ инференс Трансформера станет медленнее LSTM?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Приравняем время:</p>
+    <p>$$ 0.05 + 0.0001 \cdot t = 0.1 \implies 0.0001 \cdot t = 0.05 \implies t = \frac{0.05}{0.0001} = 500 $$</p>
+    <p>До 500 токенов Трансформер быстрее за счет оптимизации вычислений, после 500 токенов LSTM становится быстрее из-за отсутствия накладных расходов на чтение растущего контекста.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 6. Сравнение масштабируемости (Scaling Laws)</div>
+  <p>Почему при увеличении параметров с 100M до 100B качество LSTM выходит на плато (насыщается), а качество Трансформеров подчиняется строгим степенным законам (Chinchilla Scaling Laws)?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>В LSTM увеличение ширины $d$ утяжеляет матрицы перехода, но не решает фундаментальную проблему <strong>бутылочного горлышка сжатия всей истории в один вектор $h_t$</strong> и затухания градиента на глубине по времени. В Трансформере увеличение параметров прямо расширяет емкость прямого взаимодействия всех пар токенов без информационных узких мест.</p>
+  </div></details>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+
+<div class="cheat">
+  <div class="bt">Скелет устного ответа по билету 17 (LSTM vs Transformer)</div>
+  <ol>
+    <li><strong>Главный тезис.</strong> LSTM последовательна по времени ($O(T)$), Трансформер параллелен ($O(1)$). Трансформер победил в масштабируемости и обучении на больших данных.</li>
+    <li><strong>Обучение.</strong> LSTM не параллелится по шагам (шаг $t$ ждет $t-1$). Трансформер обрабатывает все $T$ токенов параллельно через матричные операции.</li>
+    <li><strong>Длина пути.</strong> В LSTM длина пути между токенами $O(T)$ (затухание контекста $> 100$ шагов). В Трансформере путь всегда $O(1)$ (прямое внимание).</li>
+    <li><strong>Сложность по длине.</strong> LSTM линейна $O(T \cdot d^2)$. Трансформер квадратичен $O(T^2 \cdot d)$. При $T < d$ Трансформер быстрее; при $T \gg d$ дороже.</li>
+    <li><strong>Инференс.</strong> LSTM имеет $O(1)$ константную память. Трансформер требует растущий KV-кэш $O(T)$, что требует гигабайты VRAM на длинных диалогах.</li>
+    <li><strong>Индуктивное смещение.</strong> У LSTM сильное смещение времени (хороша на малых данных/временных рядах). У Трансформера слабое смещение (требует огромных данных).</li>
+    <li><strong>Когда что выбирать.</strong> Трансформер — для LLM, перевода, больших текстов и кода. LSTM — для микроконтроллеров (1 МБ RAM), простых сенсоров и малых рядов.</li>
+    <li><strong>Будущее (SSM).</strong> Mamba и RWKV объединяют параллельное обучение Трансформера с линейным $O(1)$ инференсом RNN.</li>
+  </ol>
+</div>
+
+<div class="navrow">
+  <a class="backlink" href="17-self-attention.html">← Лекция 17. Самовнимание</a>
+  <a class="backlink" href="19-text-word2vec.html">Лекция 19. Тексты, токенизация, word2vec →</a>
+</div>
+
+</div>
+</body>
+</html>

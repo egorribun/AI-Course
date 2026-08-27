@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лекция 24. Итерация ценности и методы Монте-Карло</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--sans); font-size:17px; line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line); padding:38px 24px 30px; margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+</style>
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]},
+  svg: {fontCache:'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Блок D · Вопрос 22 (Часть 2) · Обучение с подкреплением</div>
+  <h1>Лекция 24. Итерация ценностей, стратегий и методы Монте-Карло</h1>
+  <p class="sub">Динамическое программирование в RL (Policy Evaluation, Policy Improvement), алгоритмы Policy Iteration и Value Iteration, обобщенная итерация стратегий (GPI), безмодельное обучение методом Монте-Карло (First-visit vs Every-visit MC).</p>
+  <div class="meta">
+    <span class="pill">⏱ 2 ч</span>
+    <span class="pill gray">10 вопросов препода</span>
+    <span class="pill gray">6 микро-задач</span>
+    <span class="pill good">Билет 22</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<a class="backlink" href="../index.html">← К оглавлению курса</a>
+
+<nav class="toc">
+  <div class="bt">Содержание лекции</div>
+  <ol>
+    <li><a href="#s1">Динамическое программирование: Оценивание стратегии (Policy Evaluation)</a></li>
+    <li><a href="#s2">Улучшение стратегии (Policy Improvement) и теорема об улучшении</a></li>
+    <li><a href="#s3">Алгоритм Policy Iteration (Итерация по стратегиям)</a></li>
+    <li><a href="#s4">Алгоритм Value Iteration (Итерация по ценностям)</a></li>
+    <li><a href="#s5">Обобщенная итерация стратегий (Generalized Policy Iteration, GPI)</a></li>
+    <li><a href="#s6">Методы Монте-Карло (Monte Carlo RL): First-Visit vs Every-Visit</a></li>
+    <li><a href="#s7">Сравнение: DP vs MC (Бутстрэппинг и знание модели)</a></li>
+    <li><a href="#s8">Практическая реализация на Python</a></li>
+    <li><a href="#qa">Препод спросит</a></li>
+    <li><a href="#tasks">Микро-задачи</a></li>
+    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="s1"><span class="num">1.</span> Динамическое программирование: Оценивание стратегии</h2>
+
+<p>Методы динамического программирования (Dynamic Programming, DP) предполагают, что нам <strong>полностью известна модель среды</strong> (матрица переходов $\mathcal{P}(s' \mid s, a)$ и функция наград $\mathcal{R}(s, a)$).</p>
+
+<div class="box mathbox">
+  <div class="bt">📐 Итеративное оценивание стратегии (Iterative Policy Evaluation)</div>
+  <p>Чтобы вычислить $V^\pi(s)$ для заданной фиксированной стратегии $\pi$, мы запускаем итерационный процесс применения оператора Беллмана:</p>
+  $$ V_{k+1}(s) = \sum_{a \in \mathcal{A}} \pi(a \mid s) \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \left[ \mathcal{R}(s, a, s') + \gamma V_k(s') \right] $$
+  <p>Итерации повторяются до тех пор, пока максимальное изменение ценности $\Delta = \max_{s} |V_{k+1}(s) - V_k(s)|$ не станет меньше порога $\theta$ (например, $10^{-6}$).</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> Улучшение стратегии (Policy Improvement)</h2>
+
+<p>Имея вычисленную функцию ценности $V^\pi(s)$, мы можем построить <strong>новую строго лучшую стратегию $\pi'$</strong>, действуя жадно относительно $V^\pi$:</p>
+
+<div class="formula">
+$$ \pi'(s) = \arg\max_{a \in \mathcal{A}} Q^\pi(s, a) = \arg\max_{a \in \mathcal{A}} \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \left[ \mathcal{R}(s, a, s') + \gamma V^\pi(s') \right] $$
+</div>
+
+<div class="box okbox">
+  <div class="bt">🔒 Теорема об улучшении стратегии (Policy Improvement Theorem)</div>
+  <p>Пусть $\pi$ и $\pi'$ — две детерминированные стратегии такие, что для всех $s \in \mathcal{S}$:</p>
+  $$ Q^\pi(s, \pi'(s)) \ge V^\pi(s) $$
+  <p>Тогда стратегия $\pi'$ гарантированно не хуже стратегии $\pi$ во всех состояниях: <strong>$V^{\pi'}(s) \ge V^\pi(s)$</strong>. Если равенство достигается во всех состояниях, то стратегия $\pi$ является строго оптимальной $\pi^*$.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> Алгоритм Policy Iteration (Итерация по стратегиям)</h2>
+
+<div class="scheme">
+  ЦИКЛ POLICY ITERATION:
+
+  π_0 ──▶ [ Policy Evaluation ] ──▶ V^{π_0} ──▶ [ Policy Improvement ] ──▶ π_1 ──▶ ... ──▶ π*
+
+<span class="cap">Policy Iteration: полный цикл оценки $V^\pi$ до сходимости чередуется с жадным обновлением стратегии $\pi$.</span></div>
+
+<div class="box idea">
+  <div class="bt">💡 Почему Policy Iteration сходится за конечное число шагов?</div>
+  <p>В конечном MDP число состояний $|\mathcal{S}|$ и действий $|\mathcal{A}|$ конечно. Число всех возможных детерминированных стратегий строго равно $|\mathcal{A}|^{|\mathcal{S}|}$. Так как на каждом шаге стратегия строго улучшается ($V^{\pi_{k+1}} > V^{\pi_k}$), алгоритм не может зациклиться и <strong>гарантированно находит точную оптимальную стратегию $\pi^*$ за конечное число итераций!</strong></p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> Алгоритм Value Iteration (Итерация по ценностям)</h2>
+
+<p>В Policy Iteration фаза оценки (Policy Evaluation) требует сотен итераций для точного вычисления $V^\pi$. <strong>Value Iteration</strong> усекает фазу оценки до <strong>ровно одного шага</strong>, объединяя оценку и улучшение в единую формулу обновления:</p>
+
+<div class="formula">
+$$ V_{k+1}(s) = \max_{a \in \mathcal{A}} \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \left[ \mathcal{R}(s, a, s') + \gamma V_k(s') \right] $$
+<span class="note">Value Iteration: прямое итеративное применение оператора оптимальности Беллмана $V_{k+1} = \mathcal{T}^* V_k$.</span>
+</div>
+
+<h3>Сравнение Policy Iteration и Value Iteration:</h3>
+<table>
+<thead><tr><th>Характеристика</th><th>Policy Iteration (Howard, 1960)</th><th>Value Iteration (Bellman, 1957)</th></tr></thead>
+<tbody>
+<tr><td><strong>Шаг итерации</strong></td><td>Полная оценка $V^\pi$ (много циклов) + 1 шаг улучшения $\pi$.</td><td>1 шаг применения оператора максимума $\max_a$ к $V(s)$.</td></tr>
+<tr><td><strong>Число макроитераций</strong></td><td>Мало (обычно 3–10 итераций стратегии).</td><td>Больше (требуется сходимость вектора $V$ с точностью $\theta$).</td></tr>
+<tr><td><strong>Сложность одного шага</strong></td><td>Высокая (решение СЛАУ или итерации $V$).</td><td>Низкая ($O(|\mathcal{S}| \cdot |\mathcal{A}| \cdot |\mathcal{S}|)$).</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> Обобщенная итерация стратегий (GPI)</h2>
+
+<div class="scheme">
+                      Стратегия π
+                       ▲       │
+          Improvement  │       │  Evaluation
+          (Жадный шаг) │       ▼  (Оценка ценности)
+                      Функция V
+
+<span class="cap">Generalized Policy Iteration (GPI): фундамент теории RL по Саттону и Барто.</span></div>
+
+<p><strong>GPI (Generalized Policy Iteration)</strong> описывает взаимодействие двух встречных процессов:</p>
+<ol>
+  <li><strong>Evaluation (Оценивание):</strong> приближает функцию ценности $V$ к истинной ценности текущей стратегии $\pi$.</li>
+  <li><strong>Improvement (Улучшение):</strong> делает стратегию $\pi$ жадной относительно текущей функции ценности $V$.</li>
+</ol>
+<p>Оба процесса конкурируют и одновременно сотрудничают, стабилизируясь только в единственной точке оптимума $(V^*, \pi^*)$.</p>
+
+<!-- ============================================ -->
+<h2 id="s6"><span class="num">6.</span> Методы Монте-Карло (Monte Carlo RL)</h2>
+
+<p>Что делать, если <strong>модель среды $\mathcal{P}$ и $\mathcal{R}$ неизвестна</strong> (Model-Free)? Агент может просто взаимодействовать со средой, генерируя полные эпизоды, и <strong>усреднять накопленные доходы $G_t$</strong> методом Монте-Карло!</p>
+
+<div class="formula">
+$$ V(s) \approx \frac{1}{N(s)} \sum_{i=1}^{N(s)} G_t^{(i)} $$
+</div>
+
+<h3>First-Visit MC vs Every-Visit MC:</h3>
+<ul>
+  <li><strong>First-Visit MC:</strong> Доход $G_t$ усредняется <em>только для первого посещения</em> состояния $s$ в рамках каждого эпизода. Дает <strong>строго несмещенную (Unbiased) оценку</strong> $\mathbb{E}[V(s)]$.</li>
+  <li><strong>Every-Visit MC:</strong> Доход $G_t$ усредняется для <em>каждого</em> посещения состояния $s$ в эпизоде. Оценка состоятельна, но имеет небольшое смещение на малых выборках.</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s7"><span class="num">7.</span> Сравнение: DP vs MC (Бутстрэппинг и знание модели)</h2>
+
+<table>
+<thead><tr><th>Критерий</th><th>Dynamic Programming (DP)</th><th>Monte Carlo (MC)</th></tr></thead>
+<tbody>
+<tr><td><strong>Знание модели среды</strong></td><td><strong>Обязательно</strong> ($\mathcal{P}$ и $\mathcal{R}$ должны быть известны).</td><td><strong>Не требуется (Model-Free)</strong> — учится на сыром опыте.</td></tr>
+<tr><td><strong>Бутстрэппинг (Bootstrapping)</strong></td><td><strong>Да:</strong> оценка $V(s)$ обновляется на основе других оценок $V(s')$.</td><td><strong>Нет:</strong> $V(s)$ обновляется по фактическому полному доходу $G_t$.</td></tr>
+<tr><td><strong>Смещение (Bias) и Дисперсия (Variance)</strong></td><td>Низкая дисперсия, но есть смещение на ранних шагах из-за неточных $V_0$.</td><td><strong>Нулевое смещение (Unbiased), но Высокая дисперсия (High Variance)</strong> из-за цепочки случайных исходов.</td></tr>
+<tr><td><strong>Тип задач</strong></td><td>Любые (эпизодические и непрерывные).</td><td><strong>Только эпизодические</strong> (требует доиграть до конца).</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s8"><span class="num">8.</span> Практическая реализация на Python</h2>
+
+<pre><code><span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> value_iteration(P, n_states, n_actions, gamma=<span class="num2">0.9</span>, theta=<span class="num2">1e-6</span>):
+    <span class="str">"""
+    P[s][a] = [(prob, next_state, reward, done), ...]
+    """</span>
+    V = np.zeros(n_states)
+    
+    <span class="kw">while True</span>:
+        delta = <span class="num2">0</span>
+        <span class="kw">for</span> s <span class="kw">in</span> range(n_states):
+            v_old = V[s]
+            q_values = np.zeros(n_actions)
+            <span class="kw">for</span> a <span class="kw">in</span> range(n_actions):
+                <span class="kw">for</span> prob, next_s, r, done <span class="kw">in</span> P[s][a]:
+                    q_values[a] += prob * (r + gamma * V[next_s] * (<span class="kw">not</span> done))
+            V[s] = np.max(q_values)
+            delta = max(delta, abs(v_old - V[s]))
+            
+        <span class="kw">if</span> delta &lt; theta:
+            <span class="kw">break</span>
+            
+    <span class="cmt"># Извлекаем детерминированную стратегию</span>
+    policy = np.zeros(n_states, dtype=int)
+    <span class="kw">for</span> s <span class="kw">in</span> range(n_states):
+        q_values = [sum(prob * (r + gamma * V[next_s] * (<span class="kw">not</span> done)) 
+                        <span class="kw">for</span> prob, next_s, r, done <span class="kw">in</span> P[s][a]) 
+                    <span class="kw">for</span> a <span class="kw">in</span> range(n_actions)]
+        policy[s] = np.argmax(q_values)
+        
+    <span class="kw">return</span> V, policy
+</code></pre>
+
+<!-- ============================================ -->
+<h2 id="qa">🎯 Препод спросит</h2>
+
+<details class="qa"><summary>В чем главное отличие Policy Iteration от Value Iteration?</summary>
+<div class="ans">
+<p>В Policy Iteration на каждом шаге функция $V^\pi$ вычисляется до полной сходимости системы уравнений Беллмана, после чего строится новая стратегия $\pi'$. В Value Iteration оценивание стратегии обрывается ровно после одной итерации обновления: максимум берется непосредственно внутри шага обновления $V(s)$.</p>
+</div></details>
+
+<details class="qa"><summary>Сформулируйте и строго докажите Теорему об улучшении стратегии (Policy Improvement Theorem).</summary>
+<div class="ans">
+<p><strong>Формулировка:</strong> Пусть $\pi$ и $\pi'$ — две детерминированные стратегии такие, что для всех $s \in \mathcal{S}$ выполняется $Q^\pi(s, \pi'(s)) \ge V^\pi(s)$. Тогда стратегия $\pi'$ не хуже стратегии $\pi$ во всех состояниях: $V^{\pi'}(s) \ge V^\pi(s)$.</p>
+<p><strong>Доказательство:</strong> Раскроем $V^\pi(s)$ по определению $Q^\pi$ и последовательно применим индукцию по будущим состояниям:</p>
+$$ V^\pi(s) \le Q^\pi(s, \pi'(s)) = \mathbb{E}_{\pi'} \left[ R_{t+1} + \gamma V^\pi(S_{t+1}) \mid S_t = s \right] $$
+$$ \le \mathbb{E}_{\pi'} \left[ R_{t+1} + \gamma Q^\pi(S_{t+1}, \pi'(S_{t+1})) \mid S_t = s \right] $$
+$$ = \mathbb{E}_{\pi'} \left[ R_{t+1} + \gamma R_{t+2} + \gamma^2 V^\pi(S_{t+2}) \mid S_t = s \right] $$
+<p>Продолжая подстановку на $k$ шагов вперед при $k \to \infty$:</p>
+$$ V^\pi(s) \le \mathbb{E}_{\pi'} \left[ \sum_{l=0}^\infty \gamma^l R_{t+l+1} \mid S_t = s \right] = V^{\pi'}(s) $$
+<p>Если $Q^\pi(s, \pi'(s)) > V^\pi(s)$ хотя бы в одном состоянии, то $\pi'$ строго лучше $\pi$.</p>
+</div></details>
+
+<details class="qa"><summary>Как устроен критерий сходимости $\Delta < \theta$ в Policy Evaluation и как порог $\theta$ связан с погрешностью оценки ценности?</summary>
+<div class="ans">
+<p>В алгоритме итеративного оценивания политики на каждой эпохе отслеживается максимальное абсолютное изменение ценности по всем состояниям:</p>
+$$ \Delta = \max_{s \in \mathcal{S}} |v_{k+1}(s) - v_k(s)| = \|V_{k+1} - V_k\|_\infty $$
+<p>Итерации останавливаются, как только $\Delta < \theta$. По свойству $\gamma$-сжатия оператора Беллмана гарантируется верхняя оценка погрешности:</p>
+$$ \|V_k - V^\pi\|_\infty \le \frac{\gamma}{1 - \gamma} \|V_k - V_{k-1}\|_\infty < \frac{\gamma \theta}{1 - \gamma} $$
+<p>Это дает строгую гарантию точности аппроксимации функции ценности текущей политики.</p>
+</div></details>
+
+<details class="qa"><summary>Приведите геометрическую интерпретацию концепции Generalized Policy Iteration (GPI).</summary>
+<div class="ans">
+<p>В пространстве «политика — функция ценности» $(\pi, V)$ алгоритмы RL интерпретируются как взаимодействие двух встречных векторных полей:</p>
+<ul>
+  <li><strong>Policy Evaluation:</strong> направляет вектор ценностей $V \to V^\pi$ при неизменной политике $\pi$.</li>
+  <li><strong>Policy Improvement:</strong> смещает политику $\pi \to \text{greedy}(V)$ относительно фиксированного вектора ценностей $V$.</li>
+</ul>
+<p>Каждый шаг одного процесса нарушает баланс для другого, порождая зигзагообразную траекторию сходимости. Обе силовые линии взаимно уравновешиваются исключительно в единственной точке пересечения — глобальном оптимуме $(V^*, \pi^*)$.</p>
+</div></details>
+
+<details class="qa"><summary>В чем математическая разница свойств несмещенности и дисперсии между First-Visit MC и Every-Visit MC?</summary>
+<div class="ans">
+<p><strong>First-Visit Monte Carlo:</strong> усредняет доходы $G_t$ только от первого входа в состояние $s$ в каждом эпизоде. Выборки доходов из разных эпизодов строго независимы (i.i.d.), поэтому оценка $\hat{V}(s)$ является <strong>строго несмещенной</strong> ($\mathbb{E}[\hat{V}(s)] = V^\pi(s)$) для любого конечного числа эпизодов.</p>
+<p><strong>Every-Visit Monte Carlo:</strong> усредняет доходы от всех посещений состояния $s$ внутри каждого эпизода. Из-за корреляции повторных визитов внутри одной траектории оценка имеет слабое начальное смещение, но является <strong>асимптотически несмещенной и состоятельной</strong>. При малом числе эпизодов Every-Visit MC часто дает меньшую среднеквадратичную ошибку (MSE) благодаря большему объему точек.</p>
+</div></details>
+
+<details class="qa"><summary>В чем суть предположения Exploring Starts в Monte Carlo Control и почему на практике используют $\epsilon$-мягкие ($\epsilon$-soft) стратегии?</summary>
+<div class="ans">
+<p><strong>Exploring Starts (Исследующие старты):</strong> предполагает, что каждый эпизод начинается со случайно выбранной пары $(s_0, a_0)$ с ненулевой вероятностью $P(S_0=s, A_0=a) > 0$ для всех пар. Это гарантирует исследование всех действий, но неприменимо в реальных физических системах (нельзя мгновенно телепортировать робота в произвольное состояние).</p>
+<p><strong>$\epsilon$-soft / $\epsilon$-greedy контроль:</strong> агент действует по стохастической политике, где наилучшее действие выбирается с вероятностью $1 - \epsilon + \frac{\epsilon}{|\mathcal{A}|}$, а все остальные действия — с вероятностью $\frac{\epsilon}{|\mathcal{A}|} > 0$. Это гарантирует постоянное исследование среды из стандартного начального состояния без искусственных допущений об инициализации.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое «бутстрэппинг» (Bootstrapping) в RL?</summary>
+<div class="ans">
+<p>Бутстрэппинг — это обновление оценки ценности одного состояния на основе <em>уже существующих оценок ценности других состояний</em> ($V(s) \leftarrow r + \gamma V(s')$), а не на основе реального завершенного дохода $G_t$. Динамическое программирование и TD-методы используют бутстрэппинг, а методы Монте-Карло — нет.</p>
+</div></details>
+
+<details class="qa"><summary>Почему методы Монте-Карло не могут применяться в непрерывных (бесконечных) задачах?</summary>
+<div class="ans">
+<p>Потому что метод Монте-Карло требует вычисления фактического суммарного дохода эпизода $G_t = \sum r_k$. В непрерывных средах без терминального состояния эпизод никогда не заканчивается, и агент не может получить числовое значение $G_t$.</p>
+</div></details>
+
+<details class="qa"><summary>В чем разница между First-Visit MC и Every-Visit MC?</summary>
+<div class="ans">
+<p>Если в течение одного эпизода агент попал в состояние $s$ трижды ($s \to s_1 \to s \to s_2 \to s$), First-Visit MC засчитает для обновления $V(s)$ только доход $G_t$ после первого входа в $s$. Every-Visit MC посчитает среднее по всем трем доходам из каждого посещения $s$.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое концепция Generalized Policy Iteration (GPI)?</summary>
+<div class="ans">
+<p>GPI — это общая концепция взаимодействия двух процессов: Policy Evaluation (оценка ценности текущей стратегии) и Policy Improvement (жадное улучшение стратегии по вычисленной ценности). Практически все алгоритмы RL представляют собой вариации GPI с разной частотой и глубиной чередования этих двух шагов.</p>
+</div></details>
+
+
+<!-- ============================================ -->
+<h2 id="tasks">📝 Микро-задачи</h2>
+
+<div class="task">
+  <div class="tt">Задача 1. Расчет шага Value Iteration</div>
+  <p>Состояние $s$. Действие $a_1$: $r=2$, ведет в $s_1$ ($V_0(s_1)=4$). Действие $a_2$: $r=0$, ведет в $s_2$ ($V_0(s_2)=10$). При $\gamma = 0.5$ найдите $V_1(s)$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$Q(s, a_1) = 2 + 0.5 \cdot 4 = 2 + 2 = 4$.</p>
+    <p>$Q(s, a_2) = 0 + 0.5 \cdot 10 = 5$.</p>
+    <p>$$ V_1(s) = \max(4, 5) = 5 $$</p>
+    <p>Жадное действие: $a_2$.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 2. Расчет First-Visit Monte Carlo</div>
+  <p>Сгенерирован эпизод: $s_1 \xrightarrow{r=1} s_2 \xrightarrow{r=2} s_1 \xrightarrow{r=3} s_3 \xrightarrow{r=10} \text{End}$. $\gamma = 1.0$. Найдите доход $G(s_1)$ по правилу First-Visit MC.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Первое посещение $s_1$ произошло на шаге 0. Доход от этого момента до конца:</p>
+    <p>$$ G_0 = 1 + 2 + 3 + 10 = 16 $$</p>
+    <p>(Второе посещение $s_1$ на шаге 2 с доходом $3 + 10 = 13$ игнорируется).</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 3. Оценка числа стратегий в дискретном MDP</div>
+  <p>Среда GridWorld $4 \times 4$ (16 клеток, 1 терминальная). В каждой клетке доступно 4 действия. Сколько всего существует различных детерминированных стратегий?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Число нетерминальных состояний: $|\mathcal{S}| = 15$. В каждом 4 действия.</p>
+    <p>$$ \text{Число стратегий} = |\mathcal{A}|^{|\mathcal{S}|} = 4^{15} = 2^{30} = 1\,073\,741\,824 \approx 1.07 \times 10^9 $$</p>
+    <p>Полный перебор невозможен, но Policy Iteration находит оптимум всего за 4–5 шагов!</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 4. Условие остановки Policy Evaluation</div>
+  <p>Вектор $V_k = [4.0, 5.0]$, вектор $V_{k+1} = [4.0005, 4.9998]$. Порог $\theta = 0.001$. Остановится ли алгоритм оценивания?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$$ \Delta = \max(|4.0005 - 4.0|, |4.9998 - 5.0|) = \max(0.0005, 0.0002) = 0.0005 $$</p>
+    <p>Так как $\Delta = 0.0005 < \theta = 0.001$, условие остановки выполнено, алгоритм завершает фазу оценки.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 5. Дисперсия MC vs DP на простом примере</div>
+  <p>Из состояния $s$ агент делает 10 шагов. На каждом шаге награда случайна: $r \in \{-1, +1\}$ с вероятностью 0.5. Чему равна дисперсия оценки дохода в MC при $\gamma=1$?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Доход $G = \sum_{t=1}^{10} r_t$. Дисперсия одного шага $\text{Var}(r) = 1$.</p>
+    <p>Дисперсия суммы 10 независимых шагов: $\text{Var}(G) = 10 \times 1 = 10$.</p>
+    <p><em>В методах Монте-Карло дисперсия накапливается линейно с ростом длины траектории.</em></p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 6. Доказательство оптимальности стратегии</div>
+  <p>Для всех состояний $s$ выполнено: $\arg\max_a Q^\pi(s, a) = \pi(s)$. Что это означает для стратегии $\pi$?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Это означает, что шаг Policy Improvement оставляет стратегию неизменной: $\pi'(s) = \pi(s)$. По теореме об улучшении стратегии это необходимое и достаточное условие того, что стратегия $\pi$ является <strong>глобально оптимальной: $\pi = \pi^*$</strong>.</p>
+  </div></details>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+
+<div class="cheat">
+  <div class="bt">Скелет устного ответа по билету 22 (ч. 2, VI, PI, GPI, Monte Carlo)</div>
+  <ol>
+    <li><strong>Policy Evaluation.</strong> Итеративное вычисление $V^\pi(s)$ по формуле ожидания Беллмана до сходимости ($\Delta < \theta$).</li>
+    <li><strong>Policy Improvement.</strong> Построение новой жадной стратегии $\pi'(s) = \arg\max_a Q^\pi(s, a)$. По теореме об улучшении $V^{\pi'}(s) \ge V^\pi(s)$.</li>
+    <li><strong>Policy Iteration.</strong> Чередование полной оценки $V^\pi$ и улучшения $\pi$. Гарантированно сходится за конечное число шагов ($|\mathcal{A}|^{|\mathcal{S}|}$).</li>
+    <li><strong>Value Iteration.</strong> Объединение оценки и улучшения в 1 шаг через оператор Беллмана: $V_{k+1}(s) = \max_a \sum \mathcal{P} [\mathcal{R} + \gamma V_k]$.</li>
+    <li><strong>GPI (Generalized Policy Iteration).</strong> Фундаментальная идея взаимодействия двух процессов: Evaluation (делает $V$ согласованной с $\pi$) и Improvement (делает $\pi$ жадной к $V$).</li>
+    <li><strong>Методы Монте-Карло (MC).</strong> Model-Free подход: модель среды неизвестна, $V(s)$ оценивается прямым усреднением эмпирических доходов $G_t$ по завершенным эпизодам.</li>
+    <li><strong>First-visit vs Every-visit.</strong> First-visit усредняет $G_t$ только по первому входу в состояние за эпизод (несмещенная оценка).</li>
+    <li><strong>DP vs MC.</strong> DP знает модель и использует бутстрэппинг ($V(s) \to V(s')$). MC не знает модель, не использует бутстрэппинг, но требует полных эпизодов и имеет высокую дисперсию.</li>
+  </ol>
+</div>
+
+<div class="navrow">
+  <a class="backlink" href="23-bellman.html">← Лекция 23. Уравнения Беллмана</a>
+  <a class="backlink" href="25-td-qlearning.html">Лекция 25. TD(0), SARSA, Q-learning, DQN →</a>
+</div>
+
+</div>
+</body>
+</html>

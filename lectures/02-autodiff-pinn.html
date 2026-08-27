@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лекция 2. Автодифференцирование и PINN</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:17px;
+  line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line);
+  padding:38px 24px 30px;
+  margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация назад ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление лекции ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+/* ---------- Сетка карточек (главная) ---------- */
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px; margin:20px 0}
+.lec{
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:17px 19px; text-decoration:none; color:var(--text);
+  display:block; transition:.16s; position:relative;
+}
+.lec:hover{border-color:var(--accent); transform:translateY(-2px); background:var(--card-2)}
+.lec .n{
+  font-family:var(--mono); font-size:12px; color:var(--accent);
+  font-weight:700; letter-spacing:.05em;
+}
+.lec .t{font-weight:700; margin:5px 0 6px; font-size:16.5px; line-height:1.35; color:#fff}
+.lec .d{color:var(--text-dim); font-size:13.5px; line-height:1.5}
+.lec .time{
+  margin-top:10px; font-size:12px; color:var(--text-dim);
+  font-family:var(--mono); border-top:1px solid var(--line); padding-top:8px;
+}
+
+/* ---------- Плашка дня ---------- */
+.day{
+  margin:44px 0 8px; padding:16px 22px; border-radius:12px;
+  background:linear-gradient(90deg, rgba(110,168,254,.14), transparent);
+  border-left:4px solid var(--accent);
+}
+.day h2{border:none; margin:0; padding:0; font-size:24px}
+.day p{margin:6px 0 0; color:var(--text-dim); font-size:15px}
+
+hr{border:none; border-top:1px solid var(--line); margin:44px 0}
+
+.small{font-size:14px; color:var(--text-dim)}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+
+</style>
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]},
+  svg: {fontCache:'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Блок A · Основы · Вопрос 2</div>
+  <h1>Лекция 2. Автоматическое дифференцирование. Физически информированные нейронные сети (PINN)</h1>
+  <p class="sub">Как компьютер считает производные. Backprop как частный случай. Применение: решение дифференциальных уравнений нейросетями.</p>
+  <div class="meta">
+    <span class="pill">⏱ 1 ч 30 мин</span>
+    <span class="pill gray">11 вопросов препода</span>
+    <span class="pill gray">6 микро-задач</span>
+    <span class="pill">Экспертный уровень</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<a class="backlink" href="../index.html">← К оглавлению курса</a>
+
+<nav class="toc">
+  <div class="bt">Содержание лекции</div>
+  <ol>
+    <li><a href="#s1">Четыре способа получить производную</a></li>
+    <li><a href="#s2">Автодифференцирование — не символьное, не численное</a></li>
+    <li><a href="#s3">Вычислительный граф</a></li>
+    <li><a href="#s4">Forward mode (прямой режим)</a></li>
+    <li><a href="#s5">Reverse mode (обратный режим) = Backprop</a></li>
+    <li><a href="#s6">Когда какой режим применять</a></li>
+    <li><a href="#s7">Автодифф в PyTorch</a></li>
+    <li><a href="#s8">Производные высших порядков</a></li>
+    <li><a href="#s9">Физически информированные сети: идея</a></li>
+    <li><a href="#s10">Loss PINN: невязка уравнения</a></li>
+    <li><a href="#s11">Почему tanh, а не ReLU в PINN</a></li>
+    <li><a href="#s12">Плюсы, минусы, мини-пример кода</a></li>
+    <li><a href="#qa">Препод спросит</a></li>
+    <li><a href="#tasks">Микро-задачи</a></li>
+    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="s1"><span class="num">1.</span> Четыре способа получить производную</h2>
+
+<p>Представим, что нужна производная функции $f(x) = x^3 + 2x^2 + 1$. Есть четыре пути:</p>
+
+<h3>1.1 Аналитически (руками на доске)</h3>
+
+<p>По правилам дифференцирования: $f'(x) = 3x^2 + 4x$. Потом подставляем число.</p>
+
+<p><strong>Плюсы:</strong> точно, понимаем структуру.</p>
+
+<p><strong>Минусы:</strong> для сложных функций непрактично, для нейросети с млн параметров невозможно.</p>
+
+<h3>1.2 Символьно (SymPy, Mathematica, Maple)</h3>
+
+<p>Даём формулу программе, она применяет правила дифференцирования к выражению, выводит формулу производной. Потом вычисляем.</p>
+
+<p><strong>Плюсы:</strong> точно, можно символьно упростить.</p>
+
+<p><strong>Минусы:</strong> выражение может разрастись экспоненциально. Пример: производная от $(x^2 + x^3)^{100}$ — гигантская. На нейросетях время вычисления становится неприемлемо.</p>
+
+<h3>1.3 Численно (конечные разности)</h3>
+
+<div class="formula">
+$$ f'(x) \approx \frac{f(x + \varepsilon) - f(x - \varepsilon)}{2\varepsilon} $$
+<span class="note">Центральная разность, ошибка $O(\varepsilon^2)$</span>
+</div>
+
+<p><strong>Плюсы:</strong> работает для любой функции, даже если код чёрный ящик.</p>
+
+<p><strong>Минусы:</strong> два типа ошибок одновременно. (1) Ошибка отсечения ($\varepsilon$ не нулевая). (2) Ошибка округления (float32 точность $\sim 10^{-7}$). Оптимальный $\varepsilon \sim 10^{-4}$ (компромисс). Для каждого параметра нужен отдельный вызов функции — для $P$ параметров требуется $2P$ вызовов.</p>
+
+<p><strong>На практике:</strong> используют для проверки (gradient checking), а не для реального обучения.</p>
+
+<h3>1.4 Автоматически (Autodiff)</h3>
+
+<p>Разложить вычисление на элементарные операции (сложение, умножение, $\sin$, $\exp$), к каждой применить цепное правило, и распространить производные. <em>Всё в конкретных числах, не в символьных переменных.</em></p>
+
+<p><strong>Плюсы:</strong> точность машинная (только машинная ошибка округления), один проход считает все градиенты сразу, эффективно.</p>
+
+<p><strong>Минусы:</strong> (почти нет!) нужна специальная структура — знать элементарные операции и их производные.</p>
+
+<h3>1.5 Сводная таблица</h3>
+
+<table>
+<thead><tr><th>Метод</th><th>Точность</th><th>Стоимость (P параметров)</th><th>Практика</th></tr></thead>
+<tbody>
+<tr><td>Аналитически</td><td>Точно</td><td>O(1) (если выводить вручную)</td><td>Только для простых примеров</td></tr>
+<tr><td>Символьно</td><td>Точно</td><td>O(P) но с большой константой (выражение растёт)</td><td>Исследовательские системы</td></tr>
+<tr><td>Численно</td><td>$\sim 10^{-4}$ относительная ошибка</td><td>O(P) вызовов функции</td><td>Проверка (gradient checking)</td></tr>
+<tr><td><strong>Автодифф</strong></td><td>Машинная ($\sim 10^{-7}$)</td><td>O(P) операций, один проход</td><td><strong>Стандарт в DL</strong></td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> Автодифференцирование — не символьное, не численное</h2>
+
+<p>Здесь ключевая идея. Мы не выводим символьную формулу и не делаем численную аппроксимацию. Вместо этого:</p>
+
+<div class="box idea">
+  <div class="bt">💡 Суть автодифференцирования</div>
+  <p>Любое вычисление — это композиция элементарных операций ($+, \times, \sin, \exp$…). У каждой есть известная производная. Применяем цепное правило к конкретным <em>числам</em>, не к символам. Результат — производная в этой точке, с точностью машины.</p>
+  <p>Пример: $f(x_1, x_2) = x_1 \cdot x_2 + \sin(x_1)$. При $x_1 = 1, x_2 = 2$: вычисляем $f = 2 + \sin(1) \approx 2.841$, и одновременно $\frac{\partial f}{\partial x_1} \approx 2.541$, $\frac{\partial f}{\partial x_2} = 1$ — всё в числах.</p>
+</div>
+
+<p>Два режима распространения производных:</p>
+
+<ul>
+  <li><strong>Forward mode:</strong> идём от входов к выходам, накапливая производные входов по параметрам (дуальные числа).</li>
+  <li><strong>Reverse mode:</strong> сначала forward вычисляем и сохраняем граф, потом идём назад, распространяя производные выходов.</li>
+</ul>
+
+<p>В нейросетях используется <strong>reverse mode</strong> — это и есть обратное распространение ошибки (backprop).</p>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> Вычислительный граф</h2>
+
+<p>Вычисление можно представить как ориентированный граф, где узлы — переменные, рёбра — операции.</p>
+
+<p><strong>Пример:</strong> $f(x_1, x_2) = (x_1 \cdot x_2 + \sin(x_1))^2$. При $x_1 = 2, x_2 = 3$.</p>
+
+<div class="scheme">
+    Вычислительный граф (forward pass)
+
+         x₁ = 2           x₂ = 3
+           │               │
+           │               │
+           ├────────────┬──┘
+           │            │
+           │ ×          │        Узлы: переменные
+           │ v          │        Рёбра: операции
+         v₁ = 6         │
+                        │
+           v₁ = 6  ┌────┘
+               │   │
+               ├───┴─────┐
+               │         │
+               │  sin    │       sin(2) ≈ 0.909
+               │  v      │
+           v₂ = 0.909   │
+                        │
+             v₁ + v₂ ◄──┘
+               │
+             v₃ = 6.909
+               │
+               │  (.)²
+               │  v
+          f = v₃² = 47.73
+
+<span class="cap">Forward pass: посчитали значение функции. Теперь пойдём назад, считая производные.</span></div>
+
+<div class="scheme">
+    Обратный проход (reverse mode)
+
+    f = 47.73
+       │
+       │ ∂f/∂f = 1
+       │
+    (.)²  ──────→  ∂f/∂v₃ = 2·v₃ = 13.82
+       ▲
+       │
+    +  ──────→  ∂f/∂v₁ = ∂f/∂v₃ · ∂v₃/∂v₁ = 13.82 · 1 = 13.82
+       │                           ∂f/∂v₂ = ∂f/∂v₃ · ∂v₃/∂v₂ = 13.82 · 1 = 13.82
+       ├─────────────────────────────────────┬─────────────────────
+       │                                     │
+    sin ──────→  ∂f/∂x₁|sin = ∂f/∂v₂ · ∂v₂/∂x₁ = 13.82 · cos(2) = 2.49
+       ▲                                     │
+       │                                  ∂f/∂v₁|sum = 13.82
+       │
+    ×  ──────→  ∂f/∂v₁|mult = ∂f/∂v₁|sum · ∂v₁/∂(x₁·x₂)
+       │                      = 13.82 · x₂ = 13.82 · 3 = 41.46
+       │
+       ├─────────────────────────────────────┬─────────────────────
+       │                                     │
+      x₁                                     x₂
+      │ ∂f/∂x₁ = ∂f/∂v₁|mult · ∂v₁/∂x₁ + ∂f/∂x₁|sin
+      │         = 41.46 · 3 + 2.49 = 126.87
+      │
+      └─────────────────────→ ∂f/∂x₂ = ∂f/∂v₁ · ∂v₁/∂x₂ = 41.46 · 2 = 82.92
+
+<span class="cap">Reverse pass: идём справа налево по графу, распространяя производные. Каждый узел получает градиент от всех своих потомков. Результаты: ∂f/∂x₁ и ∂f/∂x₂.</span></div>
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> Forward mode (прямой режим)</h2>
+
+<p>Распространяем производные <strong>вперёд</strong> вместе со значениями.</p>
+
+<h3>4.1 Дуальные числа</h3>
+
+<p>Представляем число в виде пары: $(x, \dot{x})$, где $x$ — значение, $\dot{x}$ — производная по интересующему нас параметру.</p>
+
+<p><strong>Правила арифметики для дуальных чисел:</strong></p>
+
+<div class="formula">
+$$ (x, \dot{x}) + (y, \dot{y}) = (x + y, \dot{x} + \dot{y}) $$
+$$ (x, \dot{x}) \times (y, \dot{y}) = (xy, x\dot{y} + y\dot{x}) $$
+$$ \sin(x, \dot{x}) = (\sin x, \cos x \cdot \dot{x}) $$
+</div>
+
+<h3>4.2 Числовой пример</h3>
+
+<p>Вычисли $f(x) = x^2 + \sin(x)$ и $f'(x)$ при $x = 1$. Forward mode:</p>
+
+<ul>
+  <li>Инициализируем: $(x, \dot{x}) = (1, 1)$ — значение 1, производная по входу = 1.</li>
+  <li>Вычисляем $x^2$: $(1, 1) \times (1, 1) = (1, 1 \cdot 1 + 1 \cdot 1) = (1, 2)$.</li>
+  <li>Вычисляем $\sin(x)$: $\sin(1, 1) = (\sin 1, \cos 1 \cdot 1) = (0.841, 0.540)$.</li>
+  <li>Складываем: $(1, 2) + (0.841, 0.540) = (1.841, 2.540)$.</li>
+  <li><strong>Результат:</strong> $f(1) = 1.841$, $f'(1) = 2.540$ ✓</li>
+</ul>
+
+<h3>4.3 Стоимость и когда применяется</h3>
+
+<p>На каждый <em>вход</em> нужен отдельный forward pass. Если входов $n$, выходов $m$, операций $O$, то стоимость = $O(n \cdot O)$.</p>
+
+<p><strong>Когда forward mode выгоден?</strong> Когда входов мало, выходов много. Пример: физическая система с 2 параметрами и 1000 датчиков.</p>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> Reverse mode (обратный режим) = Backprop</h2>
+
+<p>Это <em>правильный</em> режим для нейросетей.</p>
+
+<h3>5.1 Два прохода: forward и backward</h3>
+
+<p><strong>Forward pass:</strong> вычисляем значение функции обычно, но <strong>сохраняем граф вычислений</strong> (какие операции в каком порядке, какие значения были).</p>
+
+<p><strong>Backward pass:</strong> идём по графу в обратном порядке, считаем производные по цепному правилу. Стоимость одного backward pass $\approx$ одного forward pass.</p>
+
+<h3>5.2 Ключевая величина: адъюнкты</h3>
+
+<p>Определим <strong>адъюнкт</strong> (adjoint) — это $\frac{\partial \text{loss}}{\partial z}$ для промежуточного значения $z$.</p>
+
+<div class="formula">
+$$ \bar{z} = \frac{\partial L}{\partial z} $$
+<span class="note">Верхняя черта — обозначение для адъюнкта. Это «сколько ошибка зависит от этого значения».</span>
+</div>
+
+<p>Цепное правило в обратном режиме:</p>
+
+<div class="formula">
+$$ \bar{x} = \bar{z} \cdot \frac{\partial z}{\partial x} $$
+</div>
+
+<p>Если $z$ зависит от нескольких переменных, адъюнкты суммируются:</p>
+
+<div class="formula">
+$$ \bar{x} = \sum_j \bar{z_j} \cdot \frac{\partial z_j}{\partial x} $$
+</div>
+
+<h3>5.3 Числовой пример: обратный проход</h3>
+
+<p>Функция $L = (x + y)^2$ с $x = 2, y = 3$. Найти $\frac{\partial L}{\partial x}$ и $\frac{\partial L}{\partial y}$.</p>
+
+<ul>
+  <li>Forward: $z = x + y = 5$, $L = z^2 = 25$.</li>
+  <li>Backward: $\bar{L} = 1$ (по определению). $\bar{z} = \frac{\partial L}{\partial z} = 2z = 10$.</li>
+  <li>$\bar{x} = \bar{z} \cdot \frac{\partial z}{\partial x} = 10 \cdot 1 = 10$. $\bar{y} = \bar{z} \cdot \frac{\partial z}{\partial y} = 10 \cdot 1 = 10$.</li>
+  <li><strong>Проверка:</strong> $\frac{\partial L}{\partial x} = 2(x+y) = 10$ ✓, $\frac{\partial L}{\partial y} = 2(x+y) = 10$ ✓.</li>
+</ul>
+
+<h3>5.4 Reverse mode более выгоден для нейросетей</h3>
+
+<p>В нейросети: входов $n$ (признаки), параметров $P$ (веса), выходов $m$ (предсказания), 1 скаляр loss.</p>
+
+<ul>
+  <li><strong>Forward mode:</strong> $n$ проходов для получения $\frac{\partial L}{\partial x_i}$. Но нам нужны $\frac{\partial L}{\partial w_{ij}}$ — параметры! Нужно $P$ проходов. Стоимость = $O(P \cdot T_{\text{forward}})$.</li>
+  <li><strong>Reverse mode:</strong> один backward pass считает все $\frac{\partial L}{\partial w_{ij}}$ сразу. Стоимость = $O(T_{\text{backward}}) \approx O(T_{\text{forward}})$.</li>
+</ul>
+
+<p><strong>Вывод:</strong> reverse mode выигрывает в $\frac{P}{m} \approx \frac{P}{1} \sim 10^6$ раз для больших сетей.</p>
+
+<!-- ============================================ -->
+<h2 id="s6"><span class="num">6.</span> Когда какой режим применять</h2>
+
+<table>
+<thead><tr><th>Режим</th><th>Стоимость</th><th>Выгоден когда</th><th>Примеры</th></tr></thead>
+<tbody>
+<tr><td><strong>Forward</strong></td><td>O(n · T) где n = число входов</td><td>Входов мало, выходов много</td><td>Калибровка 2 параметров под 1000 датчиков</td></tr>
+<tr><td><strong>Reverse</strong></td><td>O(m · T) где m = число выходов</td><td>Входов много, выходов мало</td><td><strong>Нейросети</strong> (входов 1000, выход 1 (loss))</td></tr>
+<tr><td colspan="4"><strong>Специальный случай:</strong> если входов и выходов поровну, оба режима примерно одинаковы по стоимости. Но reverse часто быстрее на практике (лучше cache).</td></tr>
+</tbody>
+</table>
+
+<p><strong>Главный тезис для экзамена:</strong> Backprop = reverse-mode autodiff применённый к нейросети. Это не отдельный алгоритм, а частный случай общей техники автоматического дифференцирования.</p>
+
+<!-- ============================================ -->
+<h2 id="s7"><span class="num">7.</span> Автодифф в PyTorch</h2>
+
+<h3>7.1 Базовый пример</h3>
+
+<pre><code><span class="kw">import</span> torch
+
+<span class="cmt"># Создаём тензоры с requires_grad=True — они отслеживают вычисления</span>
+x = torch.tensor([2.0, 3.0], requires_grad=<span class="kw">True</span>)
+y = torch.tensor([1.0], requires_grad=<span class="kw">True</span>)
+
+<span class="cmt"># Вычисляем функцию: L = (x[0] * x[1] + sin(x[0]))^2 - y</span>
+z = x[0] * x[1] + torch.sin(x[0])
+L = (z ** 2) - y
+
+<span class="cmt"># Обратное распространение: считаем ∂L/∂x и ∂L/∂y</span>
+L.backward()
+
+<span class="cmt"># Градиенты теперь в .grad</span>
+<span class="kw">print</span>(<span class="str">"∂L/∂x:"</span>, x.grad)  <span class="cmt"># tensor([ 126.87,  82.92])</span>
+<span class="kw">print</span>(<span class="str">"∂L/∂y:"</span>, y.grad)  <span class="cmt"># tensor([-2.])</span>
+</code></pre>
+
+<h3>7.2 Ключевые концепции</h3>
+
+<p><strong>requires_grad:</strong> указывает PyTorch строить граф вычислений для этого тензора. Листовые тензоры (tensor, не от операций) с requires_grad=True — это параметры.</p>
+
+<p><strong>Динамический граф:</strong> PyTorch строит граф во время forward pass. Это позволяет использовать условные операторы и циклы в коде — граф адаптируется.</p>
+
+<p><strong>Накопление градиентов:</strong> если вызвать .backward() дважды, градиенты <em>складываются</em>! Поэтому нужно <code>opt.zero_grad()</code> перед каждым backward.</p>
+
+<h3>7.3 torch.autograd.grad для частных производных</h3>
+
+<p>Чтобы получить производную <em>конкретной переменной</em> без обнуления других:</p>
+
+<pre><code><span class="kw">import</span> torch
+
+x = torch.tensor([2.0], requires_grad=<span class="kw">True</span>)
+y = x**3
+
+<span class="cmt"># Получить ∂y/∂x без .backward() (не затирает граф)</span>
+grad_y_x = torch.autograd.grad(y, x, create_graph=<span class="kw">True</span>)[0]
+<span class="kw">print</span>(grad_y_x)  <span class="cmt"># tensor(12., grad_fn=...)</span>
+
+<span class="cmt"># Так можно считать вторые производные</span>
+grad2_y_x2 = torch.autograd.grad(grad_y_x, x)[0]
+<span class="kw">print</span>(grad2_y_x2)  <span class="cmt"># tensor(12.) — вторая производная 3x^2 — это 6x = 12 при x=2</span>
+</code></pre>
+
+<h3>7.4 no_grad context — отключить tracking</h3>
+
+<pre><code><span class="kw">with</span> torch.no_grad():
+    <span class="cmt"># Внутри не строится граф, быстро, экономит память</span>
+    predictions = model(x)
+    loss_test = loss_fn(predictions, y)
+</code></pre>
+
+<p>Используется при инференсе и валидации — не нужны градиенты.</p>
+
+<h3>7.5 Детали реализации</h3>
+
+<p><strong>Leaf tensor:</strong> тензор, созданный явно (а не результат операции). Только у leaf-тензоров есть .grad.</p>
+
+<p><strong>detach():</strong> отсоединить от графа — обнулить requires_grad для подграфа, не пересчитывать градиенты выше этой точки.</p>
+
+<pre><code><span class="cmt"># Если want признаки без gradients в loss</span>
+features = encoder(x).detach()  <span class="cmt"># граф оборвётся здесь</span>
+loss = classifier(features)
+loss.backward()  <span class="cmt"># градиент не идёт в encoder</span>
+</code></pre>
+
+<!-- ============================================ -->
+<h2 id="s8"><span class="num">8.</span> Производные высших порядков</h2>
+
+<p>Иногда нужны вторые производные (для Гессиана, оптимизации второго порядка, физически информированных сетей).</p>
+
+<p>В PyTorch это работает через <code>create_graph=True</code> в .backward():</p>
+
+<pre><code>x = torch.tensor([[1.0, 2.0]], requires_grad=<span class="kw">True</span>)
+y = (x ** 2).sum()
+
+<span class="cmt"># Первая производная</span>
+grad1 = torch.autograd.grad(y, x, create_graph=<span class="kw">True</span>)[0]
+<span class="cmt"># grad1 снова зависит от x и может быть дифференцирована</span>
+
+<span class="cmt"># Вторая производная (Гессиан диагональ)</span>
+grad2 = torch.autograd.grad(grad1.sum(), x)[0]
+<span class="kw">print</span>(grad2)  <span class="cmt"># [2., 2.] — вторая производная x^2 это 2</span>
+</code></pre>
+
+<p><strong>Проблема:</strong> вторые производные дорогие (во фронтенде и бэкенде нужны графы). Для больших сетей нереально. Но для PINN с маленькими сетями — нормально.</p>
+
+<!-- ============================================ -->
+<h2 id="s9"><span class="num">9.</span> Физически информированные сети: идея</h2>
+
+<p>Классическая задача: решить дифференциальное уравнение. Пример, уравнение теплопроводности:</p>
+
+<div class="formula">
+$$ \frac{\partial u}{\partial t} = \alpha \frac{\partial^2 u}{\partial x^2}, \quad t \in [0, T], x \in [0, L] $$
+</div>
+
+<p>С граничными условиями (BC) и начальными условиями (IC).</p>
+
+<h3>9.1 Классический подход: сетки</h3>
+
+<p>Разбить область на сетку, дискретизировать производные конечными разностями, решить систему линейных уравнений. Минусы: для высоких размерностей сетка разрастается экспоненциально (curse of dimensionality).</p>
+
+<h3>9.2 Идея PINN: сеть вместо сетки</h3>
+
+<p><strong>Ключевая идея:</strong> вместо сетки представить решение $u(x,t)$ <strong>нейросетью</strong> $u_\theta(x,t)$. Производные $\frac{\partial u}{\partial t}$, $\frac{\partial^2 u}{\partial x^2}$ получить через <em>автоматическое дифференцирование</em> по входам $x,t$.</p>
+
+<div class="scheme">
+    PINN архитектура
+
+        x, t (координаты)
+          │
+          ▼
+    ┌──────────────┐
+    │   MLP        │
+    │   (tanh)     │  u_θ = нейросеть, параметров θ
+    └──────────────┘
+          │
+          ▼ u = u_θ(x,t)
+
+       Автодифф по входу x,t:
+          │
+          ├──▶ ∂u/∂t (через .grad)
+          ├──▶ ∂u/∂x (через .grad)
+          └──▶ ∂²u/∂x² (вторая производная)
+
+       Невязка уравнения:
+          │
+          ▼ ∂u/∂t - α·∂²u/∂x² = 0
+
+    Loss = невязка + граничные условия + начальные условия
+
+<span class="cap">Сеть предсказывает решение u(x,t). Её входы — координаты. Производные вычисляем автодифференцированием. Невязка — это part of loss.</span></div>
+
+<h3>9.3 Почему это работает?</h3>
+
+<p>Нейросеть дифференцируема по входам (параметров!) в любой точке. Поэтому можем взять производную решения в любой точке непрерывно, не нужна сетка.</p>
+
+<!-- ============================================ -->
+<h2 id="s10"><span class="num">10.</span> Loss PINN: невязка уравнения</h2>
+
+<p>Пусть решаем:</p>
+
+<div class="formula">
+$$ \mathcal{L}(u) = 0 \quad (x,t) \in \Omega $$
+$$ u = g \quad \text{на границе} \partial\Omega $$
+$$ u = u_0 \quad \text{при } t=0 $$
+</div>
+
+<p>где $\mathcal{L}$ — дифференциальный оператор (например, $\mathcal{L}(u) = \frac{\partial u}{\partial t} - \alpha \frac{\partial^2 u}{\partial x^2}$).</p>
+
+<h3>10.1 Три части loss</h3>
+
+<div class="formula">
+$$ L_{\text{total}} = L_{\text{PDE}} + \lambda_{\text{BC}} L_{\text{BC}} + \lambda_{\text{IC}} L_{\text{IC}} $$
+</div>
+
+<p><strong>(1) PDE loss — невязка уравнения:</strong></p>
+
+<div class="formula">
+$$ L_{\text{PDE}} = \frac{1}{N_f} \sum_{i=1}^{N_f} [\mathcal{L}(u_\theta(x_i, t_i))]^2 $$
+</div>
+
+<p>Где $(x_i, t_i)$ — коллокационные точки (collocation points), случайно выбранные в области $\Omega$. Типично $N_f = 5000$–$50000$.</p>
+
+<p><strong>(2) BC loss — граничные условия:</strong></p>
+
+<div class="formula">
+$$ L_{\text{BC}} = \frac{1}{N_b} \sum_{i=1}^{N_b} [u_\theta(x_i^b, t_i^b) - g(x_i^b, t_i^b)]^2 $$
+</div>
+
+<p>Граничные точки $(x_i^b, t_i^b)$ на $\partial\Omega \times [0,T]$.</p>
+
+<p><strong>(3) IC loss — начальные условия:</strong></p>
+
+<div class="formula">
+$$ L_{\text{IC}} = \frac{1}{N_0} \sum_{i=1}^{N_0} [u_\theta(x_i, 0) - u_0(x_i)]^2 $$
+</div>
+
+<p>Точки $(x_i, 0)$ при $t=0$.</p>
+
+<h3>10.2 Числовой пример: простое ODE</h3>
+
+<p>Задача: решить $u'' + u = 0$ с $u(0) = 1, u'(0) = 0$ на $x \in [0, 2\pi]$.</p>
+
+<p>Истинное решение: $u(x) = \cos(x)$.</p>
+
+<p>Сеть: $u_\theta(x)$ — скрытая размерность 128, tanh. Loss:</p>
+
+<div class="formula">
+$$ L = \frac{1}{5000} \sum_i (u_\theta''(x_i) + u_\theta(x_i))^2 + \lambda_0 (u_\theta(0) - 1)^2 + \lambda_1 (u_\theta'(0) - 0)^2 $$
+</div>
+
+<p>Коллокационные точки — случайные $x \in [0, 2\pi]$. Обучаем тысячи эпох. Результат: $u_\theta$ с очень высокой точностью приближает $\cos(x)$, и это приближение гладкое в любой точке.</p>
+
+<!-- ============================================ -->
+<h2 id="s11"><span class="num">11.</span> Почему tanh, а не ReLU в PINN</h2>
+
+<div class="box exambox">
+  <div class="bt">🎯 Частый экзаменационный вопрос</div>
+  <p><strong>Ответ:</strong> Потому что в PINN нужны <em>высокие производные</em> решения (вторые, третьи…). ReLU имеет кусочно-линейную форму: первая производная = 0 или 1 (разрыва в 0), вторая производная = 0 везде (кроме точки излома). Если в PDE участвует $\frac{\partial^2 u}{\partial x^2}$, и сеть из ReLU, то вторая производная всегда нулевая, уравнение вырождается!</p>
+</div>
+
+<h3>11.1 Сравнение активаций</h3>
+
+<table>
+<thead><tr><th>Активация</th><th>$\varphi(z)$</th><th>$\varphi'(z)$</th><th>$\varphi''(z)$</th><th>В PINN</th></tr></thead>
+<tbody>
+<tr><td><strong>tanh</strong></td><td>$\tanh(z)$</td><td>$1-\tanh^2(z)$</td><td>гладкая (не нуль)</td><td>✓ Идеально</td></tr>
+<tr><td><strong>ReLU</strong></td><td>$\max(0,z)$</td><td>0 или 1 (разрыв)</td><td>0 везде (кроме 0)</td><td>✗ Не годится</td></tr>
+<tr><td><strong>sin/cos</strong></td><td>$\sin(z)$</td><td>$\cos(z)$</td><td>$-\sin(z)$</td><td>✓ Хорошо</td></tr>
+<tr><td><strong>softplus</strong></td><td>$\log(1+e^z)$</td><td>$\sigma(z)$</td><td>гладкая (сигмоида)</td><td>✓ Удовлетворительно</td></tr>
+</tbody>
+</table>
+
+<p><strong>Вывод:</strong> для PINN нужны сети с гладкими, неограниченно дифференцируемыми активациями. Tanh, сигмоида, синус/косинус (Fourier features), softplus. ReLU — нет.</p>
+
+<!-- ============================================ -->
+<h2 id="s12"><span class="num">12.</span> Плюсы, минусы, мини-пример кода</h2>
+
+<h3>12.1 Плюсы PINN</h3>
+
+<ul>
+  <li><strong>Сетка не нужна.</strong> Можно работать в любых размерностях без проклятия размерности.</li>
+  <li><strong>Гладкое решение.</strong> Нейросеть по определению гладкая, гарантировано выполняет уравнение везде, не только на сетке.</li>
+  <li><strong>Смешивание физики и данных.</strong> Можно совместить PDE loss (физика) с data loss (реальные измерения): $L = L_{\text{PDE}} + \lambda L_{\text{data}}$. Отсюда название «физически информированные».</li>
+  <li><strong>Обратные задачи.</strong> Если неизвестны коэффициенты уравнения (например, $\alpha$ в уравнении теплопроводности), можно их обучить как параметры сети!</li>
+</ul>
+
+<h3>12.2 Минусы PINN</h3>
+
+<ul>
+  <li><strong>Обучение медленное и нестабильное.</strong> Loss одновременно оптимизирует три вещи (PDE, BC, IC) с разными масштабами. Баланс $\lambda$ нужно подбирать вручную, это боль.</li>
+  <li><strong>Нет гарантий.</strong> Никто не обещает, что сеть действительно решит уравнение. Нет bounds на ошибку приближения.</li>
+  <li><strong>На простых 1D–2D задачах классические солверы точнее и быстрее.</strong> PINN имеет смысл для $d \geq 3$ (высокие размерности).</li>
+  <li><strong>Проблемы с жёсткими задачами (stiff equations).</strong> Если уравнение имеет решения разных масштабов (быстро и медленно меняющихся), PINN сходится очень плохо.</li>
+</ul>
+
+<h3>12.3 Мини-пример: решение u'' + u = 0</h3>
+
+<pre><code><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+
+<span class="cmt"># 1. Сеть u(x)</span>
+<span class="kw">class</span> PINN(nn.Module):
+    <span class="kw">def</span> __init__(self):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(1, 128), nn.Tanh(),
+            nn.Linear(128, 128), nn.Tanh(),
+            nn.Linear(128, 1)
+        )
+
+    <span class="kw">def</span> forward(self, x):
+        <span class="kw">return</span> self.net(x)
+
+    <span class="kw">def</span> forward_with_derivs(self, x):
+        <span class="cmt"># Вычисляем u, u', u''</span>
+        x.requires_grad_(True)
+        u = self.net(x)
+
+        <span class="cmt"># Первая производная</span>
+        u_x = torch.autograd.grad(u.sum(), x, create_graph=True)[0]
+
+        <span class="cmt"># Вторая производная</span>
+        u_xx = torch.autograd.grad(u_x.sum(), x)[0]
+
+        <span class="kw">return</span> u, u_x, u_xx
+
+<span class="cmt"># 2. Обучение</span>
+model = PINN()
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+
+<span class="kw">for</span> epoch <span class="kw">in</span> range(1000):
+    optimizer.zero_grad()
+
+    <span class="cmt"># Коллокационные точки</span>
+    x_f = torch.linspace(0, 2*torch.pi, 5000).view(-1, 1)
+    x_f.requires_grad = True
+    u_f, u_x_f, u_xx_f = model.forward_with_derivs(x_f)
+
+    <span class="cmt"># PDE loss: u'' + u = 0</span>
+    pde_loss = ((u_xx_f + u_f) ** 2).mean()
+
+    <span class="cmt"># Граничные условия: u(0) = 1, u'(0) = 0</span>
+    x0 = torch.tensor([[0.0]], requires_grad=True)
+    u0, u0_x, _ = model.forward_with_derivs(x0)
+    bc_loss = (u0 - 1) ** 2 + u0_x ** 2
+
+    <span class="cmt"># Общая loss</span>
+    loss = pde_loss + bc_loss
+    loss.backward()
+    optimizer.step()
+
+    <span class="kw">if</span> (epoch + 1) % 100 == 0:
+        <span class="kw">print</span>(f<span class="str">"Epoch {epoch+1}: Loss = {loss.item():.6f}"</span>)
+</code></pre>
+
+<p><strong>Результат:</strong> после обучения $u_\theta(x)$ приблизительно равна $\cos(x)$ на всём интервале $[0, 2\pi]$, и это приближение гладкое и удовлетворяет дифференциальному уравнению.</p>
+
+<!-- ============================================ -->
+<h2 id="qa">🎯 Препод спросит</h2>
+
+<details class="qa"><summary>В чём разница между символьным и автоматическим дифференцированием?</summary>
+<div class="ans">
+<p>Символьное: подаём формулу в систему (SymPy), она манипулирует выражением, выводит формулу производной, потом вычисляем. Плюс — точно, минус — выражение может разрастись экспоненциально. Автодифф: разлагаем вычисление на элементарные операции, применяем цепное правило к конкретным <em>числам</em> во время вычисления. Точность машинная, стоимость фиксированная, не зависит от сложности формулы. Автодифф — способ индустриального стандарта в ML.</p>
+</div></details>
+
+<details class="qa"><summary>Forward vs reverse mode — когда какой использовать?</summary>
+<div class="ans">
+<p>Forward mode: O(n·T) где n = число входов. Выгоден когда входов мало, выходов много. Reverse mode: O(m·T) где m = число выходов. Выгоден когда входов много, выходов мало. В нейросетях: входов тысячи/миллионы, выход = 1 скаляр loss, поэтому reverse выигрывает в миллионы раз. Reverse mode = backprop.</p>
+</div></details>
+
+<details class="qa"><summary>Почему в нейросетях используется именно reverse mode?</summary>
+<div class="ans">
+<p>Потому что нужно вычислить градиент loss по всем параметрам. Параметров может быть млн, loss — один скаляр. Forward mode потребовал бы млн проходов (по одному на каждый параметр), reverse mode — один проход назад. Стоимость reverse ≈ одному forward pass, reverse в миллионы раз дешевле.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое вычислительный граф и зачем его сохранять?</summary>
+<div class="ans">
+<p>Вычислительный граф — это DAG (граф без циклов), где узлы = переменные, рёбра = операции. Во время forward pass PyTorch строит такой граф (динамически) и сохраняет его. При backward pass идём по графу в обратном порядке, применяя цепное правило. Граф нужен, чтобы знать, какие операции были и в каком порядке, и какие значения для них нужны.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое коллокационные точки в PINN и почему их случайные?</summary>
+<div class="ans">
+<p>Коллокационные точки — это точки $(x_i, t_i)$ внутри области, где проверяем, что уравнение выполняется. Типично 5000–50000 таких точек. Они <em>случайные</em>, потому что: (1) нет необходимости в сетке — можно брать любые точки; (2) стохастичность помогает избежать переобучения; (3) быстрее, чем регулярная сетка при высоких размерностях.</p>
+</div></details>
+
+<details class="qa"><summary>Почему в PINN нельзя использовать ReLU?</summary>
+<div class="ans">
+<p>ReLU имеет вторую производную = 0 везде (кроме точки излома). Если PDE содержит $\frac{\partial^2 u}{\partial x^2}$ или выше, и $u$ реализована ReLU, то эта вторая производная всегда нулевая, уравнение вырождается в тривиальное. Нужны гладкие активации (tanh, sine, softplus) с ненулевыми производными любого порядка.</p>
+</div></details>
+
+<details class="qa"><summary>Как в PyTorch считаются вторые производные?</summary>
+<div class="ans">
+<p>Использовать torch.autograd.grad с create_graph=True. Первый раз: grad1 = torch.autograd.grad(y, x, create_graph=True)[0]. Результат grad1 остаётся дифференцируемым. Второй раз: grad2 = torch.autograd.grad(grad1.sum(), x)[0]. Вторая производная в grad2. Минус: дорого по памяти и времени, так что вторые производные доступны только для малых сетей.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое адъюнкт в reverse mode и как он распространяется?</summary>
+<div class="ans">
+<p>Адъюнкт $\bar{z} = \frac{\partial L}{\partial z}$ для промежуточного значения z — это «сколько loss зависит от z». При reverse pass идём по графу назад и пересчитываем адъюнкты: $\bar{x} = \bar{z} \cdot \frac{\partial z}{\partial x}$ по цепному правилу. Если z зависит от нескольких x, адъюнкты суммируются. На выходе получаем $\frac{\partial L}{\partial \theta}$ для всех параметров θ.</p>
+</div></details>
+
+<details class="qa"><summary>Почему PINN медленно сходятся и как это решается?</summary>
+<div class="ans">
+<p>Loss содержит три слагаемых: L_PDE, L_BC, L_IC с разными масштабами. Нужно балансировать через коэффициенты λ. Если λ неправильный, одна часть доминирует, другие зарывают. Решения: (1) Подбирать λ вручную (боль). (2) Динамическое перевзвешивание: пересчитывать λ во время обучения, давая больший вес слагаемым с большей ошибкой. (3) Использовать многозадачное обучение (multi-task learning). (4) Улучшать инициализацию весов и выбор гиперпараметров оптимизатора.</p>
+</div></details>
+
+<details class="qa"><summary>Можно ли в PINN использовать данные (обратная задача)?</summary>
+<div class="ans">
+<p>Да, это основная фишка PINN. Если есть реальные измерения u_data в точках, добавляем в loss: $L = L_{\text{PDE}} + λ_d L_{\text{data}}$, где $L_{\text{data}} = \sum_i (u_\theta(x_i) - u_{\text{data}, i})^2$. Это позволяет совместить физику (уравнение должно выполняться) с данными (модель должна проходить через измерения). Отсюда и название «физически информированные» — информация одновременно от уравнения и от данных.</p>
+</div></details>
+
+<details class="qa"><summary>На каких задачах PINN выигрывает у классических солверов?</summary>
+<div class="ans">
+<p>Высокие размерности (d ≥ 3), где сетка становится неприемлемо большой (проклятие размерности). Обратные задачи (искать коэффициенты уравнения по данным). Смешивание физики и данных при редких измерениях. Но на простых 1D–2D задачах классические солверы (FEM, FDM) быстрее и точнее. PINN — для специальных и трудных случаев.</p>
+</div></details>
+
+<!-- ============================================ -->
+<h2 id="tasks">📝 Микро-задачи</h2>
+
+<div class="task">
+  <div class="tt">Задача 1. Forward mode вручную</div>
+  <p>Функция $f(x) = x^2 + e^x$. Вычисли $f(0)$ и $f'(0)$ в forward mode, используя дуальные числа.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Инициализируем: $(x, \dot{x}) = (0, 1)$.</p>
+    <p>$x^2$: $(0, 1) \times (0, 1) = (0, 0 \cdot 1 + 0 \cdot 1) = (0, 0)$.</p>
+    <p>$e^x$: $\exp(0, 1) = (e^0, e^0 \cdot 1) = (1, 1)$.</p>
+    <p>$x^2 + e^x$: $(0, 0) + (1, 1) = (1, 1)$.</p>
+    <p><strong>Результат:</strong> $f(0) = 1$, $f'(0) = 1$. Проверка: $f'(x) = 2x + e^x$, при $x=0$: $f'(0) = 0 + 1 = 1$ ✓</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 2. Reverse mode вручную</div>
+  <p>Граф: $z = x + y$, $L = z^2$ с $x = 1, y = 2$. Выполни backward pass, найди $\frac{\partial L}{\partial x}$ и $\frac{\partial L}{\partial y}$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>Forward:</strong> $z = 1 + 2 = 3$, $L = 9$.</p>
+    <p><strong>Backward:</strong> $\bar{L} = 1$ (по определению).</p>
+    <p>$\bar{z} = \frac{\partial L}{\partial z} = 2z = 6$.</p>
+    <p>$\bar{x} = \bar{z} \cdot \frac{\partial z}{\partial x} = 6 \cdot 1 = 6$.</p>
+    <p>$\bar{y} = \bar{z} \cdot \frac{\partial z}{\partial y} = 6 \cdot 1 = 6$.</p>
+    <p><strong>Проверка:</strong> $\frac{\partial L}{\partial x} = \frac{\partial (x+y)^2}{\partial x} = 2(x+y) = 6$ ✓</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 3. Вторые производные в PyTorch</div>
+  <p>Функция $y = x^3$ с $x = 2$. Найди $y'$ и $y''$ используя torch.autograd.grad с create_graph=True.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <pre><code>import torch
+
+x = torch.tensor(2.0, requires_grad=True)
+y = x**3
+
+# Первая производная
+y_prime = torch.autograd.grad(y, x, create_graph=True)[0]
+print(f"y' = {y_prime.item()}")  # 3*2^2 = 12
+
+# Вторая производная
+y_double_prime = torch.autograd.grad(y_prime, x)[0]
+print(f"y'' = {y_double_prime.item()}")  # 6*2 = 12
+    </code></pre>
+    <p><strong>Ожидаемо:</strong> $y' = 12$, $y'' = 12$.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 4. Стоимость modes для нейросети</div>
+  <p>Нейросеть: 1000 входов, 1 млн параметров, 1 выход (loss). Во сколько раз reverse mode дешевле forward mode?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>Forward mode:</strong> нужно 1000 проходов (один на каждый вход).</p>
+    <p><strong>Reverse mode:</strong> нужно 1 проход (один на выход = loss).</p>
+    <p><strong>Ratio:</strong> $\frac{1000}{1} = 1000$ раз дешевле.</p>
+    <p>На самом деле, дешевле ещё больше, потому что нужны градиенты по параметрам (1 млн), а не по входам.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 5. Активация для PINN</div>
+  <p>Почему ReLU не подходит для PINN, где нужна $\frac{\partial^2 u}{\partial x^2}$? Что лучше использовать?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>ReLU:</strong> $\text{ReLU}(z) = \max(0, z)$, первая производная = 0 или 1, вторая производная = 0 везде (кроме $z=0$).</p>
+    <p>Если $u_\theta$ построена из ReLU, то $\frac{\partial^2 u}{\partial x^2} \equiv 0$, и PDE $\mathcal{L}(u) = u'' + u = 0$ вырождается в $u = 0$, что неправильно.</p>
+    <p><strong>Решение:</strong> использовать tanh, sin/cos (Fourier features), softplus — всё, что имеет гладкие, ненулевые производные высоких порядков.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 6. Loss PINN с тремя слагаемыми</div>
+  <p>PDE: $u_t + u \cdot u_x = 0$ на $[0,1] \times [0,1]$ (x,t). BC: $u(0,t) = 0, u(1,t) = 0$. IC: $u(x,0) = \sin(\pi x)$. Запиши loss для PINN.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$$L = \frac{1}{N_f}\sum_i [u_t(x_i,t_i) + u(x_i,t_i) \cdot u_x(x_i,t_i)]^2 + \lambda_b \left[\frac{1}{N_b}\sum_i (u(0,t_i))^2 + (u(1,t_i))^2\right]$$</p>
+    <p>$$+ \lambda_0 \frac{1}{N_0}\sum_i [u(x_i,0) - \sin(\pi x_i)]^2$$</p>
+    <p>Здесь $(x_i, t_i)$ — коллокационные точки, производные $u_t, u_x$ вычисляются через autodiff.</p>
+  </div></details>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+
+<div class="cheat">
+  <div class="bt">Скелет устного ответа на билет 2 (Автодифф и PINN)</div>
+  <ol>
+    <li><strong>Четыре способа производных.</strong> Аналитически (вручную), символьно (SymPy, выражение растёт), численно (конечные разности, ошибки округления и отсечения), автоматически (лучший способ).</li>
+    <li><strong>Автодифф суть.</strong> Разложить на элементарные операции, применить цепное правило к конкретным числам, не символам. Точность машинная, стоимость O(P).</li>
+    <li><strong>Вычислительный граф.</strong> DAG где узлы = переменные, рёбра = операции. Forward pass вычисляет и сохраняет граф. Backward идёт по графу назад, применяя цепное правило.</li>
+    <li><strong>Forward mode.</strong> Распространяем производные вперёд (дуальные числа). Стоимость O(n·T) где n = входы. Выгоден для многовыходных, маловходных задач.</li>
+    <li><strong>Reverse mode.</strong> Два прохода: forward сохраняет граф, backward пересчитывает адъюнкты. Стоимость O(m·T) где m = выходы. Выгоден для многопараметровых сетей (m=1 скаляр loss).</li>
+    <li><strong>Backprop = reverse-mode autodiff.</strong> Обратное распространение ошибки — это просто reverse mode, применённый к нейросети.</li>
+    <li><strong>PyTorch автодифф.</strong> requires_grad=True, граф строится динамически, .backward() считает градиенты, torch.autograd.grad для partial derivatives, create_graph=True для вторых производных.</li>
+    <li><strong>PINN идея.</strong> Вместо сетки для решения PDE представить решение u(x,t) нейросетью u_θ(x,t). Производные получить автодифференцированием по входам x,t.</li>
+    <li><strong>Loss PINN.</strong> Три части: невязка PDE (коллокационные точки), граничные условия (BC), начальные условия (IC). Всего L = L_PDE + λ_b L_BC + λ_0 L_IC.</li>
+    <li><strong>Активация в PINN.</strong> Только гладкие: tanh, sin, softplus. РеЛУ не подходит — вторая производная всегда 0.</li>
+    <li><strong>Плюсы PINN.</strong> Сетка не нужна, высокие размерности, можно смешивать физику и данные, обратные задачи.</li>
+    <li><strong>Минусы PINN.</strong> Медленное обучение, нестабильность, баланс λ — боль, нет гарантий, на 1D–2D классические солверы лучше.</li>
+  </ol>
+</div>
+
+<div class="navrow">
+  <a class="backlink" href="01-fcnn.html">← Лекция 1. Полносвязные сети</a>
+  <a class="backlink" href="03-losses-mle.html">Лекция 3. Loss-функции и ММП →</a>
+</div>
+
+</div>
+</body>
+</html>

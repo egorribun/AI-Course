@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лекция 12. Диффузионные модели</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--sans); font-size:17px; line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line); padding:38px 24px 30px; margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+</style>
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]},
+  svg: {fontCache:'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Блок B · Вопрос 12 · Генеративные модели</div>
+  <h1>Лекция 12. Диффузионные модели: математические основы</h1>
+  <p class="sub">Термодинамика неравновесных процессов, прямой процесс зашумления и трюк с $\bar{\alpha}_t$, обратный процесс, вывод $L_{\text{simple}}$, связь со Score Matching, ускорение DDIM, Classifier-Free Guidance и Latent Diffusion (Stable Diffusion).</p>
+  <div class="meta">
+    <span class="pill">⏱ 2 ч</span>
+    <span class="pill gray">10 вопросов препода</span>
+    <span class="pill gray">6 микро-задач</span>
+    <span class="pill good">Билет 12</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<a class="backlink" href="../index.html">← К оглавлению курса</a>
+
+<nav class="toc">
+  <div class="bt">Содержание лекции</div>
+  <ol>
+    <li><a href="#s1">Интуиция: неравновесная термодинамика и обращение времени</a></li>
+    <li><a href="#s2">Прямой процесс (Forward Process) и трюк с $\bar{\alpha}_t$</a></li>
+    <li><a href="#s3">Обратный процесс (Reverse Process) и апостериорный Гауссиан</a></li>
+    <li><a href="#s4">Вывод функции потерь: от ELBO к $L_{\text{simple}}$</a></li>
+    <li><a href="#s5">Связь со Score Matching и стохастическими ДУ (SDE)</a></li>
+    <li><a href="#s6">Ускоренная генерация: DDIM</a></li>
+    <li><a href="#s7">Управление генерацией: Classifier Guidance vs Classifier-Free Guidance</a></li>
+    <li><a href="#s8">Архитектура сети: U-Net с Time Embedding и Cross-Attention</a></li>
+    <li><a href="#s9">Latent Diffusion Models (LDM / Stable Diffusion)</a></li>
+    <li><a href="#s10">Практическая реализация на PyTorch</a></li>
+    <li><a href="#qa">Препод спросит</a></li>
+    <li><a href="#tasks">Микро-задачи</a></li>
+    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="s1"><span class="num">1.</span> Интуиция: неравновесная термодинамика и обращение времени</h2>
+
+<p>Диффузионные модели (Denoising Diffusion Probabilistic Models, DDPM — Sohl-Dickstein et al. 2015, Ho et al. 2020) вдохновлены физикой <strong>неравновесной термодинамики</strong>.</p>
+
+<p>Представьте каплю синих чернил, упавшую в стакан с водой. Молекулы чернил постепенно диффундируют, хаотично сталкиваются с молекулами воды и через некоторое время равномерно распределяются по всему объему стакана (состояние максимальной энтропии — чистый шум). Разрушить структуру очень просто: достаточно добавлять случайный шум шаг за шагом.</p>
+
+<div class="box idea">
+  <div class="bt">💡 Главная идея диффузии</div>
+  <p><strong>Прямой процесс (Forward):</strong> Фиксированный марковский процесс, который за $T$ дискретных шагов превращает любое сложное изображение $x_0$ в чистый белый гауссовский шум $x_T \sim \mathcal{N}(0, I)$. В нем <em>нет обучаемых параметров</em>.</p>
+  <p><strong>Обратный процесс (Reverse):</strong> Мы обучаем глубокую нейросеть (U-Net) <em>обращать время вспять</em> — шаг за шагом убирать малую порцию шума из $x_t$, восстанавливая чистое изображение $x_0$.</p>
+</div>
+
+<div class="scheme">
+  ПРЯМОЙ ПРОЦЕСС q(x_t | x_{t-1})  ── [ Добавление шума, без параметров ] ──▶
+  x_0 (Картинка) ──▶ x_1 ──▶ x_2 ──▶ ... ──▶ x_{T-1} ──▶ x_T ~ N(0, I) (Шум)
+  ◀── [ Обучаемое шумоподавление p_θ(x_{t-1} | x_t) — нейросеть U-Net ] ──
+  ОБРАТНЫЙ ПРОЦЕСС (Генерация: сэмплируем шум x_T и пошагово очищаем)
+
+<span class="cap">Прямой процесс зашумления и обратный процесс генерации в диффузионных моделях.</span></div>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> Прямой процесс (Forward Process) и трюк с $\bar{\alpha}_t$</h2>
+
+<p>Пусть $x_0 \sim q(x)$ — исходное изображение. Прямой процесс задается марковской цепью, где на каждом шаге $t \in \{1, \dots, T\}$ добавляется малый гауссовский шум с дисперсией $\beta_t \in (0, 1)$:</p>
+
+<div class="formula">
+$$ q(x_t | x_{t-1}) = \mathcal{N}\left(x_t; \, \sqrt{1 - \beta_t} \, x_{t-1}, \, \beta_t I\right) $$
+<span class="note">$\{\beta_1, \beta_2, \dots, \beta_T\}$ — расписание шума (Variance Schedule), например, линейное от $10^{-4}$ до $0.02$ при $T=1000$.</span>
+</div>
+
+<div class="box mathbox">
+  <div class="bt">📐 Магический трюк: сэмплирование $x_t$ за ОДИН шаг</div>
+  <p>Введем обозначения: $\alpha_t = 1 - \beta_t$ и кумулятивное произведение $\bar{\alpha}_t = \prod_{s=1}^t \alpha_s$.</p>
+  <p>Выразим $x_t$ через $x_{t-1}$ с помощью репараметризации: $x_t = \sqrt{\alpha_t} x_{t-1} + \sqrt{1 - \alpha_t} \epsilon_{t-1}$, где $\epsilon_{t-1} \sim \mathcal{N}(0, I)$.</p>
+  <p>Раскроем рекуррентно:</p>
+  $$ x_t = \sqrt{\alpha_t} \left( \sqrt{\alpha_{t-1}} x_{t-2} + \sqrt{1 - \alpha_{t-1}} \epsilon_{t-2} \right) + \sqrt{1 - \alpha_t} \epsilon_{t-1} $$
+  $$ x_t = \sqrt{\alpha_t \alpha_{t-1}} x_{t-2} + \sqrt{\alpha_t(1 - \alpha_{t-1})} \epsilon_{t-2} + \sqrt{1 - \alpha_t} \epsilon_{t-1} $$
+  <p>Сумма двух независимых Гауссианов $\mathcal{N}(0, \sigma_1^2 I) + \mathcal{N}(0, \sigma_2^2 I)$ есть Гауссиан $\mathcal{N}(0, (\sigma_1^2 + \sigma_2^2) I)$. Сложим дисперсии шумов:</p>
+  $$ \alpha_t(1 - \alpha_{t-1}) + (1 - \alpha_t) = \alpha_t - \alpha_t \alpha_{t-1} + 1 - \alpha_t = 1 - \alpha_t \alpha_{t-1} $$
+  <p>Продолжая подстановку до $x_0$, получаем замкнутую формулу для любого $t$:</p>
+</div>
+
+<div class="formula">
+$$ q(x_t | x_0) = \mathcal{N}\left(x_t; \, \sqrt{\bar{\alpha}_t} \, x_0, \, (1 - \bar{\alpha}_t) I\right) $$
+$$ x_t = \sqrt{\bar{\alpha}_t} \, x_0 + \sqrt{1 - \bar{\alpha}_t} \, \epsilon, \quad \epsilon \sim \mathcal{N}(0, I) $$
+<span class="note">Ключевая формула DDPM: позволяет получить зашумленное изображение $x_t$ на шаге $t=500$ напрямую из $x_0$ без вычисления промежуточных 499 шагов!</span>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> Обратный процесс (Reverse Process) и апостериорный Гауссиан</h2>
+
+<p>Для генерации мы хотим знать обратное распределение $q(x_{t-1} | x_t)$. Однако истинное распределение $q(x_{t-1} | x_t) \propto q(x_t | x_{t-1}) q(x_{t-1})$ требует знания плотности всего датасета $q(x_{t-1})$, что невычислимо.</p>
+
+<p>Но если мы <strong>обусловим обратный шаг на исходное чистое изображение $x_0$</strong>, то по формуле Байеса распределение $q(x_{t-1} | x_t, x_0)$ становится аналитически вычисляемым Гауссианом:</p>
+
+<div class="formula">
+$$ q(x_{t-1} | x_t, x_0) = \mathcal{N}\left(x_{t-1}; \, \tilde{\mu}_t(x_t, x_0), \, \tilde{\beta}_t I\right) $$
+$$ \tilde{\mu}_t(x_t, x_0) = \frac{\sqrt{\bar{\alpha}_{t-1}}\beta_t}{1 - \bar{\alpha}_t} x_0 + \frac{\sqrt{\alpha_t}(1 - \bar{\alpha}_{t-1})}{1 - \bar{\alpha}_t} x_t, \quad \tilde{\beta}_t = \frac{1 - \bar{\alpha}_{t-1}}{1 - \bar{\alpha}_t} \beta_t $$
+<span class="note">Точное апостериорное распределение одного шага очистки при известном $x_0$.</span>
+</div>
+
+<p>Поскольку при генерации истинный $x_0$ нам неизвестен, мы аппроксимируем обратный переход параметрической нейросетью $p_\theta(x_{t-1} | x_t)$:</p>
+$$ p_\theta(x_{t-1} | x_t) = \mathcal{N}\left(x_{t-1}; \, \mu_\theta(x_t, t), \, \Sigma_\theta(x_t, t)\right) $$
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> Вывод функции потерь: от ELBO к $L_{\text{simple}}$</h2>
+
+<p>Как и в VAE, минимизация отрицательного логарифма правдоподобия $-\log p_\theta(x_0)$ сводится к максимизации вариационной нижней оценки (ELBO):</p>
+
+$$ \mathbb{E}[-\log p_\theta(x_0)] \le L_{\text{VLB}} = \mathbb{E}_q \left[ D_{\text{KL}}(q(x_T|x_0) \parallel p(x_T)) + \sum_{t > 1} D_{\text{KL}}(q(x_{t-1}|x_t, x_0) \parallel p_\theta(x_{t-1}|x_t)) - \log p_\theta(x_0|x_1) \right] $$
+
+<p>Каждый член суммы — это KL-дивергенция между двумя Гауссианами с одинаковыми дисперсиями, которая сводится к квадрату расстояния между их средними:</p>
+$$ L_{t-1} = \mathbb{E}_{x_0, \epsilon} \left[ \frac{1}{2\sigma_t^2} \|\tilde{\mu}_t(x_t, x_0) - \mu_\theta(x_t, t)\|^2 \right] $$
+
+<h3>Параметризация предсказания шума $\epsilon_\theta$:</h3>
+<p>Выразим $x_0$ через $x_t$ и шум $\epsilon$: $x_0 = \frac{1}{\sqrt{\bar{\alpha}_t}}(x_t - \sqrt{1 - \bar{\alpha}_t}\epsilon)$. Подставив это в формулу для $\tilde{\mu}_t$, получаем:</p>
+$$ \tilde{\mu}_t(x_t, x_0) = \frac{1}{\sqrt{\alpha_t}} \left( x_t - \frac{\beta_t}{\sqrt{1 - \bar{\alpha}_t}} \epsilon \right) $$
+
+<p>Это наталкивает на гениальную идею: нейросеть $\mu_\theta$ не должна предсказывать картинку напрямую! Она должна **предсказывать добавленный шум $\epsilon$**:</p>
+$$ \mu_\theta(x_t, t) = \frac{1}{\sqrt{\alpha_t}} \left( x_t - \frac{\beta_t}{\sqrt{1 - \bar{\alpha}_t}} \epsilon_\theta(x_t, t) \right) $$
+
+<div class="box okbox">
+  <div class="bt">🎯 Итоговый простой Loss DDPM ($L_{\text{simple}}$)</div>
+  <p>Джонатан Хо и соавторы (2020) эмпирически доказали, что отбрасывание весовых коэффициентов перед KL-дивергенциями кардинально улучшает визуальное качество генерации:</p>
+  <div class="formula">
+  $$ L_{\text{simple}}(\theta) = \mathbb{E}_{t \sim [1, T], \, x_0 \sim q(x), \, \epsilon \sim \mathcal{N}(0, I)} \left[ \left\| \epsilon - \epsilon_\theta\left(\sqrt{\bar{\alpha}_t} x_0 + \sqrt{1 - \bar{\alpha}_t} \epsilon, \, t\right) \right\|^2 \right] $$
+  <span class="note">Обучение диффузии сводится к обычному MSE между истинным шумом $\epsilon$ и предсказанным сетью $\epsilon_\theta(x_t, t)$.</span>
+  </div>
+</div>
+
+<h3>Алгоритм генерации сэмпла (Inference в DDPM):</h3>
+<ol>
+  <li>Сэмплируем шум: $x_T \sim \mathcal{N}(0, I)$.</li>
+  <li>Для $t = T, T-1, \dots, 1$:
+    <ul>
+      <li>Сэмплируем $z \sim \mathcal{N}(0, I)$ (для $t=1$, $z = 0$).</li>
+      <li>Вычисляем:
+        $$ x_{t-1} = \frac{1}{\sqrt{\alpha_t}} \left( x_t - \frac{1 - \alpha_t}{\sqrt{1 - \bar{\alpha}_t}} \epsilon_\theta(x_t, t) \right) + \sigma_t z $$
+      </li>
+    </ul>
+  </li>
+  <li>Возвращаем очищенное изображение $x_0$.</li>
+</ol>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> Связь со Score Matching и стохастическими ДУ (SDE)</h2>
+
+<p>Ян Сонг (Yang Song et al., 2019–2021) доказал, что диффузионные модели эквивалентны <strong>Score-Based Generative Models</strong>.</p>
+
+<p><strong>Score-функция</strong> распределения данных — это градиент логарифма плотности по входным переменным: $s(x) = \nabla_x \log p(x)$ (векторное поле, указывающее направление наискорейшего роста плотности вероятности данных).</p>
+
+<div class="formula">
+$$ \nabla_{x_t} \log q(x_t | x_0) = -\frac{x_t - \sqrt{\bar{\alpha}_t}x_0}{1 - \bar{\alpha}_t} = -\frac{\epsilon}{\sqrt{1 - \bar{\alpha}_t}} $$
+$$ \epsilon_\theta(x_t, t) = -\sqrt{1 - \bar{\alpha}_t} \, s_\theta(x_t, t) \approx -\sqrt{1 - \bar{\alpha}_t} \, \nabla_{x_t} \log p(x_t) $$
+<span class="note">Предсказание шума в DDPM — это оценка градиента логарифма плотности (Score Matching) с точностью до масштабирующего множителя!</span>
+</div>
+
+<p>В непрерывном времени ($T \to \infty$) диффузия описывается стохастическим дифференциальным уравнением Ито (SDE):</p>
+$$ dx = f(x, t)dt + g(t)dw \quad (\text{Forward SDE}) $$
+$$ dx = \left[ f(x, t) - g(t)^2 \nabla_x \log p_t(x) \right] dt + g(t)d\bar{w} \quad (\text{Reverse SDE}) $$
+
+<!-- ============================================ -->
+<h2 id="s6"><span class="num">6.</span> Ускоренная генерация: DDIM</h2>
+
+<p>Главный недостаток базового DDPM — <strong>медленный инференс</strong>: чтобы сгенерировать одну картинку, нужно сделать 1000 последовательных прямых проходов через тяжелую сеть U-Net.</p>
+
+<p><strong>DDIM (Denoising Diffusion Implicit Models, Song et al., 2020)</strong> предлагает немарковский прямой процесс, который имеет <em>ровно те же маргинальные распределения</em> $q(x_t | x_0)$, что и DDPM, но допускает <strong>детерминированное сэмплирование</strong>:</p>
+
+<div class="formula">
+$$ x_{t-1} = \sqrt{\bar{\alpha}_{t-1}} \underbrace{\left(\frac{x_t - \sqrt{1 - \bar{\alpha}_t}\epsilon_\theta(x_t, t)}{\sqrt{\bar{\alpha}_t}}\right)}_{\text{Предсказанный } x_0} + \sqrt{1 - \bar{\alpha}_{t-1} - \sigma_t^2} \cdot \epsilon_\theta(x_t, t) + \sigma_t \epsilon $$
+<span class="note">При $\sigma_t = 0$ процесс становится полностью детерминированным (ODE-интегратор) и позволяет сэмплировать за 20–50 шагов вместо 1000 без падения качества!</span>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s7"><span class="num">7.</span> Управление генерацией: Classifier Guidance vs Classifier-Free Guidance</h2>
+
+<h3>7.1 Classifier Guidance (Dhariwal & Nichol, 2021)</h3>
+<p>Обучается отдельный классификатор $p_\phi(y | x_t)$ на зашумленных картинках. При сэмплировании градиент классификатора смещает среднее обратного процесса:</p>
+$$ \hat{\epsilon}(x_t, y) = \epsilon_\theta(x_t) - s \cdot \sqrt{1 - \bar{\alpha}_t} \, \nabla_{x_t} \log p_\phi(y | x_t) $$
+<p><em>Минус:</em> Требуется обучать отдельный классификатор на всех уровнях шума.</p>
+
+<h3>7.2 Classifier-Free Guidance (CFG, Ho & Salimans, 2022) — Стандарт индустрии</h3>
+<p>Одна и та же модель обучается и с условием $y$ (текстовый промпт / класс), и без него. Во время обучения с вероятностью ~10–20% метку $y$ заменяют на пустой токен $\emptyset$.</p>
+
+<div class="formula">
+$$ \tilde{\epsilon}_\theta(x_t, y) = \epsilon_\theta(x_t, \emptyset) + s \cdot \left( \epsilon_\theta(x_t, y) - \epsilon_\theta(x_t, \emptyset) \right) $$
+<span class="note">$s > 1$ — масштаб управления (Guidance Scale). При $s=7.5$ модель усиливает признаки, специфичные для промпта $y$, подавляя безусловный фон.</span>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s8"><span class="num">8.</span> Архитектура сети: U-Net с Time Embedding и Cross-Attention</h2>
+
+<p>Нейросеть $\epsilon_\theta(x_t, t, y)$ должна принимать тензор изображения $x_t$ и возвращать тензор того же разрешения с предсказанным шумом $\hat{\epsilon}$. Стандартом является <strong>U-Net</strong>:</p>
+
+<div class="scheme">
+  x_t (Картинка с шумом) ──────────────────────────────────────────────────┐
+  Шаг t ──▶ [ Sinusoidal Embedding ] ──▶ MLP ──┐                           │
+  Текст y ──▶ [ CLIP Text Encoder ] ───────┐   │                           │
+                                           │   │                           ▼
+  [ Down Block 1 ] ──(Skip 1)──────────────┼───┼───────────────────▶ [ Up Block 1 ] ──▶ Выход: ε_θ(x_t, t, y)
+        │                                  │   │                           ▲
+  [ Down Block 2 ] ──(Skip 2)──────────────┼───┼───────────▶ [ Up Block 2 ]│
+        │                                  │   │                 ▲
+  [ Down Block 3 ] ──(Skip 3)──────────────┼───┼───▶ [ Up Block 3 ]│
+        │                                  │   │         ▲
+        ▼                                  ▼   ▼         │
+  [ Bottleneck (ResNet + Self-Attention + Cross-Attention) ]
+
+<span class="cap">Архитектура U-Net для диффузии: временной шаг $t$ внедряется через аддитивные эмбеддинги, текст $y$ — через Cross-Attention.</span></div>
+
+<ul>
+  <li><strong>Time Embedding:</strong> Шаг $t$ кодируется синусоидальными функциями (как в Трансформере) и проецируется через MLP в каждый ResNet-блок.</li>
+  <li><strong>Cross-Attention:</strong> Ключи ($K$) и Значения ($V$) формируются из эмбеддингов текстового промпта CLIP, а Запросы ($Q$) — из карт признаков U-Net.</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s9"><span class="num">9.</span> Latent Diffusion Models (LDM / Stable Diffusion)</h2>
+
+<p>Прямая диффузия в пиксельном пространстве (Pixel Space) требует гигантских вычислительных ресурсов: для изображения $512 \times 512 \times 3$ тензор содержит $786\,432$ значений на каждом шаге.</p>
+
+<p><strong>Latent Diffusion (Rombach et al., CVPR 2022 / Stable Diffusion):</strong></p>
+
+<div class="scheme">
+  Пиксельное пространство X (Высокая размерность: 512×512×3)
+     │                                                     ▲
+  [ Энкодер VAE E ] (Сжатие f=8)             [ Декодер VAE D ] (Восстановление)
+     │                                                     ▲
+     ▼                                                     │
+  Латентное пространство Z (Компактное: 64×64×4) ──────────┘
+     │
+     └──▶ [ Диффузионный процесс в латенте: DDPM / DDIM U-Net ] ◀── [ Cross-Attention c CLIP ]
+
+<span class="cap">Схема Latent Diffusion: автоэнкодер убирает высокочастотную избыточность пикселей, а диффузия моделирует семантику в латентном пространстве.</span></div>
+
+<div class="box okbox">
+  <div class="bt">🏆 Преимущества Latent Diffusion</div>
+  <ul>
+    <li>Уменьшение размерности в <strong>64 раза</strong> ($512 \times 512 \times 3 \approx 786\text{k} \to 64 \times 64 \times 4 \approx 16\text{k}$).</li>
+    <li>Обучение и инференс в десятки раз быстрее, возможность запуска на пользовательских GPU с 6–8 ГБ VRAM.</li>
+    <li>Разделение перцептивного сжатия (VAE) и семантического моделирования (диффузия).</li>
+  </ul>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s10"><span class="num">10.</span> Практическая реализация на PyTorch</h2>
+
+<p>Обучающий шаг DDPM (Forward process + Loss) на чистом PyTorch:</p>
+
+<pre><code><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+<span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
+
+<span class="kw">class</span> DiffusionManager:
+    <span class="kw">def</span> __init__(self, T=<span class="num2">1000</span>, beta_start=<span class="num2">1e-4</span>, beta_end=<span class="num2">0.02</span>, device=<span class="str">'cuda'</span>):
+        self.T = T
+        self.device = device
+        
+        <span class="cmt"># 1. Расписание шума (Variance Schedule)</span>
+        self.betas = torch.linspace(beta_start, beta_end, T, device=device)
+        self.alphas = <span class="num2">1.0</span> - self.betas
+        self.alphas_bar = torch.cumprod(self.alphas, dim=<span class="num2">0</span>)
+        
+    <span class="kw">def</span> q_sample(self, x_0, t, noise=<span class="kw">None</span>):
+        <span class="cmt"># Прямой процесс: x_t = sqrt(alpha_bar_t) * x_0 + sqrt(1 - alpha_bar_t) * eps</span>
+        <span class="kw">if</span> noise <span class="kw">is</span> <span class="kw">None</span>:
+            noise = torch.randn_like(x_0)
+            
+        sqrt_alpha_bar = torch.sqrt(self.alphas_bar[t]).view(-<span class="num2">1</span>, <span class="num2">1</span>, <span class="num2">1</span>, <span class="num2">1</span>)
+        sqrt_one_minus_alpha_bar = torch.sqrt(<span class="num2">1.0</span> - self.alphas_bar[t]).view(-<span class="num2">1</span>, <span class="num2">1</span>, <span class="num2">1</span>, <span class="num2">1</span>)
+        
+        x_t = sqrt_alpha_bar * x_0 + sqrt_one_minus_alpha_bar * noise
+        <span class="kw">return</span> x_t, noise
+
+<span class="cmt"># Шаг обучения модели model (U-Net)</span>
+diff = DiffusionManager(T=<span class="num2">1000</span>, device=device)
+optimizer = torch.optim.AdamW(model.parameters(), lr=<span class="num2">1e-4</span>)
+
+<span class="kw">for</span> x_0, _ <span class="kw">in</span> dataloader:
+    x_0 = x_0.to(device)
+    batch_size = x_0.shape[<span class="num2">0</span>]
+    
+    <span class="cmt"># 1. Случайный шаг времени для каждого сэмпла в батче</span>
+    t = torch.randint(<span class="num2">0</span>, diff.T, (batch_size,), device=device).long()
+    
+    <span class="cmt"># 2. Зашумление x_0 до x_t за один шаг</span>
+    noise = torch.randn_like(x_0)
+    x_t, _ = diff.q_sample(x_0, t, noise)
+    
+    <span class="cmt"># 3. Предсказание шума нейросетью</span>
+    predicted_noise = model(x_t, t)
+    
+    <span class="cmt"># 4. L_simple: обычный MSE Loss</span>
+    loss = F.mse_loss(predicted_noise, noise)
+    
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+</code></pre>
+
+<!-- ============================================ -->
+<h2 id="qa">🎯 Препод спросит</h2>
+
+<details class="qa"><summary>Почему прямой процесс диффузии можно вычислить за один шаг без итераций?</summary>
+<div class="ans">
+<p>Потому что сумма независимых гауссовских случайных величин также является гауссовской случайной величиной. Рекуррентная подстановка формулы $x_t = \sqrt{\alpha_t} x_{t-1} + \sqrt{1-\alpha_t}\epsilon$ вплоть до $x_0$ дает сумму масштабированных Гауссианов, дисперсии которых сворачиваются в $\bar{\alpha}_t = \prod \alpha_s$. Итоговое распределение $q(x_t | x_0) = \mathcal{N}(\sqrt{\bar{\alpha}_t}x_0, (1 - \bar{\alpha}_t)I)$ вычисляется мгновенно.</p>
+</div></details>
+
+<details class="qa"><summary>Что на самом деле предсказывает нейросеть в DDPM: картинку, среднее или шум?</summary>
+<div class="ans">
+<p>Теоретически сеть может предсказывать исходный $x_0$, среднее апостериорного распределения $\tilde{\mu}_t$ или шум $\epsilon$. Однако на практике предсказание шума $\epsilon_\theta(x_t, t)$ дает наилучшие результаты и стабильный градиент, так как шум имеет стандартное нормальное распределение $\mathcal{N}(0, I)$ на всех шагах, что стабилизирует обучение.</p>
+</div></details>
+
+<details class="qa"><summary>В чем фундаментальная разница между VAE, GAN и Диффузией?</summary>
+<div class="ans">
+<p><strong>VAE:</strong> Одностадийная модель, оптимизирует явную нижнюю оценку правдоподобия (ELBO). Быстрый инференс, но размытые картинки из-за $L_2$-реконструкции.<br>
+<strong>GAN:</strong> Состязательное обучение с неявной плотностью. Четкие картинки, быстрый инференс, но нестабильное обучение и Mode Collapse.<br>
+<strong>Диффузия:</strong> Многостадийный итеративный процесс обращения времени. Стабильное обучение (простой MSE лосс), великолепное покрытие мод данных и качество, но медленный инференс (требует десятков шагов U-Net).</p>
+</div></details>
+
+<details class="qa"><summary>Как работает Classifier-Free Guidance (CFG) и зачем нужен параметр $s > 1$?</summary>
+<div class="ans">
+<p>CFG интерполирует/экстраполирует вектор шума между безусловным предсказанием $\epsilon(x_t, \emptyset)$ и условным $\epsilon(x_t, y)$: $\tilde{\epsilon} = \epsilon_{\text{uncond}} + s(\epsilon_{\text{cond}} - \epsilon_{\text{uncond}})$. При $s > 1$ вектор сдвигается в сторону усиления семантики промпта $y$ относительно фонового распределения. Это повышает соответствие тексту (Text-Image Alignment) ценой небольшого снижения разнообразия.</p>
+</div></details>
+
+<details class="qa"><summary>Зачем в Stable Diffusion перешли от пиксельной диффузии к латентной (Latent Diffusion)?</summary>
+<div class="ans">
+<p>Пиксельные диффузионные модели тратят 95% вычислений на моделирование незаметных человеческому глазу высокочастотных деталей пикселей (шум сенсора, микротекстуры). Latent Diffusion сжимает картинку с помощью предобученного VAE в 64 раза (по числу элементов), убирая перцептивную избыточность, и запускает диффузию в компактном латентном пространстве, что снижает вычислительную сложность в десятки раз.</p>
+</div></details>
+
+<details class="qa"><summary>Как DDIM удается генерировать изображения за 20–50 шагов вместо 1000?</summary>
+<div class="ans">
+<p>DDIM строит немарковский обратный процесс с детерминированным шагом ($\sigma_t = 0$), который эквивалентен решению обыкновенного дифференциального уравнения (ODE). В отличие от стохастического марковского процесса DDPM, траекторию ODE можно интегрировать с крупным переменным шагом сетки по времени ($t \in \{1000, 950, 900, \dots\}$), пропуская промежуточные шаги.</p>
+</div></details>
+
+<details class="qa"><summary>Почему в расписании шума $\beta_t$ выбирают малыми величинами ($\approx 10^{-4} \dots 0.02$)?</summary>
+<div class="ans">
+<p>Потому что теоретическое доказательство того, что обратный шаг $q(x_{t-1}|x_t)$ является Гауссианом, строго выполняется только в пределе бесконечно малого добавления шума на каждом шаге ($\beta_t \ll 1$). Если добавить слишком большой шум за один шаг, обратное распределение станет сложным мультимодальным и нейросеть с гауссовским выходом не сможет его аппроксимировать.</p>
+</div></details>
+
+<details class="qa"><summary>Как временной шаг $t$ передается в свёрточные слои U-Net?</summary>
+<div class="ans">
+<p>Скалярный номер шага $t$ переводится в вектор высокой размерности (например, 512) с помощью синусоидального позиционного кодирования (Sinusoidal Positional Embeddings), пропускается через двухслойный MLP и затем поэлементно прибавляется (или масштабирует через AdaGN) к картам признаков после нормализации в каждом ResNet-блоке U-Net.</p>
+</div></details>
+
+<details class="qa"><summary>Как математически устроено сэмплирование DDIM и почему оно является немарковским процессом?</summary>
+<div class="ans">
+<p>В DDPM (Ho et al., 2020) прямой процесс определен как марковская цепь $q(x_{1:T}|x_0) = \prod_{t=1}^T q(x_t|x_{t-1})$. В отличие от этого, DDIM (Song et al., 2020) конструирует семейство <strong>немарковских</strong> процессов $q_\sigma(x_{1:T}|x_0)$, у которых каждое $x_t$ зависит напрямую от $x_0$ и $x_{t-1}$, но сохраняются точно такие же одномерные маргинальные распределения:</p>
+$$q_\sigma(x_t|x_0) = \mathcal{N}(x_t; \sqrt{\bar{\alpha}_t}x_0, (1 - \bar{\alpha}_t)\mathbf{I})$$
+<p>Обратный шаг сэмплирования в DDIM выражается через параметризованную дисперсию $\sigma_t$:</p>
+$$x_{t-1} = \sqrt{\bar{\alpha}_{t-1}} \left(\frac{x_t - \sqrt{1 - \bar{\alpha}_t} \epsilon_\theta(x_t, t)}{\sqrt{\bar{\alpha}_t}}\right) + \sqrt{1 - \bar{\alpha}_{t-1} - \sigma_t^2} \, \epsilon_\theta(x_t, t) + \sigma_t \epsilon_t$$
+<p>Если выбрать $\sigma_t = 0$, стохастический шум $\epsilon_t$ полностью обнуляется! Процесс становится строго детерминированным (эквивалентным интегрированию Probability Flow ODE). Это позволяет использовать произвольное подмножество шагов $\{t_1, t_2, \dots, t_S\} \subset \{1, \dots, T\}$ ($S \approx 20\dots 50$ вместо $1000$) и получать однозначное обратимое отображение (Inversion): картинка $x_0$ детерминированно переводится в латентный шум и обратно.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое Predictor-Corrector (PC) сэмплеры в диффузионных моделях и какую роль в них играет динамика Ланжевена?</summary>
+<div class="ans">
+<p>В непрерывной формулировке диффузии через стохастические дифференциальные уравнения (Score-based SDE, Song et al., 2020) генерация разбивается на чередующиеся шаги двух типов на каждом шаге времени $t$:</p>
+<ol>
+  <li><strong>Predictor (Предиктор):</strong> Численный интегратор обратного SDE (или Probability Flow ODE), делающий шаг по времени $t \to t - \Delta t$ и предсказывающий распределение на следующем шаге.</li>
+  <li><strong>Corrector (Корректор):</strong> Стохастический шаг динамики Ланжевена (Langevin MCMC), который выполняется при <em>фиксированном</em> значении времени $t$. Корректор использует вычисленную моделью функцию градиента плотности (Score function) $s_\theta(x, t) \approx \nabla_x \log p_t(x)$ для сдвига точки к областям более высокой вероятности распределения $p_t(x)$:
+  $$x \leftarrow x + \frac{\epsilon}{2} s_\theta(x, t) + \sqrt{\epsilon} z, \quad z \sim \mathcal{N}(0, \mathbf{I})$$
+  </li>
+</ol>
+<p>Корректор исправляет накопленные ошибки дискретизации численного интегратора предиктора и подтягивает сгенерированное промежуточное состояние ближе к истинному многообразию данных на шаге $t$, что существенно улучшает качество финальных текстур и снижает FID.</p>
+</div></details>
+
+<!-- ============================================ -->
+<h2 id="tasks">📝 Микро-задачи</h2>
+
+<div class="task">
+  <div class="tt">Задача 1. Расчет коэффициента затухания $\bar{\alpha}_t$</div>
+  <p>Пусть на первых трех шагах заданы $\beta_1 = 0.1$, $\beta_2 = 0.2$, $\beta_3 = 0.3$. Найдите $\alpha_1, \alpha_2, \alpha_3$ и $\bar{\alpha}_3$. Чему равна дисперсия шума на шаге $t=3$?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$\alpha_1 = 1 - 0.1 = 0.9$.</p>
+    <p>$\alpha_2 = 1 - 0.2 = 0.8$.</p>
+    <p>$\alpha_3 = 1 - 0.3 = 0.7$.</p>
+    <p>$\bar{\alpha}_3 = \alpha_1 \cdot \alpha_2 \cdot \alpha_3 = 0.9 \cdot 0.8 \cdot 0.7 = 0.504$.</p>
+    <p>Дисперсия шума в формуле $x_3 = \sqrt{\bar{\alpha}_3}x_0 + \sqrt{1 - \bar{\alpha}_3}\epsilon$ равна $1 - \bar{\alpha}_3 = 1 - 0.504 = 0.496$.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 2. Прямое сэмплирование $x_t$ на числовом примере</div>
+  <p>Пусть пиксель $x_0 = 2.0$, сэмплированный шум $\epsilon = -1.0$, а на шаге $t$ параметр $\bar{\alpha}_t = 0.64$. Чему равно значение зашумленного пикселя $x_t$?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Формула: $x_t = \sqrt{\bar{\alpha}_t} x_0 + \sqrt{1 - \bar{\alpha}_t} \epsilon$.</p>
+    <p>$\sqrt{\bar{\alpha}_t} = \sqrt{0.64} = 0.8$.</p>
+    <p>$\sqrt{1 - \bar{\alpha}_t} = \sqrt{1 - 0.64} = \sqrt{0.36} = 0.6$.</p>
+    <p>$$ x_t = 0.8 \cdot 2.0 + 0.6 \cdot (-1.0) = 1.6 - 0.6 = 1.0 $$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 3. Восстановление $x_0$ по предсказанному шуму $\hat{\epsilon}$</div>
+  <p>На шаге $t$ мы имеем $x_t = 3.0$, $\bar{\alpha}_t = 0.25$, а сеть предсказала шум $\epsilon_\theta(x_t, t) = 1.0$. Оцените истинное исходное значение $\hat{x}_0$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Формула: $\hat{x}_0 = \frac{x_t - \sqrt{1 - \bar{\alpha}_t} \epsilon_\theta}{\sqrt{\bar{\alpha}_t}}$.</p>
+    <p>$\sqrt{\bar{\alpha}_t} = \sqrt{0.25} = 0.5$.</p>
+    <p>$\sqrt{1 - \bar{\alpha}_t} = \sqrt{0.75} \approx 0.866$.</p>
+    <p>$$ \hat{x}_0 = \frac{3.0 - 0.866 \cdot 1.0}{0.5} = \frac{2.134}{0.5} = 4.268 $$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 4. Расчет вектора Classifier-Free Guidance (CFG)</div>
+  <p>Для некоторого пикселя безусловное предсказание шума $\epsilon_{\text{uncond}} = 0.2$, а условное $\epsilon_{\text{cond}} = 0.5$. Чему равен итоговый шум при guidance scale $s = 1.0$, $s = 3.0$ и $s = 7.5$?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Формула CFG: $\tilde{\epsilon} = \epsilon_{\text{uncond}} + s \cdot (\epsilon_{\text{cond}} - \epsilon_{\text{uncond}})$.</p>
+    <p>Разность: $\Delta = 0.5 - 0.2 = 0.3$.</p>
+    <ul>
+      <li>При $s = 1.0$: $\tilde{\epsilon} = 0.2 + 1.0 \cdot 0.3 = 0.5$ (обычное условное).</li>
+      <li>При $s = 3.0$: $\tilde{\epsilon} = 0.2 + 3.0 \cdot 0.3 = 0.2 + 0.9 = 1.1$.</li>
+      <li>При $s = 7.5$: $\tilde{\epsilon} = 0.2 + 7.5 \cdot 0.3 = 0.2 + 2.25 = 2.45$.</li>
+    </ul>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 5. Коэффициент сжатия памяти в Latent Diffusion</div>
+  <p>Изображение имеет размер $512 \times 512 \times 3$ (float32). Автоэнкодер VAE сжимает его с коэффициентом $f=8$ в латентный тензор $64 \times 64 \times 4$. Во сколько раз уменьшается объем тензора?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Объем исходного изображения: $512 \times 512 \times 3 = 786\,432$ float32 ($\approx 3.0$ МБ).</p>
+    <p>Объем латентного представления: $64 \times 64 \times 4 = 16\,384$ float32 ($\approx 0.0625$ МБ).</p>
+    <p>Коэффициент сжатия: $\frac{786\,432}{16\,384} = 48$ раз.</p>
+    <p><em>Замечание:</em> Пространственное разрешение уменьшается в $8 \times 8 = 64$ раза, а с учетом роста каналов с 3 до 4 — итоговый объем меньше в 48 раз.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 6. Временная сложность обучения vs инференса</div>
+  <p>В чем принципиальная асимметрия времени обучения и времени сэмплирования в DDPM?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>При обучении:</strong> Для одного батча мы сэмплируем случайное $t$, за 1 операцию вычисляем $x_t$ по формуле с $\bar{\alpha}_t$, делаем <strong>один</strong> forward pass через U-Net и считаем MSE loss. Сложность одного обучающего шага — $O(1)$ проходов по сети.</p>
+    <p><strong>При генерации (Inference):</strong> Мы обязаны последовательно выполнить $T=1000$ шагов очистки $x_T \to x_{T-1} \to \dots \to x_0$, выполняя $T$ последовательных forward pass через тяжелую сеть. Сложность инференса — $O(T)$.</p>
+  </div></details>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+
+<div class="cheat">
+  <div class="bt">Скелет устного ответа по билету 12 (Диффузионные модели)</div>
+  <ol>
+    <li><strong>Суть и идея.</strong> Неравновесная термодинамика: прямой процесс превращает картинку в белый шум за $T$ шагов, обратный процесс (нейросеть U-Net) пошагово очищает шум, генерируя новые данные.</li>
+    <li><strong>Прямой процесс.</strong> Марковская цепь $q(x_t | x_{t-1}) = \mathcal{N}(\sqrt{1-\beta_t}x_{t-1}, \beta_t I)$. Без параметров.</li>
+    <li><strong>Трюк с $\bar{\alpha}_t$.</strong> Замкнутая формула: $x_t = \sqrt{\bar{\alpha}_t}x_0 + \sqrt{1 - \bar{\alpha}_t}\epsilon$, где $\bar{\alpha}_t = \prod (1-\beta_s)$. Позволяет получить $x_t$ для любого шага $t$ за 1 операцию.</li>
+    <li><strong>Обратный процесс.</strong> Апостериорное распределение одного шага при известном $x_0$ является Гауссианом $q(x_{t-1}|x_t, x_0) = \mathcal{N}(\tilde{\mu}_t, \tilde{\beta}_t I)$. Сеть $p_\theta(x_{t-1}|x_t)$ аппроксимирует его.</li>
+    <li><strong>Функция потерь $L_{\text{simple}}$.</strong> Сеть параметризуют для предсказания добавленного шума $\epsilon_\theta(x_t, t)$. Лосс: $L = \mathbb{E}[\|\epsilon - \epsilon_\theta(\sqrt{\bar{\alpha}_t}x_0 + \sqrt{1-\bar{\alpha}_t}\epsilon, t)\|^2]$.</li>
+    <li><strong>Score Matching.</strong> Предсказание шума эквивалентно вычислению Score-функции (градиента плотности): $\epsilon_\theta \propto -\nabla_{x_t} \log p(x_t)$. Непрерывный аналог — SDE/ODE.</li>
+    <li><strong>DDIM.</strong> Немарковский процесс с детерминированным шагом ($\sigma=0$). Позволяет сэмплировать за 20–50 шагов вместо 1000.</li>
+    <li><strong>Guidance.</strong> Classifier Guidance (градиент классификатора) и Classifier-Free Guidance (экстраполяция $\epsilon_{\text{uncond}} + s(\epsilon_{\text{cond}} - \epsilon_{\text{uncond}})$ без сторонних моделей).</li>
+    <li><strong>Архитектура U-Net.</strong> ResNet-блоки, Sinusoidal Time Embeddings (шаг $t$) и Cross-Attention (текстовые эмбеддинги CLIP).</li>
+    <li><strong>Latent Diffusion (Stable Diffusion).</strong> Диффузия не в пикселях ($512\times 512$), а в сжатом латентном пространстве VAE ($64\times 64$). Ускорение в десятки раз.</li>
+    <li><strong>Плюсы и минусы.</strong> Плюсы: стабильное обучение (нет состязательности), нет Mode Collapse, превосходное качество. Минусы: медленный итеративный инференс.</li>
+  </ol>
+</div>
+
+<div class="navrow">
+  <a class="backlink" href="11-gan.html">← Лекция 11. GAN</a>
+  <a class="backlink" href="13-cv-tasks.html">Лекция 13. Задачи CV →</a>
+</div>
+
+</div>
+</body>
+</html>

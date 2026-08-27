@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лекция 27. Архитектура Actor-Critic, A2C, DDPG, SAC</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--sans); font-size:17px; line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line); padding:38px 24px 30px; margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+</style>
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]},
+  svg: {fontCache:'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Блок D · Вопрос 25 · Обучение с подкреплением</div>
+  <h1>Лекция 27. Архитектура Actor-Critic, A2C/A3C, DDPG, Soft Actor-Critic (SAC)</h1>
+  <p class="sub">Сравнение Value-Based vs Policy-Based, архитектура Actor-Critic, функция преимущества (Advantage) и GAE, синхронный A2C vs асинхронный A3C, детерминированный градиент DDPG, Soft Actor-Critic (SAC) с максимальной энтропией.</p>
+  <div class="meta">
+    <span class="pill">⏱ 2 ч 30 мин</span>
+    <span class="pill gray">10 вопросов препода</span>
+    <span class="pill gray">6 микро-задач</span>
+    <span class="pill good">Билет 25</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<a class="backlink" href="../index.html">← К оглавлению курса</a>
+
+<nav class="toc">
+  <div class="bt">Содержание лекции</div>
+  <ol>
+    <li><a href="#s1">Value-Based vs Policy-Based: фундаментальное сравнение</a></li>
+    <li><a href="#s2">Идея и устройство архитектуры Actor-Critic (Актёр-Критик)</a></li>
+    <li><a href="#s3">Функция преимущества (Advantage) и Generalized Advantage Estimation (GAE)</a></li>
+    <li><a href="#s4">A2C и A3C (Advantage Actor-Critic)</a></li>
+    <li><a href="#s5">DDPG: Детерминированный градиент стратегии для непрерывного управления</a></li>
+    <li><a href="#s6">Soft Actor-Critic (SAC): парадигма максимальной энтропии</a></li>
+    <li><a href="#s7">Сводная сравнительная таблица всех алгоритмов RL</a></li>
+    <li><a href="#s8">Практическая реализация A2C на PyTorch</a></li>
+    <li><a href="#qa">Препод спросит</a></li>
+    <li><a href="#tasks">Микро-задачи</a></li>
+    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="s1"><span class="num">1.</span> Value-Based vs Policy-Based: фундаментальное сравнение</h2>
+
+<table>
+<thead><tr><th>Критерий</th><th>Value-Based (DQN, Q-learning)</th><th>Policy-Based (REINFORCE)</th><th>Actor-Critic (A2C, SAC, PPO)</th></tr></thead>
+<tbody>
+<tr><td><strong>Что оптимизируется</strong></td><td>Функция ценности $Q(s, a; \theta)$. Стратегия неявная ($\arg\max Q$).</td><td>Параметризованная стратегия $\pi_\theta(a \mid s)$ напрямую.</td><td><strong>Оба компонента:</strong> Актёр $\pi_\theta$ + Критик $V_\phi$ / $Q_\phi$.</td></tr>
+<tr><td><strong>Пространство действий</strong></td><td><strong>Только дискретное</strong> (в непрерывном $\arg\max_a Q$ невычислим).</td><td><strong>Дискретное и непрерывное</strong> ($\mathbb{R}^n$).</td><td><strong>Дискретное и непрерывное</strong> ($\mathbb{R}^n$).</td></tr>
+<tr><td><strong>Тип стратегии</strong></td><td>Детерминированная жадная.</td><td>Стохастическая (может выучивать оптимум в играх с неполной информацией).</td><td>Стохастическая или детерминированная.</td></tr>
+<tr><td><strong>Дисперсия градиентов</strong></td><td>Низкая (бутстрэппинг), но возможна расходимость.</td><td><strong>Очень высокая</strong> (Монте-Карло доходы $G_t$).</td><td><strong>Низкая</strong> (Критик выполняет роль бутстрэп-бейзлайна).</td></tr>
+<tr><td><strong>Эффективность данных</strong></td><td>Высокая (Off-policy, Replay Buffer).</td><td>Низкая (On-policy, траектории одноразовые).</td><td>От высокой (SAC, DDPG) до средней (A2C, PPO).</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> Идея и устройство архитектуры Actor-Critic</h2>
+
+<div class="scheme">
+                      ┌────────────────────────────────────────┐
+                      │                 АГЕНТ                  │
+                      │                                        │
+                      │   ┌────────────────────────────────┐   │
+                      │   │       ACTOR (АКТЁР, π_θ)       │───┼──▶ Действие a_t
+                      │   │      (Выбирает действие)       │   │
+                      │   └───────────────▲────────────────┘   │
+                      │                   │                    │
+                      │          TD-Ошибка / Advantage δ_t     │
+                      │                   │                    │
+                      │   ┌───────────────┴────────────────┐   │
+                      │   │       CRITIC (КРИТИК, V_ϕ)     │   │
+                      │   │    (Оценивает ценность V(s))   │   │
+                      │   └───────────────▲────────────────┘   │
+                      └───────────────────┼────────────────────┘
+                                          │ Состояние s_t, Награда r_{t+1}
+                      ┌───────────────────┴────────────────────┐
+                      │                 СРЕДА                  │
+                      └────────────────────────────────────────┘
+
+<span class="cap">Архитектура Actor-Critic: Актёр управляет средой, а Критик направляет градиент Актёра через TD-оценку качества.</span></div>
+
+<div class="box idea">
+  <div class="bt">💡 Разделение ролей</div>
+  <ul>
+    <li><strong>Актёр (Actor, $\pi_\theta(a \mid s)$):</strong> Занимается управлением (Policy Improvement). Выдает действие по состоянию $s$.</li>
+    <li><strong>Критик (Critic, $V_\phi(s)$):</strong> Занимается оценкой (Policy Evaluation). Вычисляет TD-ошибку $\delta_t = r_{t+1} + \gamma V_\phi(s_{t+1}) - V_\phi(s_t)$, которая показывает, <em>оказалось ли действие лучше или хуже ожиданий</em>.</li>
+  </ul>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> Generalized Advantage Estimation (GAE)</h2>
+
+<p>Функция преимущества (Advantage): $A(s, a) = Q(s, a) - V(s)$.</p>
+
+<p>Джон Шульман (2016) предложил <strong>GAE (Generalized Advantage Estimation)</strong> — объединение $k$-шаговых TD-ошибок с экспоненциальным затуханием по параметру $\lambda \in [0, 1]$:</p>
+
+<div class="formula">
+$$ \hat{A}_t^{\text{GAE}(\gamma, \lambda)} = \sum_{l=0}^\infty (\gamma \lambda)^l \delta_{t+l}^V = \delta_t^V + \gamma \lambda \hat{A}_{t+1}^{\text{GAE}} $$
+<span class="note">где $\delta_t^V = r_{t+1} + \gamma V(s_{t+1}) - V(s_t)$. Регулирует баланс смещения и дисперсии!</span>
+</div>
+
+<ul>
+  <li>При $\lambda = 0$: $\hat{A}_t = \delta_t$ (TD(0) — минимальная дисперсия, но есть смещение неточного Критика).</li>
+  <li>При $\lambda = 1$: $\hat{A}_t = \sum \gamma^l r_{t+l+1} - V(s_t) = G_t - V(s_t)$ (Монте-Карло — строго несмещенная оценка, но максимальная дисперсия).</li>
+  <li>На практике берут $\lambda \approx 0.95$, получая идеальный баланс.</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> A2C и A3C (Advantage Actor-Critic)</h2>
+
+<ul>
+  <li><strong>A3C (Asynchronous Advantage Actor-Critic, Mnih et al., 2016):</strong> Несколько параллельных потоков на CPU независимо взаимодействуют со своими копиями среды и асинхронно обновляют глобальную модель.</li>
+  <li><strong>A2C (Advantage Actor-Critic — Синхронный):</strong> Синхронный сбор данных из батча векторных сред (`gym.vector.AsyncVectorEnv`). Гораздо эффективнее утилизирует тензорные ядра GPU.</li>
+</ul>
+
+<h3>Функции потерь A2C:</h3>
+<div class="formula">
+$$ L_{\text{total}}(\theta, \phi) = L_{\text{actor}}(\theta) + c_1 L_{\text{critic}}(\phi) - c_2 \mathcal{H}\left(\pi_\theta(\cdot \mid s_t)\right) $$
+$$ L_{\text{actor}}(\theta) = -\log \pi_\theta(a_t \mid s_t) \cdot \hat{A}_t, \quad L_{\text{critic}}(\phi) = \frac{1}{2} \left( V_\phi(s_t) - (r_{t+1} + \gamma V_\phi(s_{t+1})) \right)^2 $$
+<span class="note">$\mathcal{H}(\pi)$ — энтропия стратегии. Максимизация энтропии заставляет Актёра исследовать новые действия и не коллапсировать в детерминизм.</span>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> DDPG (Deep Deterministic Policy Gradient)</h2>
+
+<p><strong>DDPG (Lillicrap et al., DeepMind, 2015)</strong> — алгоритм для задач непрерывного управления (роботы, автопилот, манипуляторы):</p>
+
+<ul>
+  <li><strong>Детерминированный Актёр $\mu_\theta(s) \in \mathbb{R}^n$:</strong> Выдает непрерывный вектор действия (углы, силы).</li>
+  <li><strong>Off-policy Критик $Q_\phi(s, a)$:</strong> Оценивает пару «состояние-непрерывное действие».</li>
+  <li><strong>Градиент Актёра по теореме Silver et al. (DPG Theorem):</strong>
+    $$ \nabla_\theta J(\theta) = \mathbb{E}_{s \sim \mathcal{D}} \left[ \nabla_a Q_\phi(s, a)\big|_{a = \mu_\theta(s)} \cdot \nabla_\theta \mu_\theta(s) \right] $$
+    Градиент протекает от Критика через действие $a$ прямо в веса Актёра по обычному правилу цепного дифференцирования!
+  </li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s6"><span class="num">6.</span> Soft Actor-Critic (SAC)</h2>
+
+<p><strong>SAC (Tuomas Haarnoja et al., UC Berkeley, 2018)</strong> — самый мощный и стабильный современный алгоритм для непрерывного управления (SOTA в робототехнике).</p>
+
+<div class="box okbox">
+  <div class="bt">🌟 Парадигма Maximum Entropy RL в SAC</div>
+  <p>Вместо стандартной максимизации наград SAC максимизирует <strong>награду плюс энтропию стратегии</strong>:</p>
+  $$ J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \sum_{t=0}^\infty \gamma^t \left( r(s_t, a_t) + \alpha \mathcal{H}\left(\pi_\theta(\cdot \mid s_t)\right) \right) \right] $$
+  <p>где $\mathcal{H}(\pi) = \mathbb{E}[-\log \pi(a \mid s)]$ — энтропия, а $\alpha$ — температурный коэффициент энтропии (часто настраивается автоматически).</p>
+</div>
+
+<h3>Три ключевых преимущества SAC:</h3>
+<ol>
+  <li><strong>Исследование множества оптимумов:</strong> Если есть 2 равноценных пути к цели, модель не выбирает один случайно, а выучивает оба пути.</li>
+  <li><strong>Надежность (Robustness):</strong> Стратегия с максимальной энтропией максимально устойчива к внезапным шумам и физическим возмущениям среды.</li>
+  <li><strong>Clipped Double-Q Trick:</strong> Использует две независимые Q-сети $Q_{\phi_1}, Q_{\phi_2}$ и берет минимум $\min(Q_1, Q_2)$, полностью побеждая Overestimation Bias.</li>
+</ol>
+
+<!-- ============================================ -->
+<h2 id="s7"><span class="num">7.</span> Сводная сравнительная таблица всех алгоритмов RL</h2>
+
+<table>
+<thead><tr><th>Алгоритм</th><th>Семейство</th><th>Policy</th><th>Пространство действий</th><th>Ключевые фичи</th></tr></thead>
+<tbody>
+<tr><td><strong>DQN</strong></td><td>Value-based</td><td>Off-policy</td><td>Дискретное</td><td>Replay Buffer, Target Net, Double DQN.</td></tr>
+<tr><td><strong>REINFORCE</strong></td><td>Policy-based</td><td>On-policy</td><td>Дискретное / Непрерывное</td><td>Монте-Карло градиент, Baseline.</td></tr>
+<tr><td><strong>A2C / A3C</strong></td><td>Actor-Critic</td><td>On-policy</td><td>Дискретное / Непрерывное</td><td>Синхронный/асинхронный Advantage Критик.</td></tr>
+<tr><td><strong>PPO</strong></td><td>Policy-based / AC</td><td>On-policy</td><td>Дискретное / Непрерывное</td><td><strong>Клиппинг $L^{\text{CLIP}}$, суперстабилен, стандарт RLHF.</strong></td></tr>
+<tr><td><strong>DDPG</strong></td><td>Actor-Critic</td><td>Off-policy</td><td><strong>Только непрерывное</strong></td><td>Детерминированный Актёр + Q-Критик + Replay Buffer.</td></tr>
+<tr><td><strong>SAC</strong></td><td>Actor-Critic</td><td>Off-policy</td><td><strong>Непрерывное</strong> (и дискр.)</td><td><strong>Max-Entropy, 2 Критика, автонастройка $\alpha$, SOTA в физике.</strong></td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s8"><span class="num">8.</span> Практическая реализация A2C на PyTorch</h2>
+
+<pre><code><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+<span class="kw">import</span> torch.optim <span class="kw">as</span> optim
+<span class="kw">from</span> torch.distributions <span class="kw">import</span> Categorical
+
+<span class="kw">class</span> ActorCritic(nn.Module):
+    <span class="kw">def</span> __init__(self, state_dim, action_dim):
+        <span class="kw">super</span>().__init__()
+        <span class="cmt"># Общий костяк признаков</span>
+        self.shared = nn.Sequential(
+            nn.Linear(state_dim, <span class="num2">128</span>),
+            nn.ReLU()
+        )
+        <span class="cmt"># Голова Актёра (распределение действий)</span>
+        self.actor = nn.Linear(<span class="num2">128</span>, action_dim)
+        <span class="cmt"># Голова Критика (оценка ценности состояния V)</span>
+        self.critic = nn.Linear(<span class="num2">128</span>, <span class="num2">1</span>)
+
+    <span class="kw">def</span> forward(self, x):
+        features = self.shared(x)
+        logits = self.actor(features)
+        value = self.critic(features)
+        <span class="kw">return</span> Categorical(logits=logits), value
+
+<span class="kw">def</span> train_a2c_step(model, optimizer, states, actions, rewards, next_states, dones, gamma=<span class="num2">0.99</span>):
+    dist, values = model(states)
+    _, next_values = model(next_states)
+    
+    <span class="cmt"># 1. TD-мишень и Advantage</span>
+    target_values = rewards + gamma * next_values.squeeze(-<span class="num2">1</span>) * (<span class="num2">1</span> - dones)
+    advantage = target_values.detach() - values.squeeze(-<span class="num2">1</span>)
+    
+    <span class="cmt"># 2. Лоссы Актёра, Критика и Энтропии</span>
+    log_probs = dist.log_prob(actions)
+    actor_loss = -(log_probs * advantage.detach()).mean()
+    critic_loss = nn.functional.mse_loss(values.squeeze(-<span class="num2">1</span>), target_values.detach())
+    entropy_loss = -dist.entropy().mean()
+    
+    total_loss = actor_loss + <span class="num2">0.5</span> * critic_loss + <span class="num2">0.01</span> * entropy_loss
+    
+    optimizer.zero_grad()
+    total_loss.backward()
+    optimizer.step()
+</code></pre>
+
+<!-- ============================================ -->
+<h2 id="qa">🎯 Препод спросит</h2>
+
+<details class="qa"><summary>В чем концептуальная разница ролей Актёра и Критика и как устроена их совместная архитектура?</summary>
+<div class="ans">
+<p>Архитектура Actor-Critic разделяет обучение агента на две взаимодействующие компоненты:</p>
+<ul>
+  <li><strong>Актёр (Actor):</strong> параметризует политику $\pi_\theta(a \mid s)$ (вероятностное распределение или детерминированное действие) и отвечает за генерацию действий в среде.</li>
+  <li><strong>Критик (Critic):</strong> параметризует функцию ценности $V_\phi(s)$ или $Q_\phi(s, a)$ и оценивает качество выбранного действия через одношаговую TD-ошибку $\delta_t = R_{t+1} + \gamma V_\phi(S_{t+1}) - V_\phi(S_t)$.</li>
+</ul>
+<p>Критик вычисляет скаляр преимущества (Advantage), который масштабирует градиент логарифма правдоподобия Актёра. Критик обучается методом наименьших квадратов минимизировать TD-ошибку, а Актёр поднимается по градиенту функции выигрыша.</p>
+</div></details>
+
+<details class="qa"><summary>Запишите формулы одношагового градиентного обновления 1-step TD Actor-Critic для Актёра и Критика и объясните принцип двух масштабов времени (Two-timescale rule).</summary>
+<div class="ans">
+<p>Пусть в момент времени $t$ совершен переход $(S_t, A_t, R_{t+1}, S_{t+1})$.</p>
+<ol>
+  <li><strong>TD-ошибка Критика:</strong>
+    $$ \delta_t^V = R_{t+1} + \gamma V_\phi(S_{t+1}) - V_\phi(S_t) $$
+  </li>
+  <li><strong>Шаг обновления параметров Критика ($\phi$):</strong>
+    $$ \phi \leftarrow \phi + \alpha_c \, \delta_t^V \nabla_\phi V_\phi(S_t) $$
+  </li>
+  <li><strong>Шаг обновления параметров Актёра ($\theta$):</strong>
+    $$ \theta \leftarrow \theta + \alpha_a \, \delta_t^V \nabla_\theta \log \pi_\theta(A_t \mid S_t) $$
+  </li>
+</ol>
+<p><strong>Правило двух масштабов времени ($\alpha_c > \alpha_a$):</strong> Для гарантированной сходимости темп обучения Критика $\alpha_c$ должен быть выше темпа обучения Актёра $\alpha_a$. Критик должен быстро адаптироваться и обеспечивать квазистационарную точную оценку $V^{\pi_\theta}$ для текущей политики, пока медленный шаг Актёра плавно улучшает параметры стратегии.</p>
+</div></details>
+
+<details class="qa"><summary>Выведите формулу Generalized Advantage Estimation (GAE) и проанализируйте предельные случаи $\lambda = 0$ и $\lambda = 1$.</summary>
+<div class="ans">
+<p>Определим $k$-шаговую оценку функции преимущества:</p>
+$$ \hat{A}_t^{(k)} = \sum_{j=0}^{k-1} \gamma^j R_{t+j+1} + \gamma^k V(S_{t+k}) - V(S_t) = \sum_{j=0}^{k-1} \gamma^j \delta_{t+j}^V $$
+<p>Оценка GAE($\gamma, \lambda$) определяется как экспоненциально взвешенное среднее оценок разной длины:</p>
+$$ \hat{A}_t^{\text{GAE}(\gamma, \lambda)} = (1 - \lambda) \sum_{k=1}^{\infty} \lambda^{k-1} \hat{A}_t^{(k)} = \sum_{l=0}^{\infty} (\gamma \lambda)^l \delta_{t+l}^V $$
+<p>где $\delta_{t+l}^V = R_{t+l+1} + \gamma V(S_{t+l+1}) - V(S_{t+l})$.</p>
+<ul>
+  <li><strong>При $\lambda = 0$ (TD(0)):</strong> $\hat{A}_t^{\text{GAE}(\gamma, 0)} = \delta_t^V$. Минимальная дисперсия, но сильное смещение от неточности нейросети Критика.</li>
+  <li><strong>При $\lambda = 1$ (Монте-Карло):</strong> $\hat{A}_t^{\text{GAE}(\gamma, 1)} = \sum_{l=0}^\infty \gamma^l \delta_{t+l}^V = G_t - V(S_t)$. Строго несмещенная оценка, но максимальная дисперсия.</li>
+</ul>
+</div></details>
+
+<details class="qa"><summary>Как математически формулируется задача Maximum Entropy Reinforcement Learning в алгоритме SAC (Soft Actor-Critic)?</summary>
+<div class="ans">
+<p>В парадигме Maximum Entropy RL агент максимизирует сумму наград и энтропию своего поведения в каждом посещенном состоянии:</p>
+$$ J(\pi) = \sum_{t=0}^{\infty} \mathbb{E}_{(s_t, a_t) \sim \rho_\pi} \left[ R(s_t, a_t) + \alpha \mathcal{H}\left(\pi(\cdot \mid s_t)\right) \right] $$
+<p>где $\mathcal{H}(\pi(\cdot \mid s_t)) = \mathbb{E}_{a \sim \pi}[-\log \pi(a \mid s_t)]$, а $\alpha > 0$ — температура энтропии.</p>
+<p><strong>Мягкое уравнение Беллмана (Soft Bellman Equation):</strong></p>
+$$ Q^*(s, a) = R(s, a) + \gamma \, \mathbb{E}_{s' \sim \mathcal{P}} \left[ V^*(s') \right] $$
+$$ V^*(s) = \mathbb{E}_{a \sim \pi^*} \left[ Q^*(s, a) - \alpha \log \pi^*(a \mid s) \right] = \alpha \log \int \exp\left( \frac{Q^*(s, a)}{\alpha} \right) da $$
+<p>Оптимальная политика представляет собой распределение Больцмана: $\pi^*(a \mid s) \propto \exp\left(\frac{Q^*(s, a)}{\alpha}\right)$.</p>
+</div></details>
+
+<details class="qa"><summary>В чем суть репараметризационного трюка для непрерывных действий в SAC и как корректируется логарифм вероятности при отображении через $\tanh$?</summary>
+<div class="ans">
+<p>Для сквозного дифференцирования функции ценности $Q_\phi(s, a)$ по весам Актёра $\theta$ случайность выносится в независимый шум:</p>
+$$ u = \mu_\theta(s) + \sigma_\theta(s) \odot \epsilon, \qquad \epsilon \sim \mathcal{N}(0, I) $$
+<p>Для ограничения диапазона непрерывного действия интервалом $[-1, 1]$ применяется сжатие $a = \tanh(u)$.</p>
+<p><strong>Формула замены переменных для плотности вероятности:</strong></p>
+$$ \log \pi(a \mid s) = \log \mu(u \mid s) - \sum_{i=1}^D \log\left| \frac{\partial \tanh(u_i)}{\partial u_i} \right| = \log \mu(u \mid s) - \sum_{i=1}^D \log\left( 1 - \tanh^2(u_i) + 10^{-6} \right) $$
+<p>где $\mu(u \mid s)$ — плотность гауссовского вектора. Это дает точный аналитический расчет энтропии сжатого действия.</p>
+</div></details>
+
+<details class="qa"><summary>Зачем в SAC применяется техника Clipped Double Q-trick и как вычисляется целевое значение $y_t$?</summary>
+<div class="ans">
+<p>В SAC поддерживаются два независимых Критика $Q_{\phi_1}$ и $Q_{\phi_2}$ с целевыми сетями $\bar{\phi}_1, \bar{\phi}_2$. Целевое значение Беллмана вычисляется по минимуму из двух оценок (Clipped Double Q-trick):</p>
+$$ y_t = R(s_t, a_t) + \gamma \left( \min_{j=1,2} Q_{\bar{\phi}_j}(s_{t+1}, \tilde{a}_{t+1}) - \alpha \log \pi_\theta(\tilde{a}_{t+1} \mid s_{t+1}) \right) $$
+<p>где $\tilde{a}_{t+1} \sim \pi_\theta(\cdot \mid s_{t+1})$.</p>
+<p>Выбор минимума $\min(Q_1, Q_2)$ формирует пессимистическую оценку полезности перехода, исключая накопление Overestimation Bias в $Q$-сетях и стабилизируя обучение непрерывного Актёра.</p>
+</div></details>
+
+<details class="qa"><summary>Зачем в лосс Актёра добавляют энтропийный член $-\beta \mathcal{H}(\pi)$?</summary>
+<div class="ans">
+<p>Энтропия $\mathcal{H}(\pi)$ максимальна для равномерного случайного распределения и равна 0 для детерминированного выбора. Максимизация энтропии предотвращает преждевременный коллапс стратегии в субоптимальный детерминизм (преждевременную сходимость) и стимулирует агента постоянно исследовать (Exploration) альтернативные действия.</p>
+</div></details>
+
+<details class="qa"><summary>Как DDPG решает проблему непрерывного пространства действий?</summary>
+<div class="ans">
+<p>DDPG использует <strong>детерминированную нейросеть Актёра $\mu_\theta(s)$</strong>, которая выдает непрерывный вектор действий напрямую. Для обновления весов Актёра градиент дифференцируется по цепочке прямо через нейросеть Q-Критика: $\nabla_\theta J = \nabla_a Q(s, a) \cdot \nabla_\theta \mu(s)$.</p>
+</div></details>
+
+<details class="qa"><summary>В чем различие между алгоритмами A2C и A3C (Asynchronous Advantage Actor-Critic)?</summary>
+<div class="ans">
+<p><strong>A3C (Mnih et al., 2016):</strong> несколько параллельных процессов независимо взаимодействуют со средой на CPU и асинхронно обновляют глобальные веса модели без блокировок. Не требует буфера опыта, но страдает от проблемы устаревших градиентов (Stale Gradients).</p>
+<p><strong>A2C (Advantage Actor-Critic — синхронный):</strong> воркеры выполняют шаги синхронно. Батчи переходов объединяются в единый тензор и обрабатываются централизованно на GPU. A2C эффективнее использует параллелизм современных видеокарт и обеспечивает лучшую стабильность сходимости.</p>
+</div></details>
+
+<details class="qa"><summary>Как в алгоритме SAC работает автоматическая подстройка температуры энтропии $\alpha$?</summary>
+<div class="ans">
+<p>Температура $\alpha$ оптимизируется автоматически через метод множителей Лагранжа с ограничением на целевую минимальную энтропию $\mathcal{H}_{\text{target}} = -\dim(\mathcal{A})$:</p>
+$$ J(\alpha) = \mathbb{E}_{a_t \sim \pi_t} \left[ -\alpha \left( \log \pi_\theta(a_t \mid s_t) + \mathcal{H}_{\text{target}} \right) \right] $$
+<p>Если текущая энтропия падает ниже пороговой, лосс увеличивает $\alpha$, стимулируя исследование. Если энтропия выше целевой, $\alpha$ снижается в пользу эксплуатации выученных навыков.</p>
+</div></details>
+
+
+<!-- ============================================ -->
+<h2 id="tasks">📝 Микро-задачи</h2>
+
+<div class="task">
+  <div class="tt">Задача 1. Ручной расчет Advantage в Actor-Critic</div>
+  <p>Состояние $s_t$: Критик выдал $V(s_t) = 10.0$. Агент сделал шаг, получил награду $r = 3.0$ и перешел в $s_{t+1}$ ($V(s_{t+1}) = 12.0$). Коэффициент $\gamma = 0.9$. Найдите TD-ошибку $\delta_t$ и значение Advantage.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>1. TD-мишень: $y = r + \gamma V(s_{t+1}) = 3.0 + 0.9 \cdot 12.0 = 3.0 + 10.8 = 13.8$.</p>
+    <p>2. TD-ошибка / Advantage: $\delta_t = y - V(s_t) = 13.8 - 10.0 = +3.8$.</p>
+    <p>Действие оказалось на $3.8$ балла лучше среднего ожидания Критика.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 2. Расчет энтропии для двух исходов</div>
+  <p>Стратегия выдает вероятности двух действий: $\pi(a_1) = 0.5, \pi(a_2) = 0.5$. Другая стратегия: $\pi(a_1) = 0.9, \pi(a_2) = 0.1$. Чему равна энтропия Шеннона $\mathcal{H} = -\sum p_i \ln p_i$ для обеих стратегий?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>1. Для $[0.5, 0.5]$:</p>
+    <p>$$ \mathcal{H}_1 = -(0.5 \ln 0.5 + 0.5 \ln 0.5) = -\ln 0.5 = \ln 2 \approx 0.693 \quad (\text{Максимальная энтропия}) $$</p>
+    <p>2. Для $[0.9, 0.1]$:</p>
+    <p>$$ \mathcal{H}_2 = -(0.9 \ln 0.9 + 0.1 \ln 0.1) \approx -(0.9 \cdot (-0.105) + 0.1 \cdot (-2.302)) = 0.0945 + 0.2302 = 0.325 $$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 3. Расчет GAE на 2 шагах</div>
+  <p>Последовательность TD-ошибок: $\delta_0 = 2.0, \delta_1 = 4.0$. Параметры: $\gamma = 0.9, \lambda = 0.8$. Найдите $\hat{A}_0^{\text{GAE}}$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Формула: $\hat{A}_0 = \delta_0 + (\gamma \lambda) \delta_1$.</p>
+    <p>$$ \gamma \lambda = 0.9 \cdot 0.8 = 0.72 $$</p>
+    <p>$$ \hat{A}_0 = 2.0 + 0.72 \cdot 4.0 = 2.0 + 2.88 = 4.88 $$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 4. Градиент детерминированного Актёра в DDPG</div>
+  <p>Скалярное действие $a = \mu_\theta(s) = 3.0$. Критик оценивает $Q(s, a) = -(a - 5)^2 + 10$. Производная сети Актёра по весам $\nabla_\theta \mu = 2.0$. Найдите градиент оптимизации весов $\nabla_\theta J$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>1. Производная Критика по действию в точке $a=3.0$:</p>
+    <p>$$ \frac{\partial Q}{\partial a} = -2(a - 5) = -2(3 - 5) = +4.0 $$</p>
+    <p>2. По формуле DPG:</p>
+    <p>$$ \nabla_\theta J = \frac{\partial Q}{\partial a} \cdot \nabla_\theta \mu = 4.0 \cdot 2.0 = 8.0 $$</p>
+    <p>Градиент подталкивает Актёра увеличивать выдаваемое значение $a$ в сторону оптимума $a=5$.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 5. Clipped Double-Q трюк в SAC</div>
+  <p>В состоянии $s'$ при сэмплированном действии $a'$ первый Критик выдал $Q_1(s', a') = 25.0$, второй Критик — $Q_2(s', a') = 18.0$. Награда $r = 2.0$, $\gamma = 0.9$, энтропийная добавка $\alpha \mathcal{H} = 0.0$. Какое значение Q будет использовано для TD-мишени?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>В SAC берется строгий минимум двух Q-сетей:</p>
+    <p>$$ Q_{\text{target}} = \min(25.0, 18.0) = 18.0 $$</p>
+    <p>TD-мишень: $y = 2.0 + 0.9 \cdot 18.0 = 2.0 + 16.2 = 18.2$.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 6. Сравнение Sample Efficiency</div>
+  <p>Почему алгоритм SAC требует в 10–50 раз меньше реальных шагов в среде робота, чем алгоритм PPO?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>SAC является Off-policy алгоритмом:</strong> он сохраняет весь прошлый опыт в Replay Buffer и многократно переобучает сети на старых данных. <strong>PPO является On-policy алгоритмом:</strong> он обязан собирать свежие траектории текущей стратегией и выбрасывать данные после нескольких эпох обновления, требуя постоянного сбора нового опыта.</p>
+  </div></details>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+
+<div class="cheat">
+  <div class="bt">Скелет устного ответа по билету 25 (Actor-Critic, A2C, DDPG, SAC)</div>
+  <ol>
+    <li><strong>Value vs Policy based.</strong> Value-based (DQN) учит $Q(s, a)$ и ограничен дискретными действиями. Policy-based (REINFORCE) учит $\pi_\theta(a|s)$, умеет непрерывные действия, но страдает от высокой дисперсии.</li>
+    <li><strong>Идея Actor-Critic.</strong> Объединение двух сетей: <strong>Actor ($\pi_\theta$)</strong> выбирает действие; <strong>Critic ($V_\phi$)</strong> оценивает его через TD-ошибку $\delta_t = r + \gamma V(s') - V(s)$.</li>
+    <li><strong>Advantage и GAE.</strong> Функция преимущества $A(s, a) = Q(s, a) - V(s)$. GAE экспоненциально балансирует смещение и дисперсию параметром $\lambda \in [0, 1]$.</li>
+    <li><strong>A2C / A3C.</strong> Синхронный (GPU) и асинхронный (CPU) Advantage Actor-Critic. Лосс = Actor Loss + Critic Loss + Entropy bonus.</li>
+    <li><strong>DDPG (2015).</strong> Off-policy алгоритм для непрерывного управления. Детерминированный Актёр $\mu(s)$, градиент протекает через Q-Критика: $\nabla Q \cdot \nabla \mu$.</li>
+    <li><strong>Soft Actor-Critic (SAC, 2018).</strong> SOTA в робототехнике. Максимизирует награду плюс энтропию $\mathcal{H}(\pi)$. Исследует несколько оптимумов, устойчив к шумам, использует 2 Q-критика от overestimation bias.</li>
+    <li><strong>Итог курса.</strong> Мы прошли путь от перцептрона и автодифференцирования через свёртки, генеративные модели VAE/GAN/Diffusion и трансформеры до современного глубокого обучения с подкреплением!</li>
+  </ol>
+</div>
+
+<div class="navrow">
+  <a class="backlink" href="26-policy-gradient.html">← Лекция 26. Градиент стратегии, REINFORCE, PPO</a>
+  <a class="backlink" href="../index.html">К оглавлению курса →</a>
+</div>
+
+</div>
+</body>
+</html>

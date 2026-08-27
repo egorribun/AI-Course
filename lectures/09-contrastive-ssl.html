@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лекция 9. Контрастивное обучение и методы self-supervised learning</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:17px;
+  line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line);
+  padding:38px 24px 30px;
+  margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация назад ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление лекции ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+/* ---------- Сетка карточек (главная) ---------- */
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px; margin:20px 0}
+.lec{
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:17px 19px; text-decoration:none; color:var(--text);
+  display:block; transition:.16s; position:relative;
+}
+.lec:hover{border-color:var(--accent); transform:translateY(-2px); background:var(--card-2)}
+.lec .n{
+  font-family:var(--mono); font-size:12px; color:var(--accent);
+  font-weight:700; letter-spacing:.05em;
+}
+.lec .t{font-weight:700; margin:5px 0 6px; font-size:16.5px; line-height:1.35; color:#fff}
+.lec .d{color:var(--text-dim); font-size:13.5px; line-height:1.5}
+.lec .time{
+  margin-top:10px; font-size:12px; color:var(--text-dim);
+  font-family:var(--mono); border-top:1px solid var(--line); padding-top:8px;
+}
+
+/* ---------- Плашка дня ---------- */
+.day{
+  margin:44px 0 8px; padding:16px 22px; border-radius:12px;
+  background:linear-gradient(90deg, rgba(110,168,254,.14), transparent);
+  border-left:4px solid var(--accent);
+}
+.day h2{border:none; margin:0; padding:0; font-size:24px}
+.day p{margin:6px 0 0; color:var(--text-dim); font-size:15px}
+
+hr{border:none; border-top:1px solid var(--line); margin:44px 0}
+
+.small{font-size:14px; color:var(--text-dim)}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+
+</style>
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]},
+  svg: {fontCache:'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Блок B · Представления · Вопрос 9</div>
+  <h1>Лекция 9. Контрастивное обучение и методы self-supervised learning</h1>
+  <p class="sub">Как обучить хорошие представления без дорогой ручной разметки. Идея: данные уже содержат метки, нужно только их найти.</p>
+  <div class="meta">
+    <span class="pill">⏱ 1 ч 30 мин</span>
+    <span class="pill gray">12 вопросов препода</span>
+    <span class="pill gray">6 микро-задач</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<a class="backlink" href="../index.html">← К оглавлению курса</a>
+
+<nav class="toc">
+  <div class="bt">Содержание лекции</div>
+  <ol>
+    <li><a href="#s1">Проблема: дорогая разметка</a></li>
+    <li><a href="#s2">Self-supervised learning: идея</a></li>
+    <li><a href="#s3">Претекст-задачи первого поколения</a></li>
+    <li><a href="#s4">Почему претекст-задачи работают посредственно</a></li>
+    <li><a href="#s5">Контрастивная идея: InfoNCE и NT-Xent</a></li>
+    <li><a href="#s6">SimCLR: рецепт успеха</a></li>
+    <li><a href="#s7">MoCo и очередь негативов</a></li>
+    <li><a href="#s8">BYOL и SimSiam: обучение без негативов</a></li>
+    <li><a href="#s9">Коллапс представлений и его причины</a></li>
+    <li><a href="#s10">Маскированное моделирование: BERT и MAE</a></li>
+    <li><a href="#s11">CLIP: контрастивное обучение на парах изображение-текст</a></li>
+    <li><a href="#s12">Как оценивают SSL: linear probing и fine-tuning</a></li>
+    <li><a href="#s13">Связь с метрическим обучением</a></li>
+    <li><a href="#qa">Препод спросит</a></li>
+    <li><a href="#tasks">Микро-задачи</a></li>
+    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="s1"><span class="num">1.</span> Проблема: дорогая разметка</h2>
+
+<p>Создание ImageNet заняло <strong>годы работы разметчиков</strong>. Каждое изображение нужно посмотреть, решить, какие объекты на нём, согласовать разметку с гайдом. Процесс дорогой, медленный и ненадёжный — даже люди часто спорят.</p>
+
+<p>Текста в интернете триллионы слов. Видео — петабайты. Разметить всё невозможно.</p>
+
+<div class="box idea">
+  <div class="bt">💡 Ключевая интуиция self-supervised learning</div>
+  <p>Данные уже содержат информацию о себе. Нужно только придумать такую <strong>вспомогательную задачу</strong> (pretask), чтобы её решение требовало выучить полезное представление. Метка получается <strong>бесплатно</strong> из самих данных.</p>
+  <p>Примеры вспомогательных метаданных: соседние кадры видео, соседние слова в тексте, разные аугментации одного изображения.</p>
+</div>
+
+<div class="scheme">
+  Supervised (дорого)       Self-supervised (бесплатно)
+  ═════════════════════      ════════════════════════════
+
+  x ──▶ Label (руками)       x ──▶ Аугментация / Соседство
+        ↓                           ↓
+       ML                      Претекст-задача
+                                    ↓
+                                  Представление
+<span class="cap">Слева — традиционный ML. Справа — SSL: метка существует в самих данных, нужно выбрать вспомогательную задачу.</span></div>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> Self-supervised learning: идея</h2>
+
+<p>Общая схема:</p>
+
+<ol>
+  <li><strong>Выбери вспомогательную задачу.</strong> На каких примерах данные сходны, на каких различны? Какую структуру в данных ты можешь использовать без ручной разметки?</li>
+  <li><strong>Обучи энкодер.</strong> Сеть учится решать эту задачу. Попутно выучивается представление, полезное для исходной задачи.</li>
+  <li><strong>Переиспользуй энкодер.</strong> Заморозь или доучи его на целевой задаче — обычный supervised learning или linear probing.</li>
+</ol>
+
+<div class="box warnbox">
+  <div class="bt">⚠️ Критическое замечание</div>
+  <p>SSL — не волшебство. Если вспомогательная задача не коррелирует с целевой, представление не поможет. Пример: если ты предсказываешь, поворачивается ли картинка, но игнорируешь саму картинку, выучишь только ориентации, а не объекты.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> Претекст-задачи первого поколения</h2>
+
+<h3>3.1 Предсказание поворота (rotation prediction)</h3>
+
+<p>Картинка повёрнута на 0°, 90°, 180° или 270°. Предсказать угол.</p>
+
+<p><strong>Плюсы:</strong> простая задача, нет разметки.</p>
+<p><strong>Минусы:</strong> сеть может захватить только глобальную структуру; если в картинке нет очевидной ориентации (картина абстрактного искусства), задача вырождается.</p>
+
+<h3>3.2 Jigsaw puzzle (сборка пазла)</h3>
+
+<p>Картинку разрезают на $3\times3 = 9$ патчей, перемешивают. Задача — восстановить исходный порядок. Есть $9! \approx 360\,000$ возможных перестановок — это номер класса.</p>
+
+<p><strong>Плюсы:</strong> требует понимания объектов и их относительного расположения.</p>
+<p><strong>Минусы:</strong> 360K классов — очень много для классификации. Работает ниже SimCLR.</p>
+
+<h3>3.3 Колоризация (colorization)</h3>
+
+<p>Дана чёрно-белая картинка (L канал LAB). Предсказать цветность (a, b каналы). Задача похожа на регрессию в цветовом пространстве.</p>
+
+<p><strong>Плюсы:</strong> требует понимания семантики (трава = зелёная, небо = голубое).</p>
+<p><strong>Минусы:</strong> двусмысленности (автомобиль может быть любого цвета); нежёсткая метка.</p>
+
+<h3>3.4 Inpainting (восстановление пропущенной части)</h3>
+
+<p>Случайная область замаскирована или удалена. Предсказать содержимое маски. Близко к масштабированию контекстных моделей.</p>
+
+<h3>3.5 Предсказание относительного положения (relative patch location)</h3>
+
+<p>Даны два случайно выбранных патча из картинки. Задача: определить, какой патч находится слева, справа, сверху или снизу от другого (4 класса).</p>
+
+<p><strong>Плюсы:</strong> требует локального понимания пространственной структуры.</p>
+
+<h3>Почему первое поколение работает посредственно</h3>
+
+<div class="box exambox">
+  <div class="bt">🎯 Ключевое наблюдение</div>
+  <p>Все эти задачи требуют <strong>глобального или локального признака</strong>, но не требуют полноты семантической информации. Например, поворот можно определить по текстуре границ, не понимая, что на картинке. Такие представления помогают мало.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> Контрастивная идея: InfoNCE и NT-Xent</h2>
+
+<p>Вместо того чтобы предсказывать метку из картинки, сравним <strong>две версии одной картинки</strong>.</p>
+
+<div class="scheme">
+  Картинка x
+       │
+       ├─▶ Аугментация 1 ──▶ Энкодер ──▶ z₁  ─┐
+       │                                        │ Сравнить!
+       └─▶ Аугментация 2 ──▶ Энкодер ──▶ z₂  ─┤
+                                                │
+                        Остальные картинки (10000 штук)
+                        ──▶ Энкодер ──▶ негативы
+<span class="cap">Контрастивная задача: сблизить две вида одного объекта, развести разные объекты.</span></div>
+
+<h3>4.1 Формула InfoNCE loss</h3>
+
+<div class="formula">
+$$ L_{\text{InfoNCE}} = -\log \frac{\exp(s(z_i, z_j^+)/\tau)}{\exp(s(z_i, z_j^+)/\tau) + \sum_{k \neq i,j}^{B} \exp(s(z_i, z_k^-)/\tau)} $$
+<span class="note">$s(z_i, z_j) = z_i^\top z_j / (\|z_i\|\|z_j\|)$ — косинусное сходство. $\tau$ — температура. $B$ — размер батча. $z_j^+$ — позитивный пример, $z_k^-$ — негативы.</span>
+</div>
+
+<p>Это <strong>softmax-потери</strong> для задачи «выбрать правильный позитивный пример из батча»: сеть должна максимизировать вероятность позитива среди всех кандидатов.</p>
+
+<h3>4.2 NT-Xent loss (используется в SimCLR)</h3>
+
+<div class="formula">
+$$ L = -\frac{1}{2B} \sum_{i=1}^{2B} \log \frac{\exp(s(z_i, z_{i^+})/\tau)}{\sum_{k=1, k \neq i}^{2B} \exp(s(z_i, z_k)/\tau)} $$
+<span class="note">NT = Normalized Temperature-scaled Cross Entropy. Батч содержит 2B примеров — B пар позитивов. Каждый пример имеет ровно один позитив (его пара) и $2B-2$ негативов.</span>
+</div>
+
+<h3>4.3 Роль температуры $\tau$</h3>
+
+<div class="box mathbox">
+  <div class="bt">📐 Интуиция и влияние $\tau$</div>
+  <p><strong>При $\tau \to 0$:</strong> логиты обостряются → сеть очень сильно штрафует трудные негативы (те, что похожи на позитив). Может быть слишком строгой, обучение неустойчиво.</p>
+  <p><strong>При $\tau \to \infty$:</strong> логиты сглаживаются → все примеры выглядят одинаково похожими. Loss становится размытым, обучение медленное.</p>
+  <p><strong>На практике</strong> $\tau \approx 0.07$ — найдено эмпирически. Это компромисс: сеть фокусируется на трудных примерах, но не становится хаотичной.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> SimCLR: рецепт успеха</h2>
+
+<p><strong>SimCLR</strong> (Simple Contrastive Learning of Representations) — классический и самый важный алгоритм контрастивного обучения.</p>
+
+<div class="scheme">
+  Картинка x
+       │
+       ├─▶ Аугментация 1 ──────────────────┐
+       │                                   │
+       │                 ┌─────────────────┘
+       │                 ▼
+       │            Энкодер f ──▶ z (представление)
+       │                 ▲
+       │                 │
+       │    ┌────────────┘
+       │    │
+       └─▶ Аугментация 2 ──────────────────┐
+                                           │
+                            ┌──────────────┘
+                            ▼
+                      Проекционная голова g
+                            ▼
+                           p (в пространстве проекций)
+                            │
+                            ▼
+                       NT-Xent loss
+<span class="cap">SimCLR архитектура: две аугментированные версии, одна энкодер, две проекционные головы (одна на каждую версию). Loss считается в пространстве проекций p, не z.</span></div>
+
+<h3>5.1 Три ключевых вывода из SimCLR</h3>
+
+<div class="box okbox">
+  <div class="bt">✓ Вывод 1: Сильная аугментация критична</div>
+  <p>Стандартная аугментация (горизонтальный flip, маленький crop) мало помогает. SimCLR использует:</p>
+  <ul>
+    <li>Random crop с масштабом 8–100% исходного размера (важно!)</li>
+    <li>Color jitter: случайное изменение яркости, контрастности, насыщенности, оттенка</li>
+    <li>Случайные повороты и горизонтальные flip'ы</li>
+  </ul>
+  <p>Без color jitter сеть жульничает: фокусируется на цветовой гистограмме, игнорирует содержимое. Это показано явным экспериментом в статье.</p>
+</div>
+
+<div class="box okbox">
+  <div class="bt">✓ Вывод 2: Проекционная голова нужна, но выбрасывается</div>
+  <p>После обучения используют только энкодер $f(x)$, проекционную голову $g$ выбрасывают. Интуиция:</p>
+  <ul>
+    <li>$f$ выучит пространство представлений, полезное для разных задач (общие признаки)</li>
+    <li>$g$ оптимизирует пространство именно под контрастивную loss (специфичное)</li>
+    <li>$g$ — это артефакт обучения, не нужен потом</li>
+  </ul>
+  <p>Это контринтуитивно, но работает стабильно.</p>
+</div>
+
+<div class="box okbox">
+  <div class="bt">✓ Вывод 3: Нужен очень большой батч</div>
+  <p>Батч из 4096 примеров — не редкость. Почему? Потому что негативов много: при батче $B$ есть $2B - 2$ негативов для каждого примера. Малый батч = мало негативов = плохой contrast. На практике работают с батчами 256–8192.</p>
+  <p>Это требует мощных GPU (типично 8×V100) или TPU.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s6"><span class="num">6.</span> MoCo и очередь негативов</h2>
+
+<p>Проблема SimCLR: большой батч дорог. Как получить много негативов при малом батче?</p>
+
+<div class="box idea">
+  <div class="bt">💡 Идея MoCo: очередь (queue) сохранённых представлений</div>
+  <p>Вместо того чтобы хранить все негативы в батче, сохраняй очередь (FIFO) из $N$ недавних представлений (типично $N=65\,536$). Каждый новый батч добавляет свои представления в конец, самые старые выбрасываются.</p>
+</div>
+
+<div class="scheme">
+  Шаг t:
+
+  Батч ──▶ Энкодер (query) ──▶ zᵍ
+              ▲
+              │
+           Обновить
+           очередь
+              │
+          ┌───┴────────────────────────┐
+          ▼                            ▼
+      Новые z (от этого батча)    Сохранённые z из очереди
+                                        ↓
+                                  Комбинация = все негативы
+                                        ↓
+                                     NT-Xent
+<span class="cap">Очередь MoCo. Новые примеры идут в конец, старые удаляются. Размер очереди фиксирован, можно кэшировать на GPU.</span></div>
+
+<h3>6.1 Momentum-энкодер</h3>
+
+<p>Но есть проблема: если encoder обновляется часто, представления в очереди быстро становятся устаревшими. MoCo вводит <strong>momentum-энкодер</strong> — вторую копию энкодера, которая обновляется медленнее.</p>
+
+<div class="formula">
+$$ \theta_{\text{key}} \leftarrow m \cdot \theta_{\text{key}} + (1-m) \cdot \theta_{\text{query}} $$
+<span class="note">$m$ — коэффициент импульса, типично $m = 0.999$. Обновление по экспоненциальному скользящему среднему (EMA).</span>
+</div>
+
+<p><strong>Зачем это нужно?</strong> Key-энкодер (или momentum-энкодер) кодирует ключи (представления в очереди), он обновляется медленно и плавно. Query-энкодер — быстро, под градиентами. Это сохраняет консистентность ключей в очереди, иначе loss становится нестабильным.</p>
+
+<h3>6.2 Формула NT-Xent в MoCo</h3>
+
+<div class="formula">
+$$ L = -\log \frac{\exp(q \cdot k_+ / \tau)}{\exp(q \cdot k_+ / \tau) + \sum_{\text{отрицательные } k} \exp(q \cdot k / \tau)} $$
+<span class="note">$q$ — query (от обновляемого энкодера), $k_+$ — положительный ключ из очереди, остальные $k$ — отрицательные ключи.</span>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s7"><span class="num">7.</span> BYOL и SimSiam: обучение без негативов</h2>
+
+<p>Зачем вообще нужны негативы? Может быть, сеть сама научится различать примеры?</p>
+
+<div class="box idea">
+  <div class="bt">💡 Идея BYOL (Bootstrap Your Own Latent)</div>
+  <p>Два энкодера: <strong>онлайн</strong> (обновляется градиентами) и <strong>целевой</strong> (обновляется EMA от онлайна). Нет предсказателя негативов. Вместо этого: онлайн энкодер имеет дополнительный <strong>предиктор</strong> $q$, который предсказывает представление целевого энкодера.</p>
+</div>
+
+<div class="scheme">
+  Картинка x
+       │
+       ├─▶ Аугм. 1 ──▶ Online encoder   ──▶ Предиктор q ──▶ p₁
+       │                                                     │
+       │                                                     │ MSE loss
+       │                                                     │
+       │   ┌────────────────────────────────────────────────┘
+       │   │
+       └─▶ Аугм. 2 ──▶ Target encoder (EMA) ──▶ p₂'
+                       (без градиентов!)
+<span class="cap">BYOL. Нет явных негативов! Онлайн энкодер + предиктор пытается «угадать» целевого энкодера. Целевой обновляется медленно (EMA).</span></div>
+
+<h3>7.1 Формула обновления</h3>
+
+<div class="formula">
+$$ L = \|q(f_{\text{online}}(x_1)) - f_{\text{target}}(x_2)\|^2_2 $$
+$$ \theta_{\text{target}} \leftarrow m \cdot \theta_{\text{target}} + (1-m) \cdot \theta_{\text{online}} $$
+<span class="note">$f_{\text{online}}$ обновляется на каждом шаге. $f_{\text{target}}$ обновляется с импульсом, не имеет градиентов (detach). $q$ — сеть предиктора.</span>
+</div>
+
+<h3>7.2 SimSiam — ещё проще</h3>
+
+<p>SimSiam делает почти то же самое, но даже без EMA на целевом энкодере! Вместо этого используется <strong>stop-gradient</strong> на выходе одного из энкодеров.</p>
+
+<div class="formula">
+$$ L = \|h(f(x_1)) - f(x_2).detach()\|^2_2 + \|h(f(x_2)) - f(x_1).detach()\|^2_2 $$
+<span class="note">$h$ — предиктор (2-слойная MLP), $.detach()$ — остановка градиента. Теория почти не объясняет, почему это работает.</span>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s8"><span class="num">8.</span> Коллапс представлений и его причины</h2>
+
+<p>Частая ошибка начинающих: обучаешь контрастивный loss, всё работает, но потом выясняется, что <strong>все представления одинаковые</strong>.</p>
+
+<div class="box errbox">
+  <div class="bt">⚠️ Коллапс: определение</div>
+  <p>Энкодер выдаёт одну и ту же векторно-значенную константу (или близко к ней) для всех входов. Формально: матрица представлений $Z$ (строки = батч) имеет низкий ранг, часто ранг 1. Это бесполезно для downstream tasks.</p>
+</div>
+
+<h3>8.1 Почему происходит коллапс?</h3>
+
+<p>Представьте, что все представления стянуты в один вектор $\bar z$. Тогда:</p>
+
+$$\text{Loss} = -\log \frac{\exp(\bar z \cdot \bar z / \tau)}{\exp(\bar z \cdot \bar z / \tau) + \exp(\bar z \cdot \bar z / \tau)} = -\log \frac{1}{2}$$
+
+<p>Loss = const! Нет градиента, обучение остановилось. Но на самом деле это локальный минимум, и градиентный спуск может застрять там.</p>
+
+<h3>8.2 Почему BYOL/SimSiam не коллапсируют?</h3>
+
+<div class="box exambox">
+  <div class="bt">🎯 Открытый и интересный вопрос</div>
+  <p>BYOL обучается без явных негативов, теория предсказывает коллапс, но на практике не коллапсирует. Три гипотезы:</p>
+  <ul>
+    <li><strong>Скрытые отрицательные пары.</strong> Может быть, другие примеры в батче являются нежелательными отрицательными парами, и их отвергание предотвращает коллапс? Но это не объясняет, почему другие методы без явных отрицаний коллапсируют.</li>
+    <li><strong>EMA целевого энкодера.</strong> Запаздывание между онлайн и целевым энкодерами вносит стабилизирующий эффект, мешающий коллапсу.</li>
+    <li><strong>Математическая тонкость в stop-gradient.</strong> Асимметрия, вносимая stop-gradient, может нарушить симметрию коллапса.</li>
+  </ul>
+  <p>Правда не известна. Это один из открытых вопросов deep learning.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s9"><span class="num">9.</span> Маскированное моделирование: BERT и MAE</h2>
+
+<p>Другое семейство SSL — маскировать часть входа и учить модель его восстанавливать.</p>
+
+<h3>9.1 BERT (Bidirectional Encoder Representations from Transformers)</h3>
+
+<p>В NLP используется <strong>masked language modeling</strong>:</p>
+
+<div class="scheme">
+  Предложение: "The cat sat on the mat"
+
+  Маска (15%): "The [MASK] sat on the [MASK]"
+
+  Задача: предсказать слова в масках
+
+  Это требует понимания контекста, синтаксиса, семантики.
+<span class="cap">BERT маскирует ~15% токенов случайно и учит модель их восстанавливать. Выучивает общие представления слов.</span></div>
+
+<h3>9.2 MAE (Masked Autoencoder)</h3>
+
+<p>В компьютерном зрении: маскировать большие куски изображения.</p>
+
+<div class="formula">
+$$ \text{Маскируют 75% патчей (!)} $$
+<span class="note">Это намного больше, чем BERT. Интуиция: восстанавливать с нуля требует сильного понимания структуры.</span>
+</div>
+
+<div class="scheme">
+  Исходная картинка (16×16 патчей) ──▶ Маска 75% ──▶ Энкодер ──▶ Декодер ──▶ Восстановление
+
+  Видит энкодер: только 4×4 = 16 патчей (25%)
+  Нужно декодеру: восстановить все 256 патчей
+<span class="cap">MAE архитектура. Асимметричность: энкодер работает с разреженными патчами, декодер полный. Это экономит вычисления.</span></div>
+
+<h3>9.3 Контрастивное vs маскированное</h3>
+
+<table>
+<thead><tr><th>Подход</th><th>Идея</th><th>Примеры</th><th>Плюсы</th><th>Минусы</th></tr></thead>
+<tbody>
+<tr><td><strong>Контрастивное</strong></td><td>Аугментации одного объекта похожи, разные объекты — нет</td><td>SimCLR, MoCo, CLIP</td><td>Топ представления на ImageNet; интуитивно; работает без модели (с заморозкой)</td><td>Требует больших батчей; не ясно, какие аугментации выбрать</td></tr>
+<tr><td><strong>Маскированное</strong></td><td>Восстанови скрытую часть из видимой</td><td>BERT, MAE</td><td>Работает с малыми батчами; очень сильное потребление информации; работает для токенов и пикселей</td><td>Медленнее на GPU (асимметрия); может выучить мусор вроде текстур</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s10"><span class="num">10.</span> CLIP: контрастивное обучение на парах изображение-текст</h2>
+
+<p>Метаданные в данных — не только аугментации, но и alt-текст, подписи. CLIP использует это.</p>
+
+<div class="scheme">
+  Изображение ──▶ Image encoder ──▶ zᵛ
+
+  Текст ──▶ Text encoder ──▶ zᵗ
+
+  Контрастивный loss: zᵛ должна быть похожа на свой текст,
+  непохожа на тексты других пар в батче
+<span class="cap">CLIP обучает два энкодера параллельно, максимизируя сходство картина-текст и минимизируя картина-чужой_текст.</span></div>
+
+<h3>10.1 Матрица сходств</h3>
+
+<p>В батче $B$ пар картина-текст строят матрицу сходств $B \times B$:</p>
+
+<div class="formula">
+$$ S_{ij} = z^v_i \cdot z^t_j / (\|z^v_i\|\|z^t_j\|) $$
+<span class="note">Диагональ: позитивные пары. Остаток: негативы.</span>
+</div>
+
+<p>Loss — это cross-entropy по строкам и столбцам, что-то вроде:</p>
+
+<div class="formula">
+$$ L = -\frac{1}{B}\sum_i \log \frac{\exp(S_{ii}/\tau)}{\sum_j \exp(S_{ij}/\tau)} - \frac{1}{B}\sum_j \log \frac{\exp(S_{jj}/\tau)}{\sum_i \exp(S_{ij}/\tau)} $$
+</div>
+
+<h3>10.2 Zero-shot классификация с CLIP</h3>
+
+<p>Выученные энкодеры можно использовать для классификации <em>без примеров новых классов</em>:</p>
+
+<div class="scheme">
+  Новая картинка ──▶ Image encoder ──▶ zᵛ
+
+  Текстовые описания классов:
+    "Фотография собаки" ──▶ Text encoder ──▶ zᵗ₁
+    "Фотография кошки" ──▶ Text encoder ──▶ zᵗ₂
+    ...
+
+  Предсказание: argmax_k cos(zᵛ, zᵗₖ)
+<span class="cap">Zero-shot = классификация на классы, не видевшихся при обучении. CLIP мощен благодаря общему пространству изображение-текст.</span></div>
+
+<!-- ============================================ -->
+<h2 id="s11"><span class="num">11.</span> Как оценивают SSL: linear probing и fine-tuning</h2>
+
+<p>После обучения энкодера нужно оценить качество выученного представления. Два стандартных способа.</p>
+
+<h3>11.1 Linear probing (линейный зонд)</h3>
+
+<p><strong>Процедура:</strong></p>
+<ol>
+  <li>Заморозить энкодер (no gradients).</li>
+  <li>На выходе энкодера прикрепить один слой линейной классификации.</li>
+  <li>Обучить только этот слой на целевой задаче (ImageNet, CIFAR и т. д.).</li>
+</ol>
+
+<p><strong>Смысл:</strong> Проверить, насколько <strong>линейно разделимо</strong> исходное представление. Если энкодер хорошо выучил признаки, линейный слой должен добиться высокой точности.</p>
+
+<div class="box mathbox">
+  <div class="bt">📐 Типичные результаты на ImageNet</div>
+  <p>Linear probing топ энкодеров:</p>
+  <ul>
+    <li>SimCLR-v2: ~76% top-1 accuracy</li>
+    <li>MoCo-v3: ~77% top-1 accuracy</li>
+    <li>MAE: ~83% top-1 accuracy (маскированное моделирование работает лучше!)</li>
+    <li>Supervised (ResNet-50): ~76% top-1 accuracy</li>
+  </ul>
+  <p>SSL сравнимо или лучше supervised на ImageNet. При малом объёме размеченных данных SSL часто работает намного лучше.</p>
+</div>
+
+<h3>11.2 Fine-tuning</h3>
+
+<p><strong>Процедура:</strong></p>
+<ol>
+  <li>Взять энкодер как инициализацию.</li>
+  <li>Убрать frozen; разрешить обновлять все слои.</li>
+  <li>Обучить сеть целиком на целевой задаче, обычно с малым learning rate.</li>
+</ol>
+
+<p><strong>Смысл:</strong> Проверить, насколько хороша инициализация. Fine-tuning обычно даёт лучшие результаты, чем linear probing, но медленнее.</p>
+
+<div class="box exambox">
+  <div class="bt">🎯 Когда что использовать</div>
+  <p><strong>Linear probing:</strong> Когда данные целевой задачи ограничены (100–1000 примеров). Быстро, стабильно, хорошо показывает качество представлений.</p>
+  <p><strong>Fine-tuning:</strong> Когда данных много (10K+). Требует подбора гиперпараметров (learning rate, расписание), но максимизирует точность.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s12"><span class="num">12.</span> Связь с метрическим обучением (лекция 8)</h2>
+
+<p>Контрастивный loss и метрическое обучение — это <strong>одна и та же математика</strong>. Отличие только в источнике позитивных пар.</p>
+
+<div class="box okbox">
+  <div class="bt">✓ Сравнение</div>
+  <p><strong>Метрическое обучение (лекция 8):</strong></p>
+  <ul>
+    <li>Позитивная пара: две картинки одного класса (метка известна).</li>
+    <li>Негативная пара: две картинки разных классов.</li>
+    <li>Требует размеченных данных.</li>
+  </ul>
+  <p><strong>Контрастивное обучение (SSL, лекция 9):</strong></p>
+  <ul>
+    <li>Позитивная пара: две аугментации одной картинки (аугментация=метка).</li>
+    <li>Негативная пара: аугментация одной картинки и любая другая картинка.</li>
+    <li>Не требует размеченных данных.</li>
+  </ul>
+  <p><strong>Формула loss одинакова:</strong> InfoNCE / NT-Xent для обоих. Различие в определении позитивов.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s13"><span class="num">13.</span> Код: NT-Xent loss на PyTorch</h2>
+
+<pre><code><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
+
+<span class="kw">def</span> nt_xent_loss(z1, z2, temperature=<span class="num2">0.07</span>):
+    <span class="cmt">"""
+    NT-Xent (normalized temperature-scaled cross entropy) loss.
+
+    Args:
+        z1, z2: тензоры размера (B, D) — представления двух версий батча
+        temperature: параметр T
+
+    Returns:
+        scalar loss
+    """</span>
+    B = z1.shape[<span class="num2">0</span>]
+
+    <span class="cmt"># Нормализовать представления</span>
+    z1 = F.normalize(z1, dim=<span class="num2">1</span>)  <span class="cmt"># (B, D)</span>
+    z2 = F.normalize(z2, dim=<span class="num2">1</span>)
+
+    <span class="cmt"># Конкатенировать: каждый пример имеет позитива в другой версии</span>
+    z = torch.cat([z1, z2], dim=<span class="num2">0</span>)  <span class="cmt"># (2B, D)</span>
+
+    <span class="cmt"># Матрица сходств: cos-подобие</span>
+    sim = torch.mm(z, z.T) / temperature  <span class="cmt"># (2B, 2B)</span>
+
+    <span class="cmt"># Позитивные пары: (i, i+B) и (i+B, i)</span>
+    pos_indices = torch.arange(B, device=z.device)
+    pos_i = torch.cat([pos_indices, pos_indices + B])
+    pos_j = torch.cat([pos_indices + B, pos_indices])
+
+    <span class="cmt"># Вектор true labels для cross-entropy</span>
+    labels = torch.zeros(<span class="num2">2</span>*B, dtype=torch.long, device=z.device)
+    <span class="kw">for</span> i <span class="kw">in</span> range(<span class="num2">2</span>*B):
+        labels[i] = pos_j[i]
+
+    <span class="cmt"># Cross-entropy loss (softmax + log)</span>
+    loss = F.cross_entropy(sim, labels)
+
+    <span class="kw">return</span> loss</code></pre>
+
+<div class="box warnbox">
+  <div class="bt">⚠️ Замечание о реализации</div>
+  <p>Наивная реализация выше использует цикл, что медленно. На практике используют оптимизированные версии (типа <code>lightly</code>, <code>PyTorch Lightning</code>), которые вычисляют индексы позитивов эффективнее. Смысл алгоритма тот же.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="qa">🎯 Препод спросит</h2>
+
+<details class="qa"><summary>Почему pretask первого поколения (поворот, jigsaw) работают хуже контрастивных методов?</summary>
+<div class="ans">
+<p>Потому что они требуют только <strong>локального</strong> или <strong>глобального признака</strong>, но не требуют полноты семантической информации. Например, поворот можно определить по текстуре или ориентации линий, без понимания объектов. Контрастивный loss, напротив, требует различать между аугментациями одного объекта и разных объектов — это вынуждает учить семантику.</p>
+</div></details>
+
+<details class="qa"><summary>Зачем в SimCLR нужна сильная аугментация (crop + color jitter)?</summary>
+<div class="ans">
+<p>Без цветовой аугментации сеть жульничает: фокусируется на цветовой гистограмме картинки, которая почти инвариантна к аугментациям. Это показано явным экспериментом в статье: убрать color jitter → точность резко падает. Crop критичен, потому что разные части одного объекта должны быть позитивной парой, а при малом crop это становится нетривиальным.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое проекционная голова (projection head) в SimCLR и почему её выбрасывают?</summary>
+<div class="ans">
+<p>Проекционная голова $g$ — дополнительная сеть (обычно 2-слойная MLP), которая преобразует представление энкодера $f(x)$ в пространство, где считается контрастивный loss. После обучения её выбрасывают и используют только $f(x)$. Интуиция: $g$ оптимизирует представление под специфичную контрастивную loss, а $f$ выучивает общие признаки. Для downstream tasks нужны общие признаки $f(x)$, не специфичное пространство $g(f(x))$.</p>
+</div></details>
+
+<details class="qa"><summary>Почему в SimCLR нужен большой батч?</summary>
+<div class="ans">
+<p>Потому что в батче размера $B$ есть $2B-2$ негативных примеров для каждого позитива. Малый батч = мало негативов = слабый контраст, сеть может выучить коллапс (все представления одинаковые). Большой батч обеспечивает разнообразие негативов, что стабилизирует обучение. На практике батчи 256–8192 стандартны.</p>
+</div></details>
+
+<details class="qa"><summary>Как решает проблему большого батча алгоритм MoCo?</summary>
+<div class="ans">
+<p>MoCo хранит <strong>очередь (queue)</strong> из $N \approx 65\,536$ недавних представлений (негативов). Новый батч добавляется в конец, старые выбрасываются. Это даёт много негативов без огромного батча. Дополнительно используется <strong>momentum-энкодер</strong>, который обновляется медленно (EMA), чтобы сохранить консистентность ключей в очереди. Формула: $\theta_{\text{key}} \leftarrow m \cdot \theta_{\text{key}} + (1-m) \cdot \theta_{\text{query}}$ с $m \approx 0.999$.</p>
+</div></details>
+
+<details class="qa"><summary>BYOL обучается без явных негативов — почему не коллапсирует?</summary>
+<div class="ans">
+<p>Это <strong>открытый вопрос</strong> в теории deep learning. BYOL использует онлайн энкодер с предиктором и целевой энкодер (обновляемый EMA). Теория предсказывает коллапс, но на практике это не происходит. Три гипотезы: (1) батч содержит скрытые отрицательные пары; (2) EMA целевого энкодера стабилизирует, мешая коллапсу; (3) асимметрия в архитектуре нарушает симметрию коллапса. Правда неизвестна и активно исследуется.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое коллапс представлений и как его обнаружить?</summary>
+<div class="ans">
+<p>Коллапс — когда энкодер выдаёт почти одинаковый вектор для всех входов. Формально: матрица представлений $Z$ (батч × размерность) имеет низкий ранг, часто ранг 1. Обнаружение: вычислить спектр сингулярных чисел матрицы $Z$; если есть сильный перекос (один большой, остальные малы), это коллапс. При коллапсе downstream accuracy в linear probing падает до случайного уровня (~10% на ImageNet).</p>
+</div></details>
+
+<details class="qa"><summary>Чем контрастивное обучение отличается от метрического обучения (лекция 8)?</summary>
+<div class="ans">
+<p>Математика одинакова: обе используют InfoNCE / NT-Xent loss. Отличие — в источнике позитивных пар. Метрическое обучение: позитив = две картинки одного <strong>класса (метка)</strong>. Контрастивное (SSL): позитив = две <strong>аугментации одной картинки</strong>. SSL не требует разметки, потому что аугментация = автоматическая метка. На практике контрастивный loss из SSL часто сильнее, чем метрический с метками, потому что аугментации предоставляют жёсткие геометрические ограничения.</p>
+</div></details>
+
+<details class="qa"><summary>Как CLIP делает zero-shot классификацию?</summary>
+<div class="ans">
+<p>CLIP обучает два энкодера параллельно: image encoder $f_v$ и text encoder $f_t$ на парах (картинка, текст-подпись) с контрастивным loss. После обучения, для zero-shot классификации берут новую картинку $x$ и текстовые описания классов (например, "фотография собаки", "фотография кошки"). Вычисляют косинусное сходство $\cos(f_v(x), f_t(\text{описание класса }k))$ для всех $k$, выбирают argmax. Это работает даже для классов, не видевшихся при обучении, потому что общее представление изображение-текст богато.</p>
+</div></details>
+
+<details class="qa"><summary>Linear probing vs fine-tuning: когда что использовать?</summary>
+<div class="ans">
+<p>Linear probing: заморозить энкодер, обучить только финальный линейный слой. Быстро, стабильно, показывает качество представлений. Когда: мало разметки (100–1000 примеров), нужна быстрая оценка. Fine-tuning: разрешить обновлять все слои, начиная с малого learning rate. Медленнее, требует подбора гиперпараметров. Когда: много разметки (10K+), максимизируем точность на целевой задаче. На практике: linear probing часто даёт 90% от fine-tuning качества, но в 10 раз быстрее.</p>
+</div></details>
+
+<details class="qa"><summary>Почему MAE (75% маскирование) работает лучше BERT (15% маскирование)?</summary>
+<div class="ans">
+<p>В BERT маскируют 15% токенов. В MAE — 75% патчей изображения. Более сильное маскирование требует восстанавливать с почти нуля, что требует полного понимания структуры и геометрии, не только локальных паттернов. Это является более сильным сигналом для обучения. Экспериментально MAE достигает ~83% linear probing на ImageNet против ~76% у лучших контрастивных методов. Интуиция: маскированное моделирование работает как более сложная pretask.</p>
+</div></details>
+
+<details class="qa"><summary>Объясни роль температуры τ в контрастивном loss. Что если τ → 0 или τ → ∞?</summary>
+<div class="ans">
+<p>NT-Xent loss использует температуру $\tau$ для масштабирования логитов: $\exp(s(z_i, z_j)/\tau)$. При $\tau \to 0$: логиты обостряются, соответствие подчёркивается. Сеть сильно штрафует трудные негативы (похожие на позитив). Может быть нестабильно. При $\tau \to \infty$: логиты сглаживаются, все примеры выглядят одинаково похожими, обучение медленное, нет дифференциации. На практике $\tau \approx 0.07$ обычно оптимально — найдено эмпирически. Это управляет trade-off между фокусировкой и стабильностью.</p>
+</div></details>
+
+<!-- ============================================ -->
+<h2 id="tasks">📝 Микро-задачи</h2>
+
+<div class="task">
+  <div class="tt">Задача 1. Расчёт NT-Xent loss вручную</div>
+  <p>Батч из 2 пар. Представления (нормализованные): $z_1 = [1, 0]$, $z_2 = [0, 1]$, $z_3 = [-1, 0]$, $z_4 = [0, -1]$ (где $z_1, z_2$ — версии 1-го примера; $z_3, z_4$ — версии 2-го). Температура $\tau = 1$. Найти loss.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Матрица косинусного сходства (уже нормализованы, так что $S = Z \cdot Z^\top$):</p>
+    <p>$$S = \begin{pmatrix} 1 & 0 & -1 & 0 \\ 0 & 1 & 0 & -1 \\ -1 & 0 & 1 & 0 \\ 0 & -1 & 0 & 1 \end{pmatrix}$$</p>
+    <p>Позитивные пары: (1,2), (2,1), (3,4), (4,3).</p>
+    <p>Для первого объекта ($z_1$ с позитивом $z_2$):</p>
+    <p>$$\ell_{1,2} = -\ln \frac{\exp(s(z_1, z_2)/\tau)}{\sum_{k \neq 1} \exp(s(z_1, z_k)/\tau)} = -\ln \frac{\exp(0)}{\exp(0) + \exp(-1) + \exp(0)} = -\ln \frac{1}{2 + e^{-1}} = \ln(2 + e^{-1})$$</p>
+    <p>Поскольку $e^{-1} \approx 0.3679$, получаем $2 + e^{-1} \approx 2.3679$, вероятность $p = 1 / 2.367879 \approx 0.4223$, и $\text{loss} = \ln(2.367879) \approx 0.862$.</p>
+    <p>По симметрии все четыре примера дают один и тот же loss.</p>
+    <p><strong>Итого: $\text{Loss} = \ln(2 + e^{-1}) \approx 0.862$.</strong></p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 2. Размер очереди в MoCo</div>
+  <p>В MoCo очередь хранит $N = 65\,536$ представлений. Батч размера $B = 256$ добавляется на каждом шаге. За сколько шагов очередь полностью обновится?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>На каждом шаге 256 старых представлений выбрасываются (из конца FIFO) и добавляются 256 новых. Полное обновление = когда каждое исходное представление из очереди выбросили.</p>
+    <p>Время жизни представления в очереди: $N / B = 65\,536 / 256 = 256$ шагов.</p>
+    <p>За 256 шагов очередь полностью обновится, и ни одно старое представление не останется.</p>
+    <p>Параметр $m$ для EMA momentum-энкодера обычно $m = 0.999$. За 256 шагов $0.999^{256} \approx 0.77$ — старая копия энкодера всё ещё имеет влияние ~77% (остаток от новой копии).</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 3. Коллапс: верный батч или вычисления?</div>
+  <p>Энкодер выдал представления: $z_1 = [1.0, 0.0]$, $z_2 = [1.0, 0.001]$, $z_3 = [1.0, -0.001]$, $z_4 = [1.0, 0.0005]$. Это коллапс?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Составим матрицу $Z$ (каждая строка — пример):</p>
+    <p>$$Z = \begin{pmatrix} 1.0 & 0.0 \\ 1.0 & 0.001 \\ 1.0 & -0.001 \\ 1.0 & 0.0005 \end{pmatrix}$$</p>
+    <p>Вычислим ранг через сингулярные числа. Матрица $Z$ близка к $\begin{pmatrix} 1 \\ 1 \\ 1 \\ 1 \end{pmatrix}$ (первый столбец одинаковый). Второй столбец почти ноль. Определитель минора $2\times2$ = $1 \cdot 0.001 - 1 \cdot 0.001 \approx 0$. Ранг близок к 1.</p>
+    <p><strong>Да, это коллапс.</strong> Почти все представления повторяют одно направление $[1, 0]$ с малыми вариациями. Это бесполезно для классификации.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 4. Аугментации в SimCLR: критичность color jitter</div>
+  <p>Сеть обучается без color jitter, только crop и flip. Какую вариацию изображения сеть может игнорировать?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Без color jitter две аугментации одной картинки имеют почти идентичную цветовую гистограмму (меняются только обрезка и отражение). Сеть может выучить представление, основанное только на цветовой гистограмме: вычислить средний RGB, standard deviation RGB и т.д.</p>
+    <p>Такое представление инвариантно к пространственным преобразованиям (crop, flip), но не отражает семантику объектов. Поэтому без color jitter точность linear probing падает значительно (например, с 76% до 65% на ImageNet).</p>
+    <p>Интуиция: color jitter вынуждает сеть игнорировать цвет и фокусироваться на форме, текстурах и объектах — то есть семантике.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 5. Temperature τ и стабильность обучения</div>
+  <p>При каком τ обучение может быть нестабильным (граничные случаи)?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>При $\tau \to 0$ (слишком маленькая):</strong></p>
+    <p>Логиты $s(z_i, z_j) / \tau$ становятся очень большими (положительными для позитивов, отрицательными для негативов). При численной реализации это приводит к переполнению exp() или потере точности. Градиенты становятся очень большими и нестабильными. Пример: $s = 0.1$, $\tau = 0.001$ даёт $s/\tau = 100$, что близко к пределам float32.</p>
+    <p><strong>При $\tau \to \infty$ (слишком большая):</strong></p>
+    <p>Логиты сглаживаются. Вероятности всех примеров почти одинаковые ($\approx 1/N$). Градиент по весам становится малым, обучение замедляется. Loss приблизительно $-\log(1/N) = \log N$, что не даёт информации.</p>
+    <p><strong>Оптимум:</strong> $\tau \approx 0.07$ балансирует: достаточно большая, чтобы не переполняться; достаточно маленькая, чтобы различать позитивы от негативов.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 6. Linear probing: что показывает accuracy</div>
+  <p>Linear probing на ImageNet даёт 77% accuracy. Что это означает для качества выученного представления?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>77% — довольно высокий результат (supervised ResNet-50 тоже ~76%). Это означает:</p>
+    <ol>
+      <li><strong>Представления линейно разделимы:</strong> энкодер выучил признаки, которые хорошо коррелируют с классами ImageNet даже без доступа к градиентам энкодера.</li>
+      <li><strong>Энкодер захватил семантику:</strong> признаки отражают объекты (собаки, кошки, автомобили), не только текстуры или цвета.</li>
+      <li><strong>Универсальность представлений:</strong> эти же представления часто работают и на других задачах (Transfer Learning), хотя и может быть чуть хуже.</li>
+    </ol>
+    <p>Если бы получилось 50% (случайный уровень), то представления коллапсировали или выучили бесполезные признаки. 77% — это сильный сигнал.</p>
+  </div></details>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+
+<div class="cheat">
+  <div class="bt">Скелет устного ответа по билету 9</div>
+  <ol>
+    <li><strong>Проблема.</strong> ImageNet и другие датасеты требуют дорогую ручную разметку, которая занимает годы. Данные есть в интернете триллионы, разметить всё невозможно.</li>
+    <li><strong>SSL идея.</strong> Придумать вспомогательную задачу, где метка получается бесплатно из данных (аугментации, соседство, маскирование).</li>
+    <li><strong>Претекст-задачи 1-го поколения.</strong> Поворот, jigsaw, колоризация, inpainting — работают посредственно, требуют только локального признака, не семантики.</li>
+    <li><strong>Контрастивная идея.</strong> Сблизить два вида одного объекта (позитивная пара), развести разные объекты (негативы). Loss: InfoNCE / NT-Xent.</li>
+    <li><strong>SimCLR.</strong> Две аугментации, один энкодер, две проекционные головы, NT-Xent loss. Три ключа: (1) сильная аугментация (crop + color jitter), (2) проекционная голова нужна, потом выбрасывается, (3) большой батч (256–8192).</li>
+    <li><strong>MoCo.</strong> Вместо большого батча — очередь (queue) из ~65K представлений. Momentum-энкодер обновляется EMA для консистентности ключей.</li>
+    <li><strong>BYOL/SimSiam.</strong> Обучение без явных негативов! Онлайн энкодер + предиктор пытается угадать целевого энкодера. Почему не коллапсирует — открытый вопрос (EMA, асимметрия, скрытые отрицания).</li>
+    <li><strong>Коллапс.</strong> Представления стянуты в точку. Обнаруживается: ранг матрицы $Z$ близок к 1. Лечится: явные негативы, декорреляция, stop-gradient.</li>
+    <li><strong>Маскированное моделирование.</strong> BERT (15% маскирования в NLP), MAE (75% маскирования в CV). Другое семейство SSL, часто работает лучше контрастивного (83% vs 76%).</li>
+    <li><strong>CLIP.</strong> Контрастивное обучение на парах картинка-текст. Два энкодера, матрица сходств $N \times N$. Zero-shot классификация: найти текст, похожий на картинку.</li>
+    <li><strong>Оценка.</strong> Linear probing: заморозить, обучить слой. Fine-tuning: разрешить все слои. Linear probing быстрее, fine-tuning точнее.</li>
+    <li><strong>Связь с метрическим обучением.</strong> Одинаковая математика (InfoNCE loss), отличие в источнике позитивов: метки vs аугментации.</li>
+  </ol>
+</div>
+
+<div class="navrow">
+  <a class="backlink" href="08-metric-learning.html">← Лекция 8. Метрические методы</a>
+  <a class="backlink" href="10-vae.html">Лекция 10. Вариационные автоэнкодеры →</a>
+</div>
+
+</div>
+</body>
+</html>

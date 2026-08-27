@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лекция 19. Тексты, токенизация, word2vec</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--sans); font-size:17px; line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line); padding:38px 24px 30px; margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+</style>
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]},
+  svg: {fontCache:'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Блок C · Вопрос 18 · Обработка текстов</div>
+  <h1>Лекция 19. Тексты: предобработка, токенизация, Word2Vec</h1>
+  <p class="sub">Конвейер обработки текста, лемматизация vs стемминг, эволюция токенизации (слова, символы, BPE, WordPiece, SentencePiece), переход от One-Hot к эмбеддингам, архитектуры Word2Vec (CBOW, Skip-gram), Negative Sampling и векторная арифметика.</p>
+  <div class="meta">
+    <span class="pill">⏱ 1 ч 30 мин</span>
+    <span class="pill gray">10 вопросов препода</span>
+    <span class="pill gray">6 микро-задач</span>
+    <span class="pill good">Билет 18</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<a class="backlink" href="../index.html">← К оглавлению курса</a>
+
+<nav class="toc">
+  <div class="bt">Содержание лекции</div>
+  <ol>
+    <li><a href="#s1">Конвейер предобработки текста: очистка, стоп-слова, стемминг, лемматизация</a></li>
+    <li><a href="#s2">Что такое токен? Уровни токенизации и алгоритм BPE</a></li>
+    <li><a href="#s3">От One-Hot векторов к плотным эмбеддингам (Dense Embeddings)</a></li>
+    <li><a href="#s4">Дистрибутивная гипотеза и архитектура Word2Vec</a></li>
+    <li><a href="#s5">CBOW vs Skip-gram: формулы и схемы обучения</a></li>
+    <li><a href="#s6">Ускорение обучения: Negative Sampling и Hierarchical Softmax</a></li>
+    <li><a href="#s7">Векторная арифметика и семантические свойства эмбеддингов</a></li>
+    <li><a href="#s8">GloVe и FastText: учет совместных встречаемостей и n-грамм</a></li>
+    <li><a href="#s9">Практическая реализация на PyTorch</a></li>
+    <li><a href="#qa">Препод спросит</a></li>
+    <li><a href="#tasks">Микро-задачи</a></li>
+    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="s1"><span class="num">1.</span> Конвейер предобработки текста</h2>
+
+<p>Компьютер не понимает буквы и слова — он оперирует исключительно числами и тензорами. Прежде чем текст попадет в нейросеть, он проходит классический конвейер нормализации:</p>
+
+<div class="scheme">
+  Сырой текст ("<p>Машины ОБУЧАЮТСЯ быстро!</p>")
+     │
+     ▼
+  1. Очистка и Lowercasing ("машины обучаются быстро")
+     │
+     ▼
+  2. Удаление стоп-слов (в классическом NLP) -> ("машины обучаются быстро")
+     │
+     ▼
+  3. Стемминг или Лемматизация -> ("машина", "обучаться", "быстро")
+     │
+     ▼
+  4. Токенизация и сопоставление ID -> [ 1042, 843, 19 ]
+
+<span class="cap">Классический конвейер NLP: от сырого неструктурированного текста к числовым тензорам.</span></div>
+
+<h3>Сравнение стемминга и лемматизации:</h3>
+<table>
+<thead><tr><th>Критерий</th><th>Стемминг (Stemming, Портер, Сноуболл)</th><th>Лемматизация (Lemmatization, PyMorphy2, SpaCy)</th></tr></thead>
+<tbody>
+<tr><td><strong>Принцип работы</strong></td><td>Эвристическое отсечение окончаний и суффиксов по списку правил.</td><td>Полноценный морфологический анализ слова по словарю с учетом части речи и контекста.</td></tr>
+<tr><td><strong>Результат</strong></td><td>Основа слова (Stem), которая может <em>не существовать в языке</em> (например: <em>«красивый»</em> $\to$ <code>«красив»</code>, <em>«бегущий»</em> $\to$ <code>«бег»</code>).</td><td>Каноническая словарная форма (Лемма) — <em>всегда реальное слово</em> (например: <em>«люди»</em> $\to$ <code>«человек»</code>, <em>«лучше»</em> $\to$ <code>«хороший»</code>).</td></tr>
+<tr><td><strong>Скорость работы</strong></td><td>Сверхбыстрая (простые строковые правила).</td><td>Медленнее (требует поиска по морфологическому словарю).</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> Что такое токен? Уровни токенизации и алгоритм BPE</h2>
+
+<p><strong>Токен</strong> — это минимальная атомарная единица текста, которой нейросеть присваивает числовой идентификатор (Token ID).</p>
+
+<h3>Уровни токенизации:</h3>
+<ul>
+  <li><strong>По словам (Word-level):</strong> Каждое слово — токен. <em>Минусы:</em> размер словаря $|V| > 1\,000\,000$, память перегружена, проблема <strong>OOV (Out-Of-Vocabulary)</strong> — любое новое незнакомое слово превращается в бессмысленный `[UNK]`.</li>
+  <li><strong>По символам (Character-level):</strong> Буквы и знаки. Размер словаря $|V| \approx 100$. Нет OOV. <em>Минусы:</em> последовательности становятся длиннее в 5–7 раз, один символ почти не несет семантики.</li>
+  <li><strong>По субсловам (Subword Tokenization) — Стандарт LLM:</strong> Частые слова сохраняются целиком, а редкие/сложные разбиваются на морфемы и слоги (например: <code>«непревзойденный»</code> $\to$ <code>[«не», «##превзойд», «##енный»]</code>).</li>
+</ul>
+
+<div class="box idea">
+  <div class="bt">💡 Алгоритм Byte-Pair Encoding (BPE, Sennrich et al., 2016)</div>
+  <ol>
+    <li>Инициализируем словарь всеми отдельными символами/байтами алфавита. Каждое слово в обучающем корпусе разбивается на символы: <code>l o w &lt;/w&gt;</code>, <code>l o w e s t &lt;/w&gt;</code>.</li>
+    <li>Считаем частоту встречаемости всех соседних пар токенов во всем корпусе.</li>
+    <li>Находим самую частую пару (например, <code>(l, o)</code>) и объединяем ее в новый единый токен <code>lo</code>. Добавляем его в словарь.</li>
+    <li>Повторяем шаги 2–3 заданное число раз (например, 32 000 или 50 000 итераций мерджа).</li>
+  </ol>
+  <p><strong>Результат:</strong> Фиксированный размер словаря, нулевой процент OOV-слов, способность распознавать корни и приставки.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> От One-Hot векторов к плотным эмбеддингам (Dense Embeddings)</h2>
+
+<div class="scheme">
+  ONE-HOT КОДИРОВАНИЕ (|V| = 50 000):
+  "Кот"    = [ 1, 0, 0, 0, ..., 0 ]  (Огромный разреженный вектор, 99.99% нулей)
+  "Собака" = [ 0, 1, 0, 0, ..., 0 ]
+  Скалярное произведение: "Кот" · "Собака" = 0 (Семантическое сходство НЕВОЗМОЖНО измерить!)
+
+  ПЛОТНЫЕ ЭМБЕДДИНГИ (DENSE EMBEDDINGS, d = 300):
+  "Кот"    = [ 0.25, -0.81,  0.44, ...,  0.12 ]
+  "Собака" = [ 0.28, -0.79,  0.41, ...,  0.09 ]
+  Косинусное сходство: cos("Кот", "Собака") ≈ 0.92 (Сеть знает, что это домашние животные!)
+
+<span class="cap">Переход от One-Hot к плотным эмбеддингам решает проклятие размерности и наделяет векторы смыслом.</span></div>
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> Дистрибутивная гипотеза и архитектура Word2Vec</h2>
+
+<p>В основе современных представлений слов лежит <strong>дистрибутивная гипотеза Джона Ферса (1957)</strong>: <em>«You shall know a word by the company it keeps»</em> («Слово познается по его окружению»). Слова, встречающиеся в схожих контекстах, обладают близким смыслом.</p>
+
+<p>В 2013 году Томаш Миколов (Google) представил семейство моделей <strong>Word2Vec</strong>, обучающих эмбеддинги слов через самоконтролируемую задачу предсказания контекста.</p>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> CBOW vs Skip-gram: формулы и схемы обучения</h2>
+
+<div class="scheme">
+  CBOW (Continuous Bag of Words):                SKIP-GRAM:
+  Контекст: w_{t-2}, w_{t-1}, w_{t+1}, w_{t+2}    Центральное слово: w_t
+                     │                                         │
+                     ▼                                         ▼
+            [ Усреднение векторов ]                  [ Проекция через W ]
+                     │                                         │
+                     ▼                                         ▼
+          Предсказание слова: w_t                Предсказание контекста: w_{t-2}, w_{t-1}, ...
+
+<span class="cap">Архитектуры Word2Vec: CBOW предсказывает центр по контексту, Skip-gram — контекст по центру.</span></div>
+
+<h3>Сравнение CBOW и Skip-gram:</h3>
+<table>
+<thead><tr><th>Модель</th><th>Постановка задачи</th><th>Скорость обучения</th><th>Где работает лучше</th></tr></thead>
+<tbody>
+<tr><td><strong>CBOW</strong></td><td>$\max \sum \log P(w_t \mid w_{t-c}, \dots, w_{t+c})$</td><td><strong>Быстрее</strong> (усредняет контекст в один вектор).</td><td>На больших датасетах, лучше улавливает частые слова и синтаксис.</td></tr>
+<tr><td><strong>Skip-gram</strong></td><td>$\max \sum \sum_{-c \le j \le c, j \ne 0} \log P(w_{t+j} \mid w_t)$</td><td>Медленнее (порождает $2c$ обучающих пар на каждое слово).</td><td><strong>Намного лучше работает с редкими словами</strong> и семантическими связями.</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s6"><span class="num">6.</span> Ускорение обучения: Negative Sampling и Hierarchical Softmax</h2>
+
+<p>Наивное вычисление вероятности через Softmax требует нормализации по всему словарю $|V|$:</p>
+$$ P(w_O \mid w_I) = \frac{\exp(v'_{w_O}{}^T v_{w_I})}{\sum_{w=1}^{|V|} \exp(v'_w{}^T v_{w_I})} $$
+<p>При $|V| = 1\,000\,000$ знаменатель требует миллиардов операций на каждом шаге SGD.</p>
+
+<div class="box okbox">
+  <div class="bt">🎯 Negative Sampling (SGNS — Skip-Gram Negative Sampling)</div>
+  <p>Задача многоклассовой классификации заменяется набором <strong>бинарных логистических регрессий</strong>: отличить реальную контекстную пару $(w_I, w_O)$ от $K$ случайно выбранных «шумовых» слов $\{w_1, \dots, w_K\}$:</p>
+  <div class="formula">
+  $$ L_{\text{SGNS}} = \log \sigma\left( v'_{w_O}{}^T v_{w_I} \right) + \sum_{k=1}^K \mathbb{E}_{w_k \sim P_n(w)} \left[ \log \sigma\left( -v'_{w_k}{}^T v_{w_I} \right) \right] $$
+  <span class="note">$K \approx 5 \dots 20$ негативных примеров на 1 позитивный. Сложность падает с $O(|V|)$ до $O(K)$!</span>
+  </div>
+  <p><strong>Шумовое распределение $P_n(w)$ (Unigram Table):</strong> слова сэмплируются пропорционально их частоте в степени $3/4$: $P(w) \propto f(w)^{0.75}$. Это немного приподнимает шансы редких слов попасть в негативные примеры.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s7"><span class="num">7.</span> Векторная арифметика и семантические свойства эмбеддингов</h2>
+
+<p>Пространство Word2Vec обладает удивительным свойством <strong>линейной композиционности</strong>:</p>
+
+<div class="formula">
+$$ \vec{v}(\text{«Король»}) - \vec{v}(\text{«Мужчина»}) + \vec{v}(\text{«Женщина»}) \approx \vec{v}(\text{«Королева»}) $$
+$$ \vec{v}(\text{«Москва»}) - \vec{v}(\text{«Россия»}) + \vec{v}(\text{«Франция»}) \approx \vec{v}(\text{«Париж»}) $$
+</div>
+
+<p>Векторы разностей кодируют абстрактные отношения: род, число, время глагола, столицу государства.</p>
+
+<!-- ============================================ -->
+<h2 id="s8"><span class="num">8.</span> GloVe и FastText</h2>
+
+<ul>
+  <li><strong>GloVe (Global Vectors, Pennington et al., 2014):</strong> Обучается не на скользящем окне, а на <em>глобальной матрице совместных встречаемостей слов</em> $X_{i, j}$, минимизируя лосс взвешенной факторизации $L = \sum f(X_{i,j}) (w_i^T \tilde{w}_j + b_i + \tilde{b}_j - \log X_{i,j})^2$.</li>
+  <li><strong>FastText (Bojanowski et al., Facebook, 2016):</strong> Развитие Word2Vec, где вектор слова складывается из суммы эмбеддингов его символьных $n$-грамм (например, для <code>«где»</code> при $n=3$: <code>&lt;гд</code>, <code>где</code>, <code>де&gt;</code>). <strong>Преимущество:</strong> строит качественные эмбеддинги для опечаток и незнакомых OOV-слов!</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s9"><span class="num">9.</span> Практическая реализация на PyTorch</h2>
+
+<p>Модуль Skip-Gram с Negative Sampling:</p>
+
+<pre><code><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+<span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
+
+<span class="kw">class</span> Word2VecSGNS(nn.Module):
+    <span class="kw">def</span> __init__(self, vocab_size, embed_dim):
+        <span class="kw">super</span>().__init__()
+        <span class="cmt"># Матрица целевых слов W (Input embeddings)</span>
+        self.in_embed = nn.Embedding(vocab_size, embed_dim)
+        <span class="cmt"># Матрица контекстных слов W' (Output embeddings)</span>
+        self.out_embed = nn.Embedding(vocab_size, embed_dim)
+        
+        <span class="cmt"># Инициализация небольшими весами</span>
+        self.in_embed.weight.data.uniform_(-<span class="num2">0.5</span>/embed_dim, <span class="num2">0.5</span>/embed_dim)
+        self.out_embed.weight.data.zero_()
+
+    <span class="kw">def</span> forward(self, center_words, pos_context, neg_context):
+        <span class="cmt"># center_words: (B,)</span>
+        <span class="cmt"># pos_context: (B,)</span>
+        <span class="cmt"># neg_context: (B, K)</span>
+        
+        v_center = self.in_embed(center_words)         <span class="cmt"># (B, d)</span>
+        v_pos = self.out_embed(pos_context)           <span class="cmt"># (B, d)</span>
+        v_neg = self.out_embed(neg_context)           <span class="cmt"># (B, K, d)</span>
+        
+        <span class="cmt"># 1. Позитивный лосс: log(sigma(v_pos · v_center))</span>
+        pos_scores = torch.sum(v_center * v_pos, dim=-<span class="num2">1</span>) <span class="cmt"># (B,)</span>
+        pos_loss = F.logsigmoid(pos_scores)
+        
+        <span class="cmt"># 2. Негативный лосс: sum(log(sigma(-v_neg · v_center)))</span>
+        neg_scores = torch.bmm(v_neg, v_center.unsqueeze(-<span class="num2">1</span>)).squeeze(-<span class="num2">1</span>) <span class="cmt"># (B, K)</span>
+        neg_loss = torch.sum(F.logsigmoid(-neg_scores), dim=-<span class="num2">1</span>)
+        
+        <span class="cmt"># Суммарный лосс для минимизации</span>
+        <span class="kw">return</span> -torch.mean(pos_loss + neg_loss)
+</code></pre>
+
+<!-- ============================================ -->
+<h2 id="qa">🎯 Препод спросит</h2>
+
+<details class="qa"><summary>В чем разница между CBOW и Skip-gram и что лучше для редких слов?</summary>
+<div class="ans">
+<p>CBOW предсказывает одно центральное слово по усредненному вектору контекста. Skip-gram по одному центральному слову предсказывает каждое контекстное слово по отдельности. Для редких слов <strong>Skip-gram работает намного лучше</strong>, потому что в CBOW редкое слово растворяется при усреднении с частыми словами контекста, а в Skip-gram редкое слово получает полноценный индивидуальный градиентный сигнал при каждом появлении в центре.</p>
+</div></details>
+
+<details class="qa"><summary>Зачем в Negative Sampling частоты слов возводят в степень 3/4 ($f(w)^{0.75}$)?</summary>
+<div class="ans">
+<p>Если сэмплировать негативные слова пропорционально их реальной частоте $f(w)$, 99% негативов составят предлоги и союзы (<em>«и», «в», «на»</em>). Если сэмплировать равномерно, редкие слова будут встречаться слишком часто. Степень $0.75$ — математический компромисс: она слегка подавляет суперчастые слова и приподнимает вероятность выбора среднечастотных и редких слов.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое BPE и почему все современные LLM используют токенизацию по субсловам?</summary>
+<div class="ans">
+<p>Byte-Pair Encoding (BPE) — алгоритм сжатия и токенизации, который итеративно объединяет самые частые пары символов/байт. Субсловная токенизация решает проблему Out-Of-Vocabulary (любое новое слово можно разбить на известные кусочки или байты), держит словарь в компактном размере (32k–128k) и сохраняет морфологические корни слов.</p>
+</div></details>
+
+<details class="qa"><summary>Почему в Word2Vec две матрицы весов ($W$ и $W'$), а не одна?</summary>
+<div class="ans">
+<p>Матрица $W$ хранит векторное представление слова, когда оно выступает в роли <em>центрального слова</em> (Input vector). Матрица $W'$ хранит его вектор, когда оно выступает в роли <em>контекста</em> (Output vector). Разделение матриц делает оптимизацию гладкой и предотвращает тривиальные автокорреляции. После окончания обучения матрицы либо усредняют $W_{\text{final}} = \frac{W + W'}{2}$, либо берут только входную матрицу $W$.</p>
+</div></details>
+
+<details class="qa"><summary>Чем FastText принципиально отличается от Word2Vec?</summary>
+<div class="ans">
+<p>В Word2Vec каждое слово атомарно и представлено одним вектором. В FastText слово представляется как сумма векторов его символьных $n$-грамм (плюс вектор слова целиком). Это позволяет FastText генерировать осмысленные эмбеддинги для слов с опечатками, словоформ и неологизмов, которых не было в обучающем словаре.</p>
+</div></details>
+
+<details class="qa"><summary>В чем разница между статическими эмбеддингами (Word2Vec) и контекстуализированными (BERT)?</summary>
+<div class="ans">
+<p>В Word2Vec слово <em>«замок»</em> всегда имеет <strong>один и тот же фиксированный вектор</strong>, независимо от того, идет ли речь о песчаном замке или дверном замке. В BERT эмбеддинг слова вычисляется слоем Self-Attention динамически и зависит от всего окружающего контекста предложения.</p>
+</div></details>
+
+<details class="qa"><summary>Как пошагово работает алгоритм Byte-Pair Encoding (BPE) при построении словаря токенов и токенизации нового текста?</summary>
+<div class="ans">
+<p>Алгоритм BPE (Sennrich et al., 2015) выполняется в два этапа:</p>
+<ol>
+  <li><strong>Обучение словаря (Training):</strong>
+    <ul>
+      <li>Текст обучающего корпуса разбивается на отдельные слова, каждое слово представляется как последовательность символов со специальным суффиксом конца слова <code>&lt;/w&gt;</code> (например, <code>"н и з к и й &lt;/w&gt;"</code>). Инициализируется базовый словарь уникальных символов.</li>
+      <li>На каждом шаге алгоритм подсчитывает частоту встречаемости всех смежных пар токенов во всем корпусе.</li>
+      <li>Самая частая пара объединяется в новый единый токен (например, <code>('к', 'и') $\to$ 'ки'</code>), который добавляется в словарь, а правило слияния (Merge Rule) записывается в таблицу приоритетов.</li>
+      <li>Процесс повторяется итеративно до достижения заданного размера словаря $|V|$ (например, $32\,000$ или $50\,257$ в GPT-2).</li>
+    </ul>
+  </li>
+  <li><strong>Токенизация нового текста (Inference):</strong>
+    <ul>
+      <li>Входное слово разбивается на отдельные символы. Все выученные правила слияния применяются к парам символов строго в том порядке, в котором они были выучены на этапе обучения.</li>
+    </ul>
+  </li>
+</ol>
+<p>В современных LLM (GPT-4, LLaMA) используется <strong>Byte-level BPE</strong>: начальный словарь состоит из 256 возможных байтов, что исключает появление неизвестных токенов (нет <code>&lt;UNK&gt;</code>).</p>
+</div></details>
+
+<details class="qa"><summary>Математически выведите целевую функцию Skip-gram с Negative Sampling (SGNS) из бинарной логистической регрессии.</summary>
+<div class="ans">
+<p>Классический Softmax требует вычисления знаменателя по всему словарю $\sum_{w \in V} \exp(v_w^\top v_c)$ ($|V| \sim 10^5\dots 10^6$), что вычислительно невозможно. В методе SGNS (Mikolov et al., 2013) задача многоклассовой классификации заменяется на набор независимых бинарных классификаций:</p>
+<ul>
+  <li>Для истинной контекстной пары $(w_I, w_O)$ модель максимизирует вероятность того, что пара является реальной ($y=1$):
+  $$P(y=1 | w_I, w_O) = \sigma({v'_{w_O}}^\top v_{w_I}) = \frac{1}{1 + \exp(-{v'_{w_O}}^\top v_{w_I})}$$
+  </li>
+  <li>Для $k$ случайно сэмплированных шумовых слов $w_i \sim P_n(w)$ модель максимизирует вероятность того, что пара является искусственным шумом ($y=0$):
+  $$P(y=0 | w_I, w_i) = 1 - \sigma({v'_{w_i}}^\top v_{w_I}) = \sigma(-{v'_{w_i}}^\top v_{w_I})$$
+  </li>
+</ul>
+<p>Логарифмическая функция правдоподобия для одной пары принимает вид:</p>
+$$\mathcal{L}_{\text{SGNS}} = \log \sigma({v'_{w_O}}^\top v_{w_I}) + \sum_{i=1}^k \mathbb{E}_{w_i \sim P_n(w)} \left[ \log \sigma(-{v'_{w_i}}^\top v_{w_I}) \right]$$
+<p>Максимизация $\mathcal{L}_{\text{SGNS}}$ стягивает эмбеддинги встречающихся рядом слов и отталкивает векторы случайных шумовых слов, требуя всего $O(k)$ операций вместо $O(|V|)$.</p>
+</div></details>
+
+<details class="qa"><summary>В чем принципиальная разница между алгоритмами субсловной токенизации BPE, WordPiece и Unigram LM (SentencePiece)?</summary>
+<div class="ans">
+<p>Три ключевых алгоритма субсловной токенизации различаются критерием выбора токенов и направлением оптимизации:</p>
+<ol>
+  <li><strong>BPE (Byte-Pair Encoding, GPT, RoBERTa):</strong> Восходящий (Bottom-Up) жадный алгоритм. Выбирает для объединения пару с <em>максимальной абсолютной частотой встречаемости</em> в корпусе: $\text{argmax}_{(a,b)} \text{count}(ab)$.</li>
+  <li><strong>WordPiece (BERT):</strong> Восходящий алгоритм. Объединяет пару, которая <em>максимизирует правдоподобие языковой модели</em> (или взаимную информацию), то есть максимизирует отношение $\frac{\text{count}(ab)}{\text{count}(a) \cdot \text{count}(b)}$. Это защищает от частого объединения банальных букв, если они не образуют устойчивый смысловой блок.</li>
+  <li><strong>Unigram LM (SentencePiece, T5, ALBERT, LLaMA):</strong> Нисходящий (Top-Down) вероятностный подход (Kudo, 2018). Начинает с огромного избыточного словаря и итеративно удаляет токены, удаление которых минимально увеличивает функцию потерь (loss) языковой модели. Позволяет применять <strong>Subword Regularization</strong> (сэмплирование разных вариантов разбиения одного слова при обучении для повышения устойчивости к опечаткам).</li>
+</ol>
+</div></details>
+
+<details class="qa"><summary>Почему в эмбеддингах Word2Vec работают семантические векторные аналогии (например, $\vec{v}_{\text{Король}} - \vec{v}_{\text{Мужчина}} + \vec{v}_{\text{Женщина}} \approx \vec{v}_{\text{Королева}}$)?</summary>
+<div class="ans">
+<p>Теоретическое обоснование линейных свойств векторных пространств Word2Vec дали Levy & Goldberg (2014) и Arora et al. (2016):</p>
+<ol>
+  <li><strong>Факторизация PMI-матрицы:</strong> Оптимизация Skip-gram с Negative Sampling эквивалентна неявной низкоранговой факторизации матрицы поточечной взаимной информации со сдвигом:
+  $$M_{ij} = v_i^\top v'_j = \text{PMI}(w_i, c_j) - \log k = \log \left(\frac{P(w_i, c_j)}{P(w_i)P(c_j)}\right) - \log k$$
+  </li>
+  <li><p><strong>Лог-линейность контекстных вероятностей:</strong> Отношение шансов встретить контекстное слово $x$ рядом со словами «Король» и «Королева» отражает гендерную разницу точно так же, как для пары «Мужчина» и «Женщина»:</p>
+  $$\log \frac{P(x | \text{Король})}{P(x | \text{Королева})} \approx \log \frac{P(x | \text{Мужчина})}{P(x | \text{Женщина})}$$
+  <p>При подстановке скалярных произведений в логарифм вероятностей: $(v_{\text{Король}} - v_{\text{Королева}})^\top v_x \approx (v_{\text{Мужчина}} - v_{\text{Женщина}})^\top v_x$ для всех контекстов $x$.</p></li>
+</ol>
+<p>Так как это равенство выполняется для широкого спектра контекстных слов $x$, векторная разность $v_{\text{Король}} - v_{\text{Мужчина}} \approx v_{\text{Королева}} - v_{\text{Женщина}}$ образует устойчивый вектор направленного семантического сдвига.</p>
+</div></details>
+
+<!-- ============================================ -->
+<h2 id="tasks">📝 Микро-задачи</h2>
+
+<div class="task">
+  <div class="tt">Задача 1. Расчет косинусного сходства (Cosine Similarity)</div>
+  <p>Даны векторы трех слов: $\vec{v}(\text{кот}) = [1, 2]$, $\vec{v}(\text{пес}) = [2, 4]$, $\vec{v}(\text{дом}) = [-2, 1]$. Найдите косинусное сходство между парами «кот-пес» и «кот-дом».</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>1. Пара «кот-пес»:</p>
+    <p>Скалярное произведение: $1 \cdot 2 + 2 \cdot 4 = 2 + 8 = 10$.</p>
+    <p>Нормы: $\|\vec{v}_{\text{кот}}\| = \sqrt{1^2 + 2^2} = \sqrt{5}$, $\|\vec{v}_{\text{пес}}\| = \sqrt{2^2 + 4^2} = \sqrt{20} = 2\sqrt{5}$.</p>
+    <p>$$ \cos(\text{кот}, \text{пес}) = \frac{10}{\sqrt{5} \cdot 2\sqrt{5}} = \frac{10}{10} = 1.0 \quad (\text{Коллинеарны!}) $$</p>
+    <p>2. Пара «кот-дом»:</p>
+    <p>Скалярное произведение: $1 \cdot (-2) + 2 \cdot 1 = -2 + 2 = 0$.</p>
+    <p>$$ \cos(\text{кот}, \text{дом}) = 0.0 \quad (\text{Ортогональны}) $$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 2. Ручной шаг алгоритма BPE</div>
+  <p>Дан мини-корпус со счетчиками слов: <code>{"н и з к и й &lt;/w&gt;": 5, "н и з о к &lt;/w&gt;": 2, "в ы с о к и й &lt;/w&gt;": 3}</code>. Какая пара символов будет объединена на первом шаге BPE?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Посчитаем частоты всех пар:</p>
+    <ul>
+      <li><code>(н, и)</code>: 5 + 2 = 7</li>
+      <li><code>(и, з)</code>: 5 + 2 = 7</li>
+      <li><code>(з, к)</code>: 5</li>
+      <li><code>(к, и)</code>: 5 + 3 = 8</li>
+      <li><code>(и, й)</code>: 5 + 3 = 8</li>
+      <li><code>(й, &lt;/w&gt;)</code>: 5 + 3 = 8</li>
+      <li><code>(з, о)</code>: 2</li>
+      <li><code>(о, к)</code>: 2 + 3 = 5</li>
+      <li><code>(в, ы)</code>: 3</li>
+      <li><code>(ы, с)</code>: 3</li>
+      <li><code>(с, о)</code>: 3</li>
+    </ul>
+    <p>Пары <code>(к, и)</code>, <code>(и, й)</code> и <code>(й, &lt;/w&gt;)</code> имеют максимальную частоту 8. Алгоритм выберет первую из них — <code>(к, и)</code> — и объединит в токен <code>ки</code>.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 3. Подсчет обучающих пар в Skip-gram</div>
+  <p>Предложение: <em>«глубокое обучение трансформирует весь современный мир»</em> (6 слов). Размер окна контекста $c = 2$. Сколько обучающих пар $(w_I, w_O)$ сформирует Skip-gram без учета краев?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Для каждого центрального слова с полным окном генерируется $2c = 4$ пары.</p>
+    <ul>
+      <li>Слово 1 (глубокое): 2 соседа справа $\to$ 2 пары.</li>
+      <li>Слово 2 (обучение): 1 слева, 2 справа $\to$ 3 пары.</li>
+      <li>Слово 3 (трансформирует): 2 слева, 2 справа $\to$ 4 пары.</li>
+      <li>Слово 4 (весь): 2 слева, 2 справа $\to$ 4 пары.</li>
+      <li>Слово 5 (современный): 2 слева, 1 справа $\to$ 3 пары.</li>
+      <li>Слово 6 (мир): 2 слева $\to$ 2 пары.</li>
+    </ul>
+    <p>$$ \text{Всего пар} = 2 + 3 + 4 + 4 + 3 + 2 = 18 \text{ пар} $$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 4. Подсчет параметров Word2Vec</div>
+  <p>Словарь содержит $|V| = 100\,000$ слов, размерность эмбеддинга $d = 300$. Сколько суммарно параметров содержат матрицы $W$ и $W'$ модели Word2Vec?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Матрица $W$ (входная): $100\,000 \times 300 = 30\,000\,000$.</p>
+    <p>Матрица $W'$ (выходная): $100\,000 \times 300 = 30\,000\,000$.</p>
+    <p>$$ \text{Итого} = 60\,000\,000 \text{ параметров} \approx 240 \text{ МБ (в float32)} $$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 5. Расчет вероятности Negative Sampling со степенью 0.75</div>
+  <p>В словаре два слова: слово A встретилось 10 000 раз, слово B — 16 раз. Во сколько раз отношение частот изменится после возведения в степень 0.75?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>1. Исходное отношение: $\frac{10\,000}{16} = 625$ раз.</p>
+    <p>2. После степени 0.75:</p>
+    <p>$10\,000^{0.75} = (10^4)^{3/4} = 10^3 = 1000$.</p>
+    <p>$16^{0.75} = (2^4)^{3/4} = 2^3 = 8$.</p>
+    <p>Новое отношение: $\frac{1000}{8} = 125$ раз.</p>
+    <p><strong>Вывод:</strong> Относительная вероятность выбора редкого слова B в качестве негативного примера выросла в 5 раз!</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 6. Векторная семантическая аналогия</div>
+  <p>Даны векторы: $\vec{v}(\text{Франция}) = [2, 1]$, $\vec{v}(\text{Париж}) = [2, 3]$, $\vec{v}(\text{Германия}) = [5, 1]$. Найдите вектор целевого слова $X$ по правилу: $\vec{v}(\text{Париж}) - \vec{v}(\text{Франция}) + \vec{v}(\text{Германия})$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$$ \vec{v}(X) = [2, 3] - [2, 1] + [5, 1] = [0, 2] + [5, 1] = [5, 3] $$</p>
+    <p>Среди векторов словаря ищется слово с максимальным косинусным сходством к вектору $[5, 3]$ — это будет вектор слова <strong>«Берлин»</strong>.</p>
+  </div></details>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+
+<div class="cheat">
+  <div class="bt">Скелет устного ответа по билету 18 (Тексты, Токенизация, Word2Vec)</div>
+  <ol>
+    <li><strong>Предобработка.</strong> Очистка, lowercasing, удаление стоп-слов, стемминг (грубое отсечение окончаний) vs лемматизация (приведение к канонической словарной форме с учетом контекста).</li>
+    <li><strong>Токены.</strong> Атомарная единица входа. Проблема слов — OOV и огромный словарь. Символы — длинные цепочки. Решение: субслова (BPE, WordPiece, SentencePiece).</li>
+    <li><strong>Алгоритм BPE.</strong> Итеративное слияние самых частотных пар символов. Фиксированный словарь, нет OOV.</li>
+    <li><strong>Эмбеддинги.</strong> One-Hot разрежен и ортогонален ($v_1 \cdot v_2 = 0$). Плотные эмбеддинги ($\mathbb{R}^d$) кодируют семантическую близость через косинусное расстояние.</li>
+    <li><strong>Word2Vec (2013).</strong> Дистрибутивная гипотеза: слова в похожих контекстах имеют близкий смысл.</li>
+    <li><strong>CBOW vs Skip-gram.</strong> CBOW предсказывает центр по контексту (быстрее, для частых слов). Skip-gram предсказывает контекст по центру (лучше для редких слов).</li>
+    <li><strong>Negative Sampling (SGNS).</strong> Замена невычислимого Softmax на $K$ бинарных логистических классификаций (реальная пара vs шум с распределением $f(w)^{0.75}$).</li>
+    <li><strong>Свойства.</strong> Векторная арифметика: $\text{Король} - \text{Мужчина} + \text{Женщина} \approx \text{Королева}$.</li>
+    <li><strong>Развитие.</strong> FastText (n-граммы символов для работы с опечатками и OOV) и GloVe (глобальная матрица встречаемостей).</li>
+  </ol>
+</div>
+
+<div class="navrow">
+  <a class="backlink" href="18-lstm-vs-transformer.html">← Лекция 18. LSTM vs Трансформер</a>
+  <a class="backlink" href="20-mt-bleu.html">Лекция 20. Машинный перевод, языковая модель, BLEU →</a>
+</div>
+
+</div>
+</body>
+</html>

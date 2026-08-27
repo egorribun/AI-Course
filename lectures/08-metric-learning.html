@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лекция 8. Метрические методы обучения. Сиамские сети. Loss'ы</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:17px;
+  line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line);
+  padding:38px 24px 30px;
+  margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация назад ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление лекции ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+/* ---------- Сетка карточек (главная) ---------- */
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px; margin:20px 0}
+.lec{
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:17px 19px; text-decoration:none; color:var(--text);
+  display:block; transition:.16s; position:relative;
+}
+.lec:hover{border-color:var(--accent); transform:translateY(-2px); background:var(--card-2)}
+.lec .n{
+  font-family:var(--mono); font-size:12px; color:var(--accent);
+  font-weight:700; letter-spacing:.05em;
+}
+.lec .t{font-weight:700; margin:5px 0 6px; font-size:16.5px; line-height:1.35; color:#fff}
+.lec .d{color:var(--text-dim); font-size:13.5px; line-height:1.5}
+.lec .time{
+  margin-top:10px; font-size:12px; color:var(--text-dim);
+  font-family:var(--mono); border-top:1px solid var(--line); padding-top:8px;
+}
+
+/* ---------- Плашка дня ---------- */
+.day{
+  margin:44px 0 8px; padding:16px 22px; border-radius:12px;
+  background:linear-gradient(90deg, rgba(110,168,254,.14), transparent);
+  border-left:4px solid var(--accent);
+}
+.day h2{border:none; margin:0; padding:0; font-size:24px}
+.day p{margin:6px 0 0; color:var(--text-dim); font-size:15px}
+
+hr{border:none; border-top:1px solid var(--line); margin:44px 0}
+
+.small{font-size:14px; color:var(--text-dim)}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+
+</style>
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]},
+  svg: {fontCache:'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Блок B · Представления · Вопрос 8</div>
+  <h1>Лекция 8. Метрические методы обучения. Сиамские сети. Функции ошибок для метрических задач</h1>
+  <p class="sub">Когда классификация не работает: face recognition, few-shot learning, поиск похожести. Обучаем эмбеддинги так, чтобы в пространстве признаков близость соответствовала семантике.</p>
+  <div class="meta">
+    <span class="pill">⏱ 2 ч</span>
+    <span class="pill gray">11 вопросов препода</span>
+    <span class="pill gray">6 микро-задач</span>
+    <span class="pill warn">Часто на экзамене</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<a class="backlink" href="../index.html">← К оглавлению курса</a>
+
+<nav class="toc">
+  <div class="bt">Содержание лекции</div>
+  <ol>
+    <li><a href="#s1">Когда классификация ломается</a></li>
+    <li><a href="#s2">Идея метрического обучения</a></li>
+    <li><a href="#s3">Метрики расстояния и их связь</a></li>
+    <li><a href="#s4">Классические методы: LMNN, NCA</a></li>
+    <li><a href="#s5">Сиамские сети</a></li>
+    <li><a href="#s6">Contrastive loss</a></li>
+    <li><a href="#s7">Triplet loss и triplet mining</a></li>
+    <li><a href="#s8">Margin-based loss'ы: SphereFace, CosFace, ArcFace</a></li>
+    <li><a href="#s9">Center loss и другие подходы</a></li>
+    <li><a href="#s10">Практика: обучение face recognition</a></li>
+    <li><a href="#s11">Оценка качества метрических моделей</a></li>
+    <li><a href="#s12">Код на PyTorch</a></li>
+    <li><a href="#qa">Препод спросит</a></li>
+    <li><a href="#tasks">Микро-задачи</a></li>
+    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="s1"><span class="num">1.</span> Когда классификация ломается</h2>
+
+<p>Стандартная классификация — это выбор из $K$ известных классов: $\text{softmax}(z) \in \mathbb{R}^K$, каждому примеру присваиваем вероятность класса. Но жизнь сложнее.</p>
+
+<div class="box exambox">
+  <div class="bt">🎯 Типичные задачи, где классификация не работает</div>
+  <ul>
+    <li><strong>Face recognition с новыми лицами.</strong> Работать с компанией в 1000 человек, а завтра нанимают 1001-го. Переобучать модель? Невозможно и дорого.</li>
+    <li><strong>Few-shot / one-shot learning.</strong> Дали один пример класса — узнать все остальные. Классических примеров меньше, чем классов.</li>
+    <li><strong>Поиск похожих товаров.</strong> В Яндекс.Маркете миллионы товаров, это не классы — это база кандидатов, нужно найти топ-K похожих.</li>
+    <li><strong>Верификация подписи / отпечатка.</strong> «Подпись ваша или чужая?» — не классификация, а парное сравнение.</li>
+    <li><strong>Re-identification на видео.</strong> Тот же человек появился в трёх камерах разных магазинов — узнать его, хотя лица в разных условиях.</li>
+  </ul>
+</div>
+
+<div class="box idea">
+  <div class="bt">💡 Переключение парадигмы</div>
+  <p>Вместо вопроса «<strong>к какому из K классов относится</strong> объект $x$?» решаем вопрос «<strong>насколько похожи два объекта</strong> $x_1$ и $x_2$?». Меняется архитектура, loss-функция, даже инференс.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> Идея метрического обучения</h2>
+
+<p>Суть простая: обучить функцию эмбеддинга $f: X \to \mathbb{R}^d$, которая отображает объекты в пространство признаков размерности $d$ так, чтобы <strong>в этом пространстве расстояние соответствовало семантической близости</strong>.</p>
+
+<p>Формально: пара объектов $(x_i, x_j)$ похожа (positive pair) если они из одного класса или связаны какой-то нужной нам связью (один и тот же человек, два похожих товара). Пара непохожа (negative pair) иначе. Хотим:</p>
+
+<div class="formula">
+$$ x_i, x_j \text{ похожи} \Rightarrow d(f(x_i), f(x_j)) \text{ мала} $$
+$$ x_i, x_k \text{ непохожи} \Rightarrow d(f(x_i), f(x_k)) \text{ велика} $$
+<span class="note">$d$ — метрика расстояния, обычно евклидова $L_2$ или косинусная</span>
+</div>
+
+<div class="scheme">
+ИСХОДНОЕ ПРОСТРАНСТВО        ПРОСТРАНСТВО ЭМБЕДДИНГОВ (R^d)
+
+   x_i (кот) ✕ x_j (кот)        f(x_i) ●              ● f(x_j)
+            близко в семантике     ↓        близко в метрике
+                                  расстояние маленькое
+
+   x_i (кот) ✕ x_k (собака)      f(x_i) ●              ● f(x_k)
+            далеко в семантике      ↓        далеко в метрике
+                                  расстояние большое
+
+   В исходном пространстве точки перемешаны,
+   в пространстве эмбеддингов — компактные кластеры.
+<span class="cap">Геометрическое видение: embedding function $f$ преобразует нелинейно разделимое распределение в линейно разделимое (или хотя бы в компактные кластеры).</span></div>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> Метрики расстояния и их связь</h2>
+
+<p>Три главные метрики в метрическом обучении:</p>
+
+<h3>3.1 Евклидово расстояние L2</h3>
+
+<div class="formula">
+$$ d_2(a, b) = \|a - b\|_2 = \sqrt{\sum_i (a_i - b_i)^2} $$
+</div>
+
+<p>Самое интуитивное. Проблема: зависит от нормы вектора. При обучении вектор может просто расти или сжиматься, меняя расстояния.</p>
+
+<h3>3.2 Косинусное сходство и косинусное расстояние</h3>
+
+<div class="formula">
+$$ \cos(a, b) = \frac{a^\top b}{\|a\|_2 \cdot \|b\|_2} \in [-1, 1] $$
+$$ d_{\text{cosine}}(a, b) = 1 - \cos(a, b) \in [0, 2] $$
+</div>
+
+<p>Зависит только от направления, не от модуля. Часто удобнее.</p>
+
+<h3>3.3 Связь L2 и косинуса при нормализации — выведите в 2 строки!</h3>
+
+<p>Если оба вектора нормализованы: $\|a\| = \|b\| = 1$, то:</p>
+
+<div class="formula">
+$$ \|a - b\|_2^2 = (a-b)^\top(a-b) = a^\top a + b^\top b - 2a^\top b = 1 + 1 - 2a^\top b = 2(1 - a^\top b) $$
+$$ = 2(1 - \cos(a,b)) = 2 \cdot d_{\text{cosine}}(a,b) $$
+<span class="note">Поэтому при L2-нормализации эмбеддингов на сфере $d_2 \propto d_{\text{cosine}}$ — различаются только маштабом</span>
+</div>
+
+<div class="box warnbox">
+  <div class="bt">⚠️ Важный практический факт</div>
+  <p>Часто эмбеддинги нормализуют на единичную сферу $\|f(x)\|_2 = 1$. Это:</p>
+  <ul>
+    <li>Стабилизирует обучение (нет проблемы с растущей нормой).</li>
+    <li>Делает L2 и косинусное расстояние эквивалентны (с множителем 2).</li>
+    <li>Позволяет использовать косинусный поиск в FAISS (быстро на GPU).</li>
+    <li>Интерпретируется как точка на сфере — естественный геометрический смысл.</li>
+  </ul>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> Классические методы: LMNN, NCA</h2>
+
+<p>Для контекста: до нейросетевых методов существовали способы обучать метрику в пространстве исходных признаков. Кратко, одним блоком.</p>
+
+<h3>4.1 Large Margin Nearest Neighbor (LMNN)</h3>
+
+<p>Идея: обучить матрицу преобразования $M \in \mathbb{R}^{d \times d}$ такую, что расстояние Махаланобиса $d_M(x_i, x_j) = (x_i - x_j)^\top M (x_i - x_j)$ мало на позитивных парах и велико на негативных (с отступом margin).</p>
+
+<p>Минус: матрица $M$ должна быть положительно определена, что добавляет ограничение. Плюс: на мелких датасетах работает хорошо.</p>
+
+<h3>4.2 Neighbourhood Component Analysis (NCA)</h3>
+
+<p>Другой подход: максимизировать вероятность того, что ближайший сосед объекта — из его же класса (мягким softmax-подходом). Loss:</p>
+
+<div class="formula">
+$$ L = -\sum_i \log \sum_{j \sim i} p_{ij}, \quad \text{где} \quad p_{ij} = \frac{\exp(-d(x_i, x_j))}{\sum_k \exp(-d(x_i, x_k))} $$
+</div>
+
+<p>Суть: как в softmax, только позитивные примеры к нейтивным вкусе. Понимаете это — поймёте и контрастивные loss'ы.</p>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> Сиамские сети</h2>
+
+<p>Сиамская сеть (Siamese network) — архитектура для работы с парами или тройками объектов. Ключевая идея: <strong>две (или три) копии одной и той же сети с общими весами</strong>.</p>
+
+<div class="scheme">
+  СИАМСКАЯ СЕТЬ (две ветки с ОБЩИМИ весами)
+
+  Вход 1:          Вход 2:
+  изображение      изображение
+  кошки            кошки
+     │                 │
+     ▼                 ▼
+  ┌─────────────┐  ┌─────────────┐
+  │             │  │             │
+  │  f_θ        │  │  f_θ        │  ← ТА ЖЕ СЕТЬ! θ — общие
+  │             │  │             │  веса для обеих веток
+  │  (CNN)      │  │  (CNN)      │
+  │             │  │             │
+  └─────────────┘  └─────────────┘
+     │                 │
+     ▼                 ▼
+   z₁ ∈ R^d       z₂ ∈ R^d  (эмбеддинги)
+     │                 │
+     └────────┬────────┘
+              ▼
+        d(z₁, z₂) = ||z₁ - z₂||
+              │
+              ▼
+          Loss-функция
+        (contrastive или triplet)
+<span class="cap">Две (или три) прохода через один набор весов. Веса общие → архитектура симметричная → естественно работает с такими задачами.</span></div>
+
+<h3>5.1 Почему веса общие?</h3>
+
+<p>Две причины:</p>
+
+<ol>
+  <li><strong>Симметрия задачи:</strong> $d(a, b) = d(b, a)$ — расстояние симметрично. Если бы веса были разные, одинаковые входы дали бы разные эмбеддинги в разных ветках — абсурд.</li>
+  <li><strong>Экономия параметров:</strong> вместо двух сетей обучаем одну. Плюс это регуляризация: связываем обе ветки.</li>
+</ol>
+
+<h3>5.2 Сиамская vs псевдосиамская</h3>
+
+<table>
+<thead><tr><th>Тип</th><th>Описание</th><th>Веса</th><th>Когда используется</th></tr></thead>
+<tbody>
+<tr><td><strong>Сиамская</strong></td><td>Две/три ветки одной сети</td><td>Общие</td><td>Стандартно: проверка идентичности (лицо/подпись), few-shot</td></tr>
+<tr><td><strong>Псевдосиамская</strong></td><td>Две разные сети</td><td>Разные</td><td>Асимметричные задачи: поиск похожего товара в другой категории</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s6"><span class="num">6.</span> Contrastive loss (Hadsell, Chopra, LeCun 2006)</h2>
+
+<p>Классический loss для работы с парами. Берут две выборки: позитивные пары (похожих объектов) и негативные (непохожих). Loss:</p>
+
+<div class="formula">
+$$ L = y \cdot d^2 + (1-y) \cdot \max(0, m - d)^2 $$
+<span class="note">$y = 1$ если пара позитивная, $y = 0$ если негативная; $d$ — евклидово расстояние; $m$ — margin (отступ)</span>
+</div>
+
+<h3>6.1 Разбор обоих слагаемых</h3>
+
+<p><strong>Первое слагаемое ($y=1$, позитивная пара):</strong></p>
+<p>$$L_+ = d^2$$</p>
+<p>Штрафуем за большие расстояния — хотим, чтобы похожие объекты были близко. Квадратичный штраф.</p>
+
+<p><strong>Второе слагаемое ($y=0$, негативная пара):</strong></p>
+<p>$$L_- = \max(0, m - d)^2$$</p>
+<p>Штрафуем только если расстояние <em>меньше</em> margin'а $m$. Если $d \geq m$, то штраф ноль — негативы хорошо отвалены, и мы не бьём их дальше.</p>
+
+<div class="box idea">
+  <div class="bt">💡 Почему нужен margin m?</div>
+  <p>Без margin'а негативы разъезжались бы бесконечно — модель могла бы вложить все точки противоположного класса на край вселенной. Margin гарантирует <strong>целевой зазор между классами</strong>: не только близко похожие, но и <em>далеко непохожие на нужном расстоянии</em>.</p>
+</div>
+
+<h3>6.2 График Loss как функции расстояния</h3>
+
+<div class="scheme">
+Loss
+
+  ▲
+  │         Позитивная пара (y=1): L = d²
+  │    ╱╱╱╱╱
+  │   ╱╱
+  │  ╱╱
+  │ ╱╱ ← хотим d маленькое
+  │╱╱___
+  └──────▶ d
+  │
+  │              Негативная пара (y=0): L = max(0, m-d)²
+  │  ╲╲╲╲╲      шумят при d < m,
+  │   ╲╲╲       молчат при d ≥ m
+  │    ╲╲
+  │     ╲╲╲___
+  │         ▲ ▲ ▲
+  │         0 m d
+
+  Красная зона: m/2 — целевой разрыв между классами
+<span class="cap">Контрастивный loss: позитивные тянут друг к другу, негативные отталкиваются до margin'а.</span></div>
+
+<!-- ============================================ -->
+<h2 id="s7"><span class="num">7.</span> Triplet loss и triplet mining</h2>
+
+<p>Работаем с <strong>тройками</strong> объектов вместо пар: (anchor, positive, negative). Якорь — опорная точка, позитив — из его класса, негатив — из другого.</p>
+
+<div class="formula">
+$$ L = \max(0, d(a, p) - d(a, n) + m) $$
+<span class="note">$a$ — anchor, $p$ — positive, $n$ — negative; $m$ — margin; $d$ — расстояние</span>
+</div>
+
+<h3>7.1 Интуиция: якорь тянет позитив, отталкивает негатив</h3>
+
+<p>Loss равен нулю, когда:</p>
+$$d(a, p) + m \leq d(a, n)$$
+
+<p>То есть позитив минимум на $m$ ближе к якорю, чем негатив. Если это условие выполнено — тройка «инвестирована», штраф ноль.</p>
+
+<div class="scheme">
+  ГЕОМЕТРИЯ TRIPLET LOSS
+
+       Якорь a
+         ●
+        /│\
+       / │ \
+     d(a,p)  d(a,n)  ← важно: d(a,n) ≥ d(a,p) + m
+     /   │   \
+    ●    │    ●
+  позитив│  негатив
+         │
+    m ← целевой разрыв
+<span class="cap">Якорь притягивает позитив (минимизируем расстояние) и отталкивает негатив (максимизируем расстояние).</span></div>
+
+<h3>7.2 Числовой пример</h3>
+
+<p>Пусть $d(a, p) = 0.3$, $d(a, n) = 0.9$, $m = 0.2$. Тогда:</p>
+$$L = \max(0, 0.3 - 0.9 + 0.2) = \max(0, -0.4) = 0$$
+
+<p>Тройка не даёт градиента — она уже удовлетворяет условию! Это означает, что негатив достаточно далеко.</p>
+
+<p>Если же $d(a, p) = 0.5$, $d(a, n) = 0.7$, $m = 0.2$:</p>
+$$L = \max(0, 0.5 - 0.7 + 0.2) = \max(0, 0) = 0$$
+
+<p>Ещё на границе. Но если $d(a, p) = 0.5$, $d(a, n) = 0.6$:</p>
+$$L = \max(0, 0.5 - 0.6 + 0.2) = \max(0, 0.1) = 0.1$$
+
+<p>Теперь есть штраф — негатив слишком близко к якорю.</p>
+
+<h3>7.3 Triplet mining — критически важный подраздел</h3>
+
+<p>Не все тройки одинаково полезны для обучения. Нужна стратегия выбора.</p>
+
+<div class="box exambox">
+  <div class="bt">🎯 Три категории тройок</div>
+  <ol>
+    <li><strong>Easy triplets:</strong> $d(a, n) \gg d(a, p)$ — невативы уже далеко. Loss = 0, градиента нет. Бесполезны для обучения, тратят время.</li>
+    <li><strong>Hard negatives:</strong> $d(a, n) < d(a, p)$ — негатив ближе, чем позитив! Loss большой, градиент огромный. Могут дестабилизировать обучение или привести к <em>collapse</em> (схлопыванию всего в одну точку).</li>
+    <li><strong>Semi-hard negatives:</strong> $d(a, p) < d(a, n) < d(a, p) + m$ — золотая середина. Тройка информативна (градиент есть), но не экстремальна. <strong>Это то, что использовалось в FaceNet.</strong></li>
+  </ol>
+</div>
+
+<div class="scheme">
+  ТРИ ЗОНЫ ВОКРУГ ЯКОРЯ
+
+  Якорь a на расстояниях:
+
+  d = 0          d = d(a,p)    d = d(a,p)+m        d = ∞
+  │              │             │                   │
+  ●──────────────●─────────────●───────────────────┤
+  якорь        позитив       margin              край
+        │                     │
+        ├─ "semi-hard" зона ──┤  ← идеальные негативы
+        │                     │
+  ├──────────── "easy" зона ─────────────────────────
+              (бесполезные тройки)
+
+  ├──────────── "hard" зона ──────┤
+  (слева от позитива, нестабильны)
+<span class="cap">Semi-hard mining была ключевым инженерным решением в FaceNet (2015): в каждом батче искали именно semi-hard негативы вместо случайных.</span></div>
+
+<h3>7.4 Batch-hard vs batch-all стратегии</h3>
+
+<p><strong>Batch-all:</strong> берём все тройки из батча (их может быть много), вычисляем loss на всех, усредняем. Просто, но много easy triplets.</p>
+
+<p><strong>Batch-hard:</strong> для каждого якоря выбираем <em>hardest negative</em> (максимум $d(a, n)$ среди негативов) и <em>hardest positive</em> (максимум $d(a, p)$ среди позитивов). Вычисляем loss только на этих парах. Градиенты более информативны, обучение быстрее.</p>
+
+<h3>7.5 Проблема схлопывания (collapse)</h3>
+
+<p>Если используются hard triplets и неудачно инициализированы веса, сеть может «схлопнуться»: все эмбеддинги сойтись в одну точку. Тогда все расстояния нулевые, loss = ноль везде, и модель застывает. Защита:</p>
+
+<ul>
+  <li>Semi-hard mining (как в FaceNet).</li>
+  <li>Осторожная инициализация (Xavier или He).</li>
+  <li>Аккуратный learning rate.</li>
+  <li>Регуляризация (L2 к нулю на эмбеддинги).</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s8"><span class="num">8.</span> Margin-based loss'ы: SphereFace, CosFace, ArcFace</h2>
+
+<p>Более новая и эффективная семья loss'ов, которые работают с нормализованными эмбеддингами на сфере. Вместо евклидова расстояния используют углы или косинус.</p>
+
+<h3>8.1 SphereFace (2017)</h3>
+
+<p>Идея: максимизировать косинусное сходство позитивных пар и минимизировать косинусное сходство негативных. Формула:</p>
+
+<div class="formula">
+$$ L = -\log \frac{e^{s(\cos(\theta_+ + m))}}{ e^{s(\cos(\theta_+ + m))} + \sum_n e^{s\cos(\theta_n)}} $$
+<span class="note">$\theta_+$ — угол между anchor'ом и positive; $\theta_n$ — углы с negatives; $s$ — масштабирующий множитель (scale); $m$ — угловой margin</span>
+</div>
+
+<p>Видно, что это похоже на softmax-классификацию, но с угловым perturbation. На англ.: «angular margin».</p>
+
+<h3>8.2 CosFace (2018)</h3>
+
+<p>Косинусный margin — добавляем margin прямо к косинусу:</p>
+
+<div class="formula">
+$$ L = -\log \frac{e^{s(\cos\theta_+ - m)}}{e^{s(\cos\theta_+ - m)} + \sum_n e^{s\cos\theta_n}} $$
+<span class="note">Margin вычитается из косинуса позитива. Проще в вычислениях, чем угловой margin SphereFace.</span>
+</div>
+
+<h3>8.3 ArcFace (2018) — золотой стандарт</h3>
+
+<p>Добавляем margin к <em>углу</em>, а не к косинусу:</p>
+
+<div class="formula">
+$$ L = -\log \frac{e^{s\cos(\theta_+ + m)}}{e^{s\cos(\theta_+ + m)} + \sum_n e^{s\cos\theta_n}} $$
+<span class="note">$\theta$ — угол между эмбеддингами на сфере, $m$ — угловой margin, $s$ — scale</span>
+</div>
+
+<div class="box idea">
+  <div class="bt">💡 Геометрическая интуиция ArcFace на сфере</div>
+  <p>Эмбеддинги лежат на единичной сфере. Позитивный пример должен находиться на угле не меньше $\theta_+ + m$ от якоря, негативные — на своих углах. Margin прямо в угловом пространстве — это естественнее, чем проекция на косинус.</p>
+  <p><strong>Почему лучше CosFace:</strong> угловой margin инвариантен к размерности $d$, в то время как косинусный margin не инвариантен. Плюс дефиниция маржина геометрически четче.</p>
+</div>
+
+<div class="scheme">
+  ARCFACE НА СФЕРЕ (двумерное сечение)
+
+  Якорь a:              m ← угловой margin
+    ●                 /
+   /│\               /
+  / │ \             /
+ /  │θ \           / ← позитив должен быть
+/   │ + \         /    на этой дуге
+────│m──●───────
+     │ позитив
+     │
+   Негативы где-то в другом месте на сфере
+
+  Все вектора имеют норму 1 (лежат на сфере).
+  Угол θ между ними прямо измеряется через arccos(a⁺ᵇ).
+<span class="cap">ArcFace использует естественную метрику сферы: углы. Это математически элегантнее и практически лучше работает.</span></div>
+
+<h3>8.4 Сравнение: SphereFace vs CosFace vs ArcFace</h3>
+
+<table>
+<thead><tr><th>Loss</th><th>Формула margin'а</th><th>Сложность</th><th>Стабильность</th><th>Где используется</th></tr></thead>
+<tbody>
+<tr><td>SphereFace</td><td>Угловой, но через косинус</td><td>Выше (нужен arccos)</td><td>Средняя</td><td>Исторический интерес</td></tr>
+<tr><td>CosFace</td><td>К косинусу позитива</td><td>Низкая</td><td>Хорошая</td><td>Альтернатива ArcFace</td></tr>
+<tr><td>ArcFace</td><td>К углу (через arccos)</td><td>Средняя</td><td>Отличная</td><td><strong>Стандарт в face recognition</strong></td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s9"><span class="num">9.</span> Center loss и другие подходы</h2>
+
+<p>Center loss часто комбинируют с другими loss'ами для стабилизации.</p>
+
+<h3>9.1 Center loss (2016)</h3>
+
+<p>Идея: для каждого класса $c$ храним <strong>центроид</strong> $c_c$ в пространстве эмбеддингов. Center loss штрафует за удаление эмбеддинга от центра его класса:</p>
+
+<div class="formula">
+$$ L_{\text{center}} = \frac{1}{2}\sum_i \| f(x_i) - c_{y_i} \|_2^2 $$
+<span class="note">$y_i$ — класс примера $i$, центры $c_c$ обновляются онлайн вместе с весами</span>
+</div>
+
+<p>Часто используют <em>гибридный loss</em>: $L_{\text{total}} = L_{\text{softmax}} + \lambda \cdot L_{\text{center}}$. Софтмакс берёт на себя классификацию, center loss делает кластеры компактнее.</p>
+
+<h3>9.2 N-pair loss</h3>
+
+<p>Работает с $N$ примерами на один класс (не пары или тройки):</p>
+
+<div class="formula">
+$$ L = -\log \frac{e^{f_a^\top f_p / \tau}}{\sum_{i=0}^{N-1} e^{f_a^\top f_i / \tau}} $$
+<span class="note">Как softmax-классификация: один позитив против всех $N-1$ негативов в батче</span>
+</div>
+
+<h3>9.3 Lifted Structured loss</h3>
+
+<p>Более сложный loss, который учитывает все пары в батче и вводит структуру типа hard example mining прямо в формулу. Редко используется, но упоминается в научных работах.</p>
+
+<!-- ============================================ -->
+<h2 id="s10"><span class="num">10.</span> Практика: обучение face recognition</h2>
+
+<p>Как на практике обучают модель распознавания лиц (например, в ArcFace):</p>
+
+<div class="scheme">
+  PIPELINE FACE RECOGNITION
+
+1. ОБУЧЕНИЕ (с размеченными лицами, один класс = один человек)
+
+   Батч изображений → CNN encoder → эмбеддинги z ∈ R^d
+                                            ↓
+                                    Нормализация (||z|| = 1)
+                                            ↓
+                                    Полносвязный слой с ArcFace loss
+                                            ↓
+                                    Обновление весов
+
+   Loss = ArcFace(z, labels) + optional(L2-регуляризация)
+
+   Обучаем до сходимости на датасете из миллионов лиц
+   (CASIA, VGGFace2, MS-Celeb-1M)
+
+2. ИНФЕРЕНС (новые лица, неизвестные во время обучения)
+
+   Входное лицо → CNN encoder → эмбеддинг z ∈ R^d (норм. на сфере)
+
+   a) Верификация (1:1): есть ли два лица одного человека?
+      Вычисляем d(z₁, z₂) или косинус, сравниваем с порогом τ
+      Если d < τ → один человек, else → разные люди
+      τ выбирается на validation set (ROC/EER анализ)
+
+   b) Идентификация (1:M): кто это из M известных людей?
+      Ищем ближайшего соседа в gallery (базе эталонов)
+      argmin_i d(z, gallery_i)
+
+3. ПОСТРОЕНИЕ GALLERY
+
+   Берём одно (или несколько) фото эталонного лица
+   Вычисляем их эмбеддинги, сохраняем в базу
+   При идентификации ищем с помощью FAISS (быстрый поиск)
+<span class="cap">Face recognition в три шага: обучение на большой размеченной выборке, инференс на новых лицах через поиск эмбеддингов, верификация по порогу расстояния.</span></div>
+
+<h3>10.1 ROC, EER, FAR/FRR</h3>
+
+<p>Для оценки качества верификации (двоичная задача: один человек или разные):</p>
+
+<ul>
+  <li><strong>FAR (False Acceptance Rate):</strong> доля неправильно принятых пар разных людей. Низко = хорошо.</li>
+  <li><strong>FRR (False Rejection Rate):</strong> доля неправильно отклонённых пар одного человека. Низко = хорошо.</li>
+  <li><strong>ROC (Receiver Operating Characteristic):</strong> кривая FAR vs FRR при варьировании порога.</li>
+  <li><strong>EER (Equal Error Rate):</strong> точка на ROC, где FAR = FRR. Чем ниже EER, тем лучше система.</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s11"><span class="num">11.</span> Оценка качества метрических моделей</h2>
+
+<p>Для классификации есть accuracy, для метрических задач — другие метрики.</p>
+
+<h3>11.1 Recall@K</h3>
+
+<p>Для задачи поиска (retrieval): за сколько из топ-K результатов есть хотя бы один позитивный пример?</p>
+
+<div class="formula">
+$$ \text{Recall}@K = \frac{\# \text{позитивов в топ-K}}{|\text{всех позитивов}|} $$
+</div>
+
+<p>Усредняем по всем примерам. Отличие от accuracy: здесь нас интересуют ранжирующие свойства, не абсолютная классификация.</p>
+
+<h3>11.2 mAP (mean Average Precision)</h3>
+
+<p>Более сложная метрика из информационного поиска. Для каждого примера считают Average Precision (площадь под кривой precision-recall), потом усредняют.</p>
+
+<h3>11.3 Linear probing и fine-tuning</h3>
+
+<p>После обучения метрической сети можно:</p>
+
+<ul>
+  <li><strong>Linear probing:</strong> заморозить эмбеддинг-энкодер, обучить сверху линейный классификатор на новой задаче (с размеченными данными). Тест качества представления.</li>
+  <li><strong>Fine-tuning:</strong> дообучить весь энкодер на новой задаче (с маленьким learning rate). Обычно лучше.</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s12"><span class="num">12.</span> Код на PyTorch</h2>
+
+<p>Сиамская сеть с triplet loss, 30 строк:</p>
+
+<pre><code><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+<span class="kw">import</span> torch.nn.functional <span class="kw">as</span> F
+
+<span class="kw">class</span> SiameseNet(nn.Module):
+    <span class="kw">def</span> __init__(self, embedding_dim=<span class="num2">128</span>):
+        <span class="kw">super</span>().__init__()
+        self.encoder = nn.Sequential(
+            nn.Linear(<span class="num2">784</span>, <span class="num2">256</span>), nn.ReLU(),
+            nn.Linear(<span class="num2">256</span>, <span class="num2">128</span>), nn.ReLU(),
+            nn.Linear(<span class="num2">128</span>, embedding_dim)
+        )
+
+    <span class="kw">def</span> forward(self, x):
+        <span class="kw">return</span> F.normalize(self.encoder(x), p=<span class="num2">2</span>, dim=<span class="num2">1</span>)  <span class="cmt"># L2-нормализация</span>
+
+<span class="kw">class</span> TripletLoss(nn.Module):
+    <span class="kw">def</span> __init__(self, margin=<span class="num2">0.2</span>):
+        <span class="kw">super</span>().__init__()
+        self.margin = margin
+
+    <span class="kw">def</span> forward(self, anchor, positive, negative):
+        d_ap = torch.norm(anchor - positive, p=<span class="num2">2</span>, dim=<span class="num2">1</span>)
+        d_an = torch.norm(anchor - negative, p=<span class="num2">2</span>, dim=<span class="num2">1</span>)
+        loss = torch.clamp(d_ap - d_an + self.margin, min=<span class="num2">0.0</span>)
+        <span class="kw">return</span> loss.mean()
+
+<span class="cmt"># Обучение</span>
+model = SiameseNet()
+loss_fn = TripletLoss(margin=<span class="num2">0.2</span>)
+opt = torch.optim.Adam(model.parameters(), lr=<span class="num2">0.001</span>)
+
+<span class="kw">for</span> (anchor, pos, neg) <span class="kw">in</span> train_loader:
+    z_a = model(anchor)
+    z_p = model(pos)
+    z_n = model(neg)
+
+    loss = loss_fn(z_a, z_p, z_n)
+    opt.zero_grad()
+    loss.backward()
+    opt.step()</code></pre>
+
+<div class="box okbox">
+  <div class="bt">✓ Ключевые моменты кода</div>
+  <ul>
+    <li>Одна сеть (encoder) для всех трёх веток — обеспечивает общие веса.</li>
+    <li>F.normalize нормализует эмбеддинги на единичную сферу (L2 norm = 1).</li>
+    <li>TripletLoss вычисляет $\max(0, d_{ap} - d_{an} + m)$.</li>
+    <li>Нет softmax'а, работаем напрямую с расстояниями.</li>
+  </ul>
+</div>
+
+<!-- ============================================ -->
+<h2 id="qa">🎯 Препод спросит</h2>
+
+<details class="qa"><summary>Почему классификация не работает для face recognition?</summary>
+<div class="ans">
+<p>В классификации число классов K фиксировано: если нанимают нового сотрудника, нужно переобучать модель. Plus разметка: нужна целая выборка нового лица. Метрический подход: обучаем функцию расстояния один раз, потом новое лицо просто добавляем в gallery как новый эталон — никакого переобучения.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое сиамская сеть и почему веса в обеих ветках общие?</summary>
+<div class="ans">
+<p>Сиамская сеть — это архитектура, где одна и та же сеть применяется к нескольким входам. Веса общие из-за симметрии: расстояние $d(a,b) = d(b,a)$, поэтому перестановка входов не должна влиять на результат. Если бы веса были разные, одинаковые входы в разных ветках дали бы разные эмбеддинги — логически неправильно. Плюс экономия параметров и регуляризация.</p>
+</div></details>
+
+<details class="qa"><summary>Разберите contrastive loss: оба слагаемых и margin.</summary>
+<div class="ans">
+<p>$L = y \cdot d^2 + (1-y) \cdot \max(0, m-d)^2$. При $y=1$ (позитивная пара) штрафуем за большие расстояния — хотим их близко. При $y=0$ (негативная пара) штрафуем только если $d < m$ — негативы должны быть на расстоянии не менее $m$. Margin нужен, чтобы негативы не разъезжались бесконечно: создаёт целевой зазор между классами.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое hard, easy и semi-hard triplets?</summary>
+<div class="ans">
+<p>Easy triplets: $d(a,n) \gg d(a,p)$ — негатив уже далеко, loss=0, не учат. Hard triplets: $d(a,n) < d(a,p)$ — негатив ближе позитива, loss большой, может дестабилизировать. Semi-hard: $d(a,p) < d(a,n) < d(a,p)+m$ — золотая середина, информативны, стабильны. FaceNet использовала semi-hard mining в батче для стабильного обучения.</p>
+</div></details>
+
+<details class="qa"><summary>Напишите формулу triplet loss и объясните каждый член.</summary>
+<div class="ans">
+<p>$L = \max(0, d(a,p) - d(a,n) + m)$. Это говорит: позитив должен быть ближе якоря, чем негатив, по крайней мере на margin $m$. Loss = 0 если условие выполнено. Числовой пример: $d(a,p)=0.3, d(a,n)=0.9, m=0.2$ даёт $L = \max(0, 0.3-0.9+0.2) = 0$ — тройка хороша. Если $d(a,p)=0.5, d(a,n)=0.6$, то $L = 0.1$ — негатив слишком близко.</p>
+</div></details>
+
+<details class="qa"><summary>Почему нормализуют эмбеддинги на единичную сферу?</summary>
+<div class="ans">
+<p>Нормализация $\|f(x)\| = 1$ стабилизирует обучение (нет проблемы с растущей нормой), делает L2 и косинусное расстояние пропорциональны ($\|a-b\|^2 = 2(1 - \cos(a,b))$ при $\|a\|=\|b\|=1$), позволяет использовать быстрый косинусный поиск в FAISS, имеет геометрический смысл (точки на сфере).</p>
+</div></details>
+
+<details class="qa"><summary>ArcFace vs CosFace: в чём разница и почему ArcFace лучше?</summary>
+<div class="ans">
+<p>Обе добавляют margin, но ArcFace добавляет его к углу ($\theta+m$), CosFace — к косинусу ($\cos\theta - m$). ArcFace: угловой margin инвариантен к размерности и геометрически естественен на сфере. CosFace: проще вычисляется. На практике ArcFace показывает лучший результат и стал стандартом в face recognition.</p>
+</div></details>
+
+<details class="qa"><summary>Как практически работает верификация лица?</summary>
+<div class="ans">
+<p>1) Обучают сеть с ArcFace на большом датасете (миллионы лиц). 2) На инференсе входное лицо проходит через энкодер → эмбеддинг z (норм. на сфере). 3) Вычисляют расстояние до эталонного лица в gallery: $d(z, z_{ref})$. 4) Сравнивают с порогом $\tau$ (выбран на validation set через ROC/EER). Если $d < \tau$ → один человек, иначе → разные. Порог определяет баланс FAR (ложные принятия) и FRR (ложные отклонения).</p>
+</div></details>
+
+<details class="qa"><summary>Что такое collapse в triplet loss и как его избежать?</summary>
+<div class="ans">
+<p>Collapse — схлопывание всех эмбеддингов в одну точку, из-за чего все расстояния нулевые, loss везде ноль, сеть застывает. Причина: hard triplets и неудачная инициализация. Защита: semi-hard mining (как в FaceNet), осторожная инициализация (Xavier/He), контролируемый learning rate, L2-регуляризация на эмбеддинги.</p>
+</div></details>
+
+<details class="qa"><summary>Почему сиамская сеть, а не две разные сети?</summary>
+<div class="ans">
+<p>Псевдосиамские сети (с разными весами) используют в асимметричных задачах, но для метрических задач со взаимной похожестью это неправильно. Если веса разные, две копии одного входа дадут разные эмбеддинги в разных ветках — логически нарушается симметрия расстояния. Плюс синергия параметров в сиамской архитектуре тренирует более устойчивые представления.</p>
+</div></details>
+
+<details class="qa"><summary>Как работает linear probing и почему это честная оценка качества представления?</summary>
+<div class="ans">
+<p>После обучения метрической сети заморозить энкодер и обучить только линейный классификатор на новой задаче с размеченными данными. Это честная оценка, потому что проверяет, насколько хорошо эмбеддинги специфичны для конкретной задачи, а не перегенерализированы. Если linear probing работает хорошо — представление действительно полезно; если плохо — энкодер выучил что-то своё.</p>
+</div></details>
+
+<!-- ============================================ -->
+<h2 id="tasks">📝 Микро-задачи</h2>
+
+<div class="task">
+  <div class="tt">Задача 1. Вывод связи L2 и косинуса</div>
+  <p>Пусть $a, b$ — нормализованные эмбеддинги ($\|a\|_2 = \|b\|_2 = 1$). Выведите в две строки связь между $\|a-b\|_2^2$ и $\cos(a, b)$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$\|a-b\|_2^2 = a^\top a + b^\top b - 2a^\top b = 1 + 1 - 2a^\top b = 2 - 2a^\top b$</p>
+    <p>$= 2(1 - a^\top b) = 2(1 - \cos(a,b))$</p>
+    <p><strong>Результат:</strong> $\|a-b\|_2^2 = 2(1 - \cos(a,b))$. Евклидово расстояние на нормализованной сфере пропорционально $(1 - \cos)$ с множителем 2.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 2. Triplet loss численно</div>
+  <p>Расстояния: $d(a,p) = 0.15$, $d(a,n) = 0.85$, margin $m = 0.3$. Посчитайте triplet loss и определите, какого типа эта тройка.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$L = \max(0, d(a,p) - d(a,n) + m) = \max(0, 0.15 - 0.85 + 0.3) = \max(0, -0.4) = 0$</p>
+    <p>Loss = 0. Тройка типа <strong>easy triplet</strong> — невативы уже далеко от якоря, условие $d(a,n) \geq d(a,p) + m$ выполнено с запасом. Эта тройка не даёт градиента и не полезна для обучения.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 3. Определение типа тройки</div>
+  <p>$d(a,p) = 0.4$, $d(a,n) = 0.65$, $m = 0.3$. Какого типа тройка?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Проверяем условие semi-hard: $d(a,p) < d(a,n) < d(a,p) + m$?</p>
+    <p>$0.4 < 0.65$ ✓, но $0.65 < 0.4 + 0.3 = 0.7$ ✓</p>
+    <p>Да, тройка <strong>semi-hard</strong> — негатив в целевой зоне. Информативна и стабильна для обучения. Это то, что нужно на обучение FaceNet.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 4. Contrastive loss для парой</div>
+  <p>Две парные: (1) позитивная, $d = 0.2$, margin $m = 0.5$; (2) негативная, $d = 0.3$. Посчитайте оба loss'а.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>(1) Позитивная: $L_+ = y \cdot d^2 = 1 \cdot (0.2)^2 = 0.04$</p>
+    <p>(2) Негативная: $L_- = (1-y) \cdot \max(0, m-d)^2 = 1 \cdot \max(0, 0.5-0.3)^2 = (0.2)^2 = 0.04$</p>
+    <p><strong>Оба loss'а равны 0.04.</strong> Интересно: позитивная далеко (хорошо бы ближе), негативная ближе к margin'у чем может быть. Обе пары информативны.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 5. L2-нормализация эмбеддингов</div>
+  <p>Эмбеддинг $z = [3, 4]$. Нормализуйте на единичную сферу и посчитайте его норму.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$\|z\|_2 = \sqrt{3^2 + 4^2} = \sqrt{25} = 5$</p>
+    <p>Нормализованный: $z_{norm} = \frac{1}{5}[3, 4] = [0.6, 0.8]$</p>
+    <p>Проверка: $\|z_{norm}\|_2 = \sqrt{0.6^2 + 0.8^2} = \sqrt{0.36 + 0.64} = 1$ ✓</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 6. Косинус через L2 нормализованные вектора</div>
+  <p>Два нормализованных вектора $a, b$ такие, что $\|a-b\|_2 = 0.6$. Найдите $\cos(a,b)$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Из формулы: $\|a-b\|_2^2 = 2(1 - \cos(a,b))$</p>
+    <p>$(0.6)^2 = 2(1 - \cos(a,b))$</p>
+    <p>$0.36 = 2(1 - \cos(a,b))$</p>
+    <p>$1 - \cos(a,b) = 0.18$</p>
+    <p>$\cos(a,b) = 0.82$</p>
+  </div></details>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+
+<div class="cheat">
+  <div class="bt">Скелет устного ответа по билету 8</div>
+  <ol>
+    <li><strong>Проблема классификации.</strong> K фиксировано, новый класс = переобучение. Метрический подход: обучаем расстояние один раз.</li>
+    <li><strong>Идея метрического обучения.</strong> $f: X \to \mathbb{R}^d$ так, чтобы в пространстве эмбеддингов близость соответствовала семантике. Позитивные пары близко, негативные далеко.</li>
+    <li><strong>Метрики расстояния.</strong> L2 и косинусное. При нормализации: $\|a-b\|_2^2 = 2(1 - \cos(a,b))$. Нормализация стабилизирует обучение.</li>
+    <li><strong>Классика: LMNN, NCA.</strong> Кратко: обучение матрицы Махаланобиса и softmax-подход. Мостик к нейросетевым методам.</li>
+    <li><strong>Сиамские сети.</strong> Несколько веток одной сети с общими весами. Почему общие: симметрия $d(a,b)=d(b,a)$.</li>
+    <li><strong>Contrastive loss.</strong> $L = y \cdot d^2 + (1-y) \max(0, m-d)^2$. Позитивы тянут, негативы отталкиваются до margin'а.</li>
+    <li><strong>Triplet loss.</strong> $L = \max(0, d(a,p)-d(a,n)+m)$. Якорь тянет позитив, отталкивает негатив.</li>
+    <li><strong>Triplet mining.</strong> Easy, hard, semi-hard. Semi-hard золотая середина — стабильна и информативна (FaceNet). Проблема collapse и защита.</li>
+    <li><strong>ArcFace/CosFace/SphereFace.</strong> Margin-based loss'ы на сфере. ArcFace добавляет margin к углу → стандарт в face recognition.</li>
+    <li><strong>Center loss.</strong> Доп. loss, штрафует за удаление от центра класса. $L_{center} = \frac12\sum \|z_i - c_{y_i}\|^2$. Комбинируют с softmax.</li>
+    <li><strong>Практика: face recognition.</strong> Обучение на миллионах лиц, инференс — вычисление эмбеддинга и поиск в gallery, верификация по порогу, ROC/EER, FAR/FRR.</li>
+    <li><strong>Оценка качества.</strong> Recall@K, mAP, linear probing (честный тест), fine-tuning. Отличие от accuracy: ранжирующие метрики.</li>
+  </ol>
+</div>
+
+<div class="navrow">
+  <a class="backlink" href="07-hyperparams.html">← Лекция 7. Гиперпараметры</a>
+  <a class="backlink" href="09-contrastive-ssl.html">Лекция 9. Контрастивное обучение →</a>
+</div>
+
+</div>
+</body>
+</html>

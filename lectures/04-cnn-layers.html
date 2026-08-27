@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лекция 4. Слои свёрточных нейронных сетей</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:17px;
+  line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line);
+  padding:38px 24px 30px;
+  margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация назад ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление лекции ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+/* ---------- Сетка карточек (главная) ---------- */
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px; margin:20px 0}
+.lec{
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:17px 19px; text-decoration:none; color:var(--text);
+  display:block; transition:.16s; position:relative;
+}
+.lec:hover{border-color:var(--accent); transform:translateY(-2px); background:var(--card-2)}
+.lec .n{
+  font-family:var(--mono); font-size:12px; color:var(--accent);
+  font-weight:700; letter-spacing:.05em;
+}
+.lec .t{font-weight:700; margin:5px 0 6px; font-size:16.5px; line-height:1.35; color:#fff}
+.lec .d{color:var(--text-dim); font-size:13.5px; line-height:1.5}
+.lec .time{
+  margin-top:10px; font-size:12px; color:var(--text-dim);
+  font-family:var(--mono); border-top:1px solid var(--line); padding-top:8px;
+}
+
+/* ---------- Плашка дня ---------- */
+.day{
+  margin:44px 0 8px; padding:16px 22px; border-radius:12px;
+  background:linear-gradient(90deg, rgba(110,168,254,.14), transparent);
+  border-left:4px solid var(--accent);
+}
+.day h2{border:none; margin:0; padding:0; font-size:24px}
+.day p{margin:6px 0 0; color:var(--text-dim); font-size:15px}
+
+hr{border:none; border-top:1px solid var(--line); margin:44px 0}
+
+.small{font-size:14px; color:var(--text-dim)}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+
+</style>
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]},
+  svg: {fontCache:'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Блок A · Компьютерное зрение · Вопрос 4</div>
+  <h1>Лекция 4. Слои свёрточных нейронных сетей: функционал, назначение, принципы работы</h1>
+  <p class="sub">От полносвязных сетей, которые падают на картинках, к архитектуре, которая вычисляет локальные признаки. Здесь рождается компьютерное зрение.</p>
+  <div class="meta">
+    <span class="pill">⏱ 2 ч</span>
+    <span class="pill gray">12 вопросов препода</span>
+    <span class="pill gray">7 микро-задач</span>
+    <span class="pill warn">Ключевая тема</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<a class="backlink" href="../index.html">← К оглавлению курса</a>
+
+<nav class="toc">
+  <div class="bt">Содержание лекции</div>
+  <ol>
+    <li><a href="#s1">Мотивация: почему MLP плох для картинок</a></li>
+    <li><a href="#s2">Три идеи свёртки: локальность, разделение весов, эквивариантность</a></li>
+    <li><a href="#s3">Дискретная кросс-корреляция и операция свёртки</a></li>
+    <li><a href="#s4">Гиперпараметры слоя: k, padding, stride, dilation</a></li>
+    <li><a href="#s5">Формула размера выхода и расчёты на примерах</a></li>
+    <li><a href="#s6">Число параметров свёрточного слоя</a></li>
+    <li><a href="#s7">Многоканальная свёртка и 1×1 свёртки</a></li>
+    <li><a href="#s8">Рецептивное поле: определение и рост с глубиной</a></li>
+    <li><a href="#s9">Dilated (atrous) свёртка</a></li>
+    <li><a href="#s10">Pooling: MaxPool, AvgPool, GlobalAveragePooling</a></li>
+    <li><a href="#s11">BatchNorm: нормализация и стабилизация</a></li>
+    <li><a href="#s12">Dropout в CNN и транспонированная свёртка</a></li>
+    <li><a href="#s13">Depthwise separable и типовые блоки</a></li>
+    <li><a href="#s14">Полная архитектура простой CNN</a></li>
+    <li><a href="#qa">Препод спросит</a></li>
+    <li><a href="#tasks">Микро-задачи</a></li>
+    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="s1"><span class="num">1.</span> Мотивация: почему MLP плох для картинок</h2>
+
+<p>Помню из лекции 1, что полносвязный слой $n_{in} \to n_{out}$ имеет $n_{in} \cdot n_{out}$ параметров? Картинка размером $224 \times 224$ в RGB (3 канала) даёт вход размера $224 \times 224 \times 3 = 150\,528$ пикселей.</p>
+
+<p>Если подать это в полносвязный слой с 1000 нейронами (как в AlexNet, но без свёрток), получим $150\,528 \times 1000 = 150\,528\,000$ параметров <strong>только в первом слое</strong>. Это ужас: переобучение гарантировано, обучение медленное, память кончается.</p>
+
+<div class="box warnbox">
+  <div class="bt">⚠️ Два глубоких недостатка MLP для картинок</div>
+  <p><strong>1) Размер входа.</strong> Картинка 224×224×3 → 150k нейронов, даже один скрытый слой на 1000 → 150M весов. Для сравнения, VGG-16 весит 138M, но работает с полным контекстом изображения, а не бездумно.</p>
+  <p><strong>2) Нет понятия о соседстве пикселей.</strong> MLP лечит каждый пиксель независимо. Если объект сдвинется на 1 пиксель, сеть его не узнает — нет трансляционной инвариантности. Текстуры, края, части объектов лежат в локальных окрестностях, но MLP этого не видит.</p>
+</div>
+
+<div class="scheme">
+   MLP на картинке 224×224×3:
+
+   ╔═══════════════════════════════════════════════════════════╗
+   ║ 150 528 входов                                            ║
+   ║                 (собаки, кошки, пиксели беспорядочно)   ║
+   ║                                                           ║
+   ║ ╔─────────────────────────────────────────────────────╗   ║
+   ║ ║   1000 нейронов, каждый видит ВСЕ 150k пикселей   ║   ║
+   ║ ║   (тратит энергию на попиксельные корреляции)      ║   ║
+   ║ ║                                                    ║   ║
+   ║ ║   150 млн параметров только в первом слое!        ║   ║
+   ║ ╚─────────────────────────────────────────────────────╝   ║
+   ╚═══════════════════════════════════════════════════════════╝
+<span class="cap">MLP обрабатывает каждый пиксель независимо с независимым весом. Не использует структуру — что пиксели в соседстве похожи, что объекты инвариантны к сдвигам.</span></div>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> Три идеи свёртки: локальность, разделение весов, трансляционная эквивариантность</h2>
+
+<p>Свёртка решает обе проблемы за счёт трёх ключевых идей, вплетённых одна в другую.</p>
+
+<h3>Идея 1: локальность (рецептивное поле)</h3>
+
+<p>Каждый выходной нейрон смотрит не на все 150k пиксели, а только на маленькую окрестность — например, 3×3 соседних пикселей. Это имеет смысл: для распознавания края нужна окрестность пикселя, не нужна информация со всей картинки.</p>
+
+<h3>Идея 2: разделение весов (weight sharing)</h3>
+
+<p>При скольжении окна 3×3 по картинке, мы применяем <strong>одни и те же 9 весов</strong> везде. Это огромный выигрыш в параметрах: вместо миллионов независимых весов — всего 9 (на один фильтр).</p>
+
+<h3>Идея 3: трансляционная эквивариантность</h3>
+
+<p>Свёртка обладает замечательным свойством: если входное изображение сдвинуть, выход сдвинется ровно настолько же. Формально: если $y = f(x)$ где $f$ — свёртка, и мы заменим $x$ на $\text{shift}_{\Delta}(x)$, то новый выход будет $\text{shift}_{\Delta}(y)$.</p>
+
+<div class="box idea">
+  <div class="bt">💡 Эквивариантность vs инвариантность</div>
+  <p><strong>Эквивариантность:</strong> сдвиг входа → сдвиг выхода. Это свёртка. Полезно: можно находить признаки в любом месте картинки.</p>
+  <p><strong>Инвариантность:</strong> сдвиг входа → выход не меняется. Это пулинг и глобальный пулинг. Полезно: полученный вектор признаков не зависит от позиции объекта на картинке.</p>
+  <p>Типовая CNN: стек свёрток (выравнивание признаков по позициям) + пулинг на конце каждого блока (выхватываем важное, забываем позицию) + в конце GlobalAveragePooling (один вектор признаков от всей картинки, независимо от позиции).</p>
+</div>
+
+<div class="scheme">
+   Эквивариантность и инвариантность:
+
+   Вход               Свёртка (эквивариантная)      Пулинг (инвариантный)
+   ┌─────┐            ┌──────────┐                 ┌──────────┐
+   │  ■□ │   -conv→   │  A  B    │   -pool→        │    C     │
+   │  □■ │            │  C  D    │                 └──────────┘
+   └─────┘            └──────────┘
+
+   Сдвиг входа:       Свёртка (выход сдвинулся):   Пулинг (выход не изменился):
+   ┌─────┐            ┌──────────┐                 ┌──────────┐
+   │□ ■  │   -conv→   │  D  E    │   -pool→        │    C     │  ← одно и то же!
+   │ ■□ │            │  F  G    │                 └──────────┘
+   └─────┘            └──────────┘
+<span class="cap">Свёртка сохраняет позицию признаков. Пулинг отбросит позицию, выхватив главное. Вместе они образуют мощную комбинацию.</span></div>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> Дискретная кросс-корреляция и операция свёртки</h2>
+
+<p>Формально свёртка в глубоком обучении — это <strong>дискретная кросс-корреляция</strong> (важное предупреждение: в обработке сигналов свёртка переворачивает ядро, в DL не переворачивают — частый вопрос на экзамене!).</p>
+
+<p>Обозначим: $X$ — входная карта (матрица пикселей или признаков), $W$ — ядро (kernel, filter, маленькая матрица), $Y$ — выходная карта.</p>
+
+<div class="formula">
+$$ Y[i,j] = \sum_{u=0}^{k-1} \sum_{v=0}^{k-1} W[u,v] \cdot X[i \cdot s + u, j \cdot s + v] + b $$
+<span class="note">Здесь $k$ — размер ядра (например, 3 для 3×3 ядра), $s$ — stride, $b$ — смещение. Индексы: $(i,j)$ — позиция в выходной карте, $(i \cdot s + u, j \cdot s + v)$ — позиция в входной карте. Нарушения границ и padding мы учтём позже.</span>
+</div>
+
+<p>Проще всего понять на ASCII-схеме. Пусть вход 5×5, ядро 3×3, stride=1, padding=0:</p>
+
+<div class="scheme">
+   Входная карта X (5×5):        Ядро W (3×3):        Выход Y (3×3):
+
+   ┌─────────────┐              ┌───────┐           ┌─────────┐
+   │ x₀₀ x₀₁ x₀₂ x₀₃ x₀₄ │       │ w₀₀ w₀₁ w₀₂ │       │ y₀₀ y₀₁ y₀₂ │
+   │ x₁₀ x₁₁ x₁₂ x₁₃ x₁₄ │       │ w₁₀ w₁₁ w₁₂ │       │ y₁₀ y₁₁ y₁₂ │
+   │ x₂₀ x₂₁ x₂₂ x₂₃ x₂₄ │       │ w₂₀ w₂₁ w₂₂ │       │ y₂₀ y₂₁ y₂₂ │
+   │ x₃₀ x₃₁ x₃₂ x₃₃ x₃₄ │       └───────┘           └─────────┘
+   │ x₄₀ x₄₁ x₄₂ x₄₃ x₄₄ │
+   └─────────────┘
+
+   Шаг 1. Позиция (0,0):      Шаг 2. Сдвиг на stride=1:
+   ┌─────────┐               ┌─────────┐
+   │ x₀₀ x₀₁ x₀₂ │            │ x₀₁ x₀₂ x₀₃ │
+   │ x₁₀ x₁₁ x₁₂ │            │ x₁₁ x₁₂ x₁₃ │
+   │ x₂₀ x₂₁ x₂₂ │            │ x₂₁ x₂₂ x₂₃ │
+   └─────────┘               └─────────┘
+   y₀₀ = Σ wᵤᵥ · xᵤᵥ         y₀₁ = Σ wᵤᵥ · x₀₍ᵥ₊₁₎
+      + b                       + b
+
+   На каждой позиции: поэлементное произведение, сумма, +bias.
+<span class="cap">Ядро 3×3 скользит по входу 5×5 с шагом stride=1. На каждой позиции — скалярное произведение ядра и окна входа, плюс смещение. Выход 3×3 (так как нет padding, края теряются).</span></div>
+
+<p><strong>Числовой пример для y₀₀:</strong></p>
+
+<div class="formula">
+$$ y_{0,0} = w_{0,0} \cdot x_{0,0} + w_{0,1} \cdot x_{0,1} + w_{0,2} \cdot x_{0,2} + w_{1,0} \cdot x_{1,0} + \cdots + w_{2,2} \cdot x_{2,2} + b $$
+<span class="note">Это ровно 9 умножений и сумма, затем +bias. Простая операция, но повторяется тысячи раз.</span>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> Гиперпараметры слоя: k, padding, stride, dilation</h2>
+
+<h3>4.1 Размер ядра k</h3>
+
+<p>Обычно 3×3 или 5×5. Редко — 7×7. Почему? Два ядра 3×3 подряд дают эффективное рецептивное поле 5×5 (разберём дальше), но параметров 2·9=18 vs 25 для одного 5×5.</p>
+
+<p><strong>Плюс:</strong> два слоя даёт две нелинейности вместо одной, что увеличивает выразительность.</p>
+
+<h3>4.2 Padding p</h3>
+
+<p>Добавляем нули вокруг входа. Зачем?</p>
+
+<ul>
+  <li><strong>same padding ($p = (k - 1)/2$):</strong> выходная карта той же высоты и ширины, что входная (при stride=1). Полезно: не теряются признаки у краёв, архитектура проще.</li>
+  <li><strong>valid padding (p = 0):</strong> нет добавления нулей, выход меньше. Полезно: меньше вычислений на глубоких слоях, нет введения «фиктивных» нулевых пикселей.</li>
+</ul>
+
+<div class="box exambox">
+  <div class="bt">🎯 Частый вопрос: зачем нулевой padding, если мы добавляем фиктивные нули?</div>
+  <p>На ранних слоях нулевой padding замечательно работает: центральные пиксели видят полное окружение (9 настоящих соседей), краевые — часть. Сеть учится, что информация на краях менее надёжна, и автоматически снижает веса при умножении на нулевый padding. Это не баг, а фича: мягкое «знание» того, что края — граница картинки.</p>
+  <p>На глубоких слоях всё уже является признаками, а не пикселями, так что нули padding имеют смысл как «отсутствие признака».</p>
+</div>
+
+<h3>4.3 Stride s</h3>
+
+<p>Шаг скольжения ядра. s=1 — каждая позиция. s=2 — через одну (выход в 2 раза меньше в каждом измерении). s=3, 4 — ещё реже.</p>
+
+<p><strong>Плюс больших stride:</strong> снижение пространственных размеров, ускорение, рост эффективного рецептивного поля (дешёво).</p>
+
+<p><strong>Минус:</strong> потеря деталей. Если s=2, мы игнорируем каждую вторую позицию входа.</p>
+
+<p>Компромисс: часто используют s=2 в начале блока (быстро сокращаем размер), затем s=1. Или максимально s=1, а сокращение делают через Max Pooling (даёт инвариантность).</p>
+
+<h3>4.4 Dilation d</h3>
+
+<p>Шаг внутри ядра. d=1 — обычно (соседние элементы ядра). d=2 — берём элементы ядра через один. Ядро 3×3 с d=2 охватывает область 5×5, но применяет только к 9 позициям (в центре и углах).</p>
+
+<p><strong>Зачем?</strong> Растить рецептивное поле БЕЗ потери разрешения (важно для сегментации). Вместо pooling (теряет детали), dilated свёртка видит более широкий контекст, но сохраняет пространственное разрешение.</p>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> Формула размера выхода и расчёты на примерах</h2>
+
+<p>Одна из самых важных формул в компьютерном зрении:</p>
+
+<div class="mathbox">
+<div class="formula">
+$$ H_{\text{out}} = \left\lfloor \frac{H_{\text{in}} + 2p - k}{s} \right\rfloor + 1 $$
+$$ W_{\text{out}} = \left\lfloor \frac{W_{\text{in}} + 2p - k}{s} \right\rfloor + 1 $$
+<span class="note">$H_{\text{in}}, W_{\text{in}}$ — высота и ширина входа; $k$ — размер ядра; $p$ — padding; $s$ — stride. Пол () округляет вниз. Глубина выхода (число каналов) = число фильтров в этом слое, зависит от архитектуры, не от входа.</span>
+</div>
+</div>
+
+<p>Проверим на нашем примере: вход 5×5, ядро 3×3, padding=0, stride=1:</p>
+
+<div class="formula">
+$$ H_{\text{out}} = \left\lfloor \frac{5 + 0 - 3}{1} \right\rfloor + 1 = \lfloor 2 \rfloor + 1 = 3 $$
+</div>
+
+<p>Вывод: выход 3×3. ✓ Совпало с ASCII-схемой.</p>
+
+<h3>Случай 1: same padding</h3>
+
+<p>Хотим $H_{\text{out}} = H_{\text{in}}$ (при $s=1$). Решаем уравнение:</p>
+
+<div class="formula">
+$$ H_{\text{in}} = \left\lfloor \frac{H_{\text{in}} + 2p - k}{1} \right\rfloor + 1 \Rightarrow 2p = k - 1 \Rightarrow p = \frac{k-1}{2} $$
+</div>
+
+<p><strong>Примеры:</strong></p>
+
+<ul>
+  <li>$k=3 \Rightarrow p = 1$ (добавляем 1 ноль со всех сторон)</li>
+  <li>$k=5 \Rightarrow p = 2$ (добавляем 2 нуля)</li>
+  <li>$k=7 \Rightarrow p = 3$ (добавляем 3 нуля)</li>
+</ul>
+
+<h3>Случай 2: stride > 1</h3>
+
+<p>Вход $H_{\text{in}} = 32$, $k = 3$, $p = 1$ (same padding если бы s=1), но $s = 2$:</p>
+
+<div class="formula">
+$$ H_{\text{out}} = \left\lfloor \frac{32 + 2 - 3}{2} \right\rfloor + 1 = \left\lfloor \frac{31}{2} \right\rfloor + 1 = 15 + 1 = 16 $$
+</div>
+
+<p>Выход вполовину меньше входа — ожидаемо при stride=2.</p>
+
+<!-- ============================================ -->
+<h2 id="s6"><span class="num">6.</span> Число параметров свёрточного слоя</h2>
+
+<p>Слой с ядром размера $k \times k$, входных каналов $C_{\text{in}}$, выходных каналов $C_{\text{out}}$:</p>
+
+<div class="formula">
+$$ \text{параметры} = k \cdot k \cdot C_{\text{in}} \cdot C_{\text{out}} + C_{\text{out}} $$
+<span class="note">Первое слагаемое — веса всех фильтров (каждый фильтр $k \times k \times C_{\text{in}}$ размером), второе — bias для каждого фильтра.</span>
+</div>
+
+<p><strong>Сравнение с полносвязным слоем.</strong> Вход $H \times W \times C_{\text{in}}$ (например, $32 \times 32 \times 64$), выход на $C_{\text{out}} = 128$ классов:</p>
+
+<ul>
+  <li><strong>Полносвязный:</strong> $(32 \cdot 32 \cdot 64) \times 128 = 2048 \times 128 \approx 262\,000$ параметров.</li>
+  <li><strong>Свёрточный 3×3, 128 фильтров:</strong> $3 \times 3 \times 64 \times 128 + 128 = 73\,728 + 128 = 73\,856$ параметров.</li>
+</ul>
+
+<p>Свёртка в <strong>3.5 раза меньше параметров</strong>, при этом НЕ теряет пространственную структуру выхода (остаётся 30×30×128 карта, а не скаляр).</p>
+
+<div class="box idea">
+  <div class="bt">💡 Вот почему свёртки работают лучше</div>
+  <p>Два механизма экономии параметров: (1) локальность — смотрим только на k×k, не на весь вход; (2) разделение весов — одно ядро применяется везде. Полносвязный слой смотрит на весь вход и имеет независимые параметры для каждой позиции. На картинках это излишне и ведёт к переобучению.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s7"><span class="num">7.</span> Многоканальная свёртка и 1×1 свёртки</h2>
+
+<h3>7.1 Многоканальная свёртка</h3>
+
+<p>На практике вход имеет несколько каналов: RGB (3 канала), или признаки со слоя ниже (64 канала). Что делает ядро?</p>
+
+<p><strong>Ядро размером $k \times k \times C_{\text{in}}$.</strong> Оно работает со всеми входными каналами параллельно: применяется к каждому каналу отдельно, результаты суммируются, затем добавляется bias. Результат — один скаляр (один выходной канал).</p>
+
+<p>Чтобы получить $C_{\text{out}}$ выходных каналов, нужно $C_{\text{out}}$ таких ядер.</p>
+
+<div class="scheme">
+   Входная карта (высота H, ширина W, 3 канала: R,G,B):
+
+   R-канал:  ┌─────────┐      Выбираем окно 3×3
+             │ R R R R │      из R, G, B каждый
+   G-канал:  │ G G G G │      ┌─────────┐
+             │ B B B B │      │ R R R   │
+   B-канал:  └─────────┘      │ G G G   │
+                              │ B B B   │
+                              └─────────┘
+                                  ↓
+                         Примени W⁽¹⁾ (ядро 3×3×3)
+                              ↓
+                         Выход y₁ (скаляр)
+                              ↓
+   Если C_out=64, то 64 ядра дают 64 выходных канала y₁, y₂, …, y₆₄
+
+   Выход: H × W × 64 карта признаков
+<span class="cap">Ядро видит все входные каналы сразу. Это позволяет научиться комбинировать информацию между каналами (например, в RGB: если красный высокий и зелёный высокий, то это жёлтый).</span></div>
+
+<h3>7.2 Свёртка 1×1 (pointwise convolution)</h3>
+
+<p><strong>Это не свёртка в обычном смысле — это линейная комбинация каналов в каждой точке.</strong></p>
+
+<p>Ядро размера 1×1 не имеет пространственного контекста. На каждой позиции $(i,j)$ берём вектор из $C_{\text{in}}$ каналов и применяем к нему $C_{\text{out}} \times C_{\text{in}}$ матрицу весов:</p>
+
+<div class="formula">
+$$ y_{i,j,c_{\text{out}}} = \sum_{c_{\text{in}}=1}^{C_{\text{in}}} W_{c_{\text{out}}, c_{\text{in}}} \cdot x_{i,j,c_{\text{in}}} + b_{c_{\text{out}}} $$
+</div>
+
+<p><strong>Зачем нужна?</strong></p>
+
+<ul>
+  <li><strong>Bottleneck:</strong> сжатие каналов (например, 64 → 16 → 64) со скромным числом параметров: $64 \times 16 + 16 \times 64 = 2048$ vs полносвязный слой $64 \times 64 = 4096$ на каждой позиции. Это часто используется в ResNet.</li>
+  <li><strong>Дешёвая нелинейность между каналами:</strong> Conv 1×1 + ReLU позволяет каналам взаимодействовать с выразительностью, но дешевле, чем полносвязный слой.</li>
+  <li><strong>Изменение числа каналов:</strong> быстрое снижение или расширение без пространственного контекста.</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s8"><span class="num">8.</span> Рецептивное поле: определение и рост с глубиной</h2>
+
+<p><strong>Рецептивное поле (receptive field) слоя $l$</strong> — размер области входной картинки, которая влияет на один выходной нейрон слоя $l$.</p>
+
+<div class="box exambox">
+  <div class="bt">🎯 Классический вопрос: рецептивное поле</div>
+  <p>Первый слой Conv 3×3 → рецептивное поле 3×3 (видит 9 пикселей входа).</p>
+  <p>Второй слой Conv 3×3 → каждый нейрон второго слоя видит 3×3 нейронов первого слоя, каждый из которых видит 3×3 входа. Итого: каждый нейрон второго слоя видит область входа размера... 5×5! (не 6×6, а 5×5 — расчёт дальше).</p>
+</div>
+
+<p><strong>Формула:</strong> если на слое $l$ рецептивное поле $RF_l$ и размер ядра $k_l$, а на слое $l-1$ был stride $s_{l-1}$, то:</p>
+
+<div class="mathbox">
+<div class="formula">
+$$ RF_l = RF_{l-1} + (k_l - 1) \cdot \prod_{i=1}^{l-1} s_i $$
+<span class="note">Входное изображение имеет $RF_0 = 1$ (каждый пиксель влияет на себя). На каждом слое рецептивное поле растёт на $(k_l - 1) \cdot (\text{совокупный stride до этого слоя})$.</span>
+</div>
+</div>
+
+<p><strong>Числовой пример: три слоя 3×3, все stride=1, padding='same':</strong></p>
+
+<div class="formula">
+$$ RF_0 = 1 $$
+$$ RF_1 = 1 + (3-1) \cdot 1 = 1 + 2 = 3 $$
+$$ RF_2 = 3 + (3-1) \cdot 1 = 3 + 2 = 5 $$
+$$ RF_3 = 5 + (3-1) \cdot 1 = 5 + 2 = 7 $$
+</div>
+
+<p>Три слоя Conv 3×3 дают рецептивное поле 7×7 — ровно как один слой Conv 7×7, но с меньшим числом параметров и большей нелинейностью!</p>
+
+<p><strong>Почему это важно?</strong> Рецептивное поле определяет, какой контекст сеть может видеть на каждом слое. Классификация объектов требует большого контекста (видеть весь объект, а не его часть), поэтому глубокие сети с большим рецептивным полем работают лучше.</p>
+
+<!-- ============================================ -->
+<h2 id="s9"><span class="num">9.</span> Dilated (atrous) свёртка</h2>
+
+<p>Обычная свёртка 3×3 с stride=2 даёт рецептивное поле, но теряет разрешение вчетверо (область выхода в 2 раза меньше в каждом измерении). Dilated свёртка растит рецептивное поле <strong>без потери разрешения</strong>.</p>
+
+<p>Параметр $d$ (dilation rate) определяет шаг внутри ядра. Ядро 3×3 с d=1 охватывает 3×3 пиксели. Ядро 3×3 с d=2 охватывает эффективно 5×5 пиксель (берём центр и четыре диагональных).</p>
+
+<div class="formula">
+$$ k_{\text{eff}} = k + (k-1)(d-1) = k + kd - d - k + 1 = 1 + k(d-1) $$
+<span class="note">Для 3×3 ядра: $d=1 \Rightarrow k_{\text{eff}}=3$; $d=2 \Rightarrow k_{\text{eff}}=5$; $d=3 \Rightarrow k_{\text{eff}}=7$.</span>
+</div>
+
+<p><strong>Пример: dilated Conv 3×3, d=2</strong></p>
+
+<div class="scheme">
+   Обычная 3×3, d=1:       Dilated 3×3, d=2:
+   ┌─────┐                ┌───────┐
+   │ X X X │                │ X . X . X │
+   │ X X X │                │ . . . . . │
+   │ X X X │                │ X . X . X │
+   └─────┘                │ . . . . . │
+                          │ X . X . X │
+                          └───────┘
+   Охватывает 3×3         Охватывает эффективно 5×5
+   параметров: 9          параметров: 9 (но оче вполне распреде)
+<span class="cap">Dilated ядро пропускает элементы (пунктиры), эффективно покрывая большую область с тем же числом параметров. Идеально для сегментации (нужен контекст, но пиксельная точность).</span></div>
+
+<p><strong>Зачем?</strong> Сегментация требует соответствия пиксель-в-пиксель (выход той же размерности, что вход). Но нейрон должен видеть весь объект, чтобы понять, что там. Dilated свёртка решает это: рецептивное поле растёт, но пространственное разрешение не теряется.</p>
+
+<!-- ============================================ -->
+<h2 id="s10"><span class="num">10.</span> Pooling: MaxPool, AvgPool, GlobalAveragePooling</h2>
+
+<p>Пулинг <strong>не имеет обучаемых параметров</strong>. Это просто операция, которая:</p>
+
+<ul>
+  <li>Снижает пространственные размеры (вход 32×32 → выход 16×16).</li>
+  <li>Вводит инвариантность к малым сдвигам (если объект сдвинулся на 1-2 пикселя, макспулинг выхватит его).</li>
+  <li>Растит эффективное рецептивное поле дешёво.</li>
+  <li>Снижает вычисления в поздних слоях.</li>
+</ul>
+
+<h3>MaxPool</h3>
+
+<div class="formula">
+$$ Y[i,j] = \max_{u,v} X[i \cdot s + u, j \cdot s + v] $$
+</div>
+
+<p>На окне берётся максимум. Пример: окно 2×2, stride=2 на входе 4×4:</p>
+
+<div class="scheme">
+   Вход (4×4):              MaxPool 2×2, s=2:
+
+   ┌───────────┐            ┌─────┐
+   │ 1 2 | 4 3 │            │ 2 4 │
+   │ 3 4 | 1 2 │    →       │ 5 3 │
+   ├───────────┤            └─────┘
+   │ 1 5 | 3 2 │
+   │ 2 3 | 1 1 │
+   └───────────┘
+
+   max(1,2,3,4)=4  max(4,3,1,2)=4   → первая строка выхода: 4, 4
+   max(1,5,2,3)=5  max(3,2,1,1)=3   → вторая строка выхода: 5, 3
+<span class="cap">MaxPool берёт максимум в каждом окне 2×2 с шагом 2. Выход вдвое меньше по каждому измерению. Это создаёт инвариантность к позиции: если объект сдвинулся на пиксель, макспулинг выхватит его.</span></div>
+
+<h3>AvgPool</h3>
+
+<p>Берётся среднее вместо максимума. Менее популярен (максимум более «решительный»), но используется, когда хотим мягкую агрегацию.</p>
+
+<h3>GlobalAveragePooling</h3>
+
+<p>Берём среднее <strong>по всей пространственной карте</strong>. Вход $H \times W \times C$ → выход просто $C$-мерный вектор.</p>
+
+<div class="formula">
+$$ y_c = \frac{1}{H \cdot W} \sum_{i=0}^{H-1} \sum_{j=0}^{W-1} x_{i,j,c} $$
+</div>
+
+<p><strong>Огромное преимущество:</strong> инвариантность к размеру входного изображения! Вход 224×224 или 448×448 — всё работает, пока есть одно число на канал на выходе. Поэтому современные CNN часто делают: Conv блоки + GlobalAveragePooling + маленький FC для классификации.</p>
+
+<h3>Backward pass через MaxPool</h3>
+
+<p>Как вычисляется градиент при обратном проходе? Пул не дифференцируем в классическом смысле (негладкая функция). Но в автодифференцировании просто: градиент идёт только в позицию максимума, в остальные позиции окна — ноль.</p>
+
+<div class="scheme">
+   MaxPool forward:         Gradient backward:
+
+   ┌─────┐                 ┌─────┐
+   │ 1 2 │  →  2            │ 0 1 │  (dL/dx)
+   │ 3 4 │                 │ 0 1 │  (dL/dy только сюда)
+   └─────┘                 └─────┘
+   max = 4                 max = 4 (индекс 1,1)
+
+   Если dL/dy = 0.5 (градиент от выхода),
+   то dL/d(x[1,1]) += 0.5, остальные остаются 0.
+<span class="cap">Максимум пулинга имеет простой backward: градиент проходит только через позицию, где был максимум. В PyTorch это автоматическое.</span></div>
+
+<div class="box warnbox">
+  <div class="bt">⚠️ Почему не всегда используют stride вместо пулинга?</div>
+  <p>Conv с stride=2 вместо MaxPool даёт выход той же размерности и кажется проще. Плюсы пулинга: (1) явно интродуцирует инвариантность, (2) нет параметров, которые могут переобучиться, (3) работает во многих успешных архитектурах. Современный тренд: многие архитектуры (особенно Vision Transformer) отходят от пулинга вообще.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s11"><span class="num">11.</span> BatchNorm: нормализация и стабилизация</h2>
+
+<p><strong>BatchNorm</strong> — это операция, которая нормализует входные данные слоя так, чтобы они имели нулевое среднее и единичную дисперсию (в пределах батча), затем применяет обучаемое масштабирование и сдвиг.</p>
+
+<div class="formula">
+$$ \hat x = \frac{x - \mu_{\text{batch}}}{\sqrt{\sigma_{\text{batch}}^2 + \epsilon}}, \qquad y = \gamma \hat x + \beta $$
+<span class="note">$\mu_{\text{batch}}, \sigma_{\text{batch}}$ — среднее и дисперсия в текущем батче; $\gamma, \beta$ — обучаемые параметры (gain и shift), $\epsilon$ — малое число для численной стабильности.</span>
+</div>
+
+<p><strong>Зачем?</strong></p>
+
+<ul>
+  <li><strong>Стабилизация обучения:</strong> входные активации к слою не разваливаются на экстремально большие/маленькие значения, которые вызывают насыщение активационных функций.</li>
+  <li><strong>Выше learning rate:</strong> благодаря нормализации градиенты более предсказуемы, можно поднять LR.</li>
+  <li><strong>Лёгкая регуляризация:</strong> нормализация по батчу добавляет немного шума (в батче, а не во всём датасете), что действует как регуляризатор.</li>
+</ul>
+
+<h3>Train vs Eval режим</h3>
+
+<p><strong>Во время обучения:</strong> нормализуем по текущему батчу (динамическая статистика).</p>
+
+<p><strong>Во время инференса:</strong> батча может не быть, или батч один пример. Используем <em>running statistics</em> — скользящее среднее среднего и дисперсии из всех батчей обучения, накопленное в параметрах <code>running_mean</code> и <code>running_var</code>.</p>
+
+<div class="box exambox">
+  <div class="bt">🎯 Очень частый вопрос на экзамене</div>
+  <p>Забыл указать <code>model.eval()</code> перед инференсом после обучения — в чём ошибка?</p>
+  <p><strong>Ответ:</strong> BatchNorm в режиме <code>train()</code> нормализует по батчу. Если батч маленький (допустим, 1 пример), то нормализация будет ненадёжной, и выход сильно отличается от того, что моделировалась обучением. Плюс running statistics не обновляются (они обновляются только в eval режиме для того, чтобы их можно было сохранить). Результат: в инференсе сеть работает совсем по-другому, точность падает. Нужно указать <code>model.eval()</code>.</p>
+</div>
+
+<h3>LayerNorm, GroupNorm, InstanceNorm</h3>
+
+<p><strong>LayerNorm:</strong> нормализуем по размерностям (каналам и пространству), не по батчу. Полезна, когда батч-статистики ненадёжны (маленький батч, RNN, Transformer).</p>
+
+<p><strong>GroupNorm:</strong> делим каналы на группы, нормализуем внутри каждой группы. Промежуток между BatchNorm и LayerNorm. Хорошо работает при маленьких батчах (медицинские снимки, 3D данные).</p>
+
+<p><strong>InstanceNorm:</strong> нормализуем каждый канал каждого примера батча независимо. Используется в style transfer (важна стилистическая, а не содержательная статистика).</p>
+
+<!-- ============================================ -->
+<h2 id="s12"><span class="num">12.</span> Dropout в CNN и транспонированная свёртка</h2>
+
+<h3>Dropout в CNN</h3>
+
+<p>Обычный dropout во время прямого прохода просто выключает нейроны случайно. Но в CNN соседние пиксели/признаки сильно коррелированы! Если выключить один нейрон, его соседи «подскажут» информацию через свёртку. Dropout становится неэффективным.</p>
+
+<p><strong>Решение:</strong> Dropout2d (SpatialDropout) выключает не отдельные нейроны, а целые каналы (или целые пространственные окна). Это логичнее для CNN структуры.</p>
+
+<div class="scheme">
+   Обычный Dropout:         Dropout2D / SpatialDropout:
+
+   С,С,С,С,С  (5 каналов)   С,С,С,С,С  (5 каналов)
+   x,o,x,o,x  (выключен о)  о,о,о,о,о  (весь канал 2 выключен)
+   С,С,С,С,С                С,С,С,С,С
+
+   Соседние пиксели        Информация канала 2 теряется
+   помогают восстановить   полностью, но структура CNN
+   выключённый нейрон.     более уважается.
+<span class="cap">Dropout2D выключает целые пространственные карты (каналы), не отдельные активации. Это более согласовано с природой CNN.</span></div>
+
+<h3>Транспонированная свёртка (Deconvolution / Up-Convolution)</h3>
+
+<p>Нужна для апсемплинга: увеличить пространственные размеры. Используется в:</p>
+
+<ul>
+  <li><strong>Сегментация:</strong> после энкодера уменьшаем размеры (Conv + Pooling), потом апсемплим (транспонированная свёртка) до исходного размера, чтобы каждому пикселю назначить класс.</li>
+  <li><strong>VAE/GAN:</strong> генератор принимает мал­кий вектор, растит его до большого изображения через серию транспонированных свёрток.</li>
+</ul>
+
+<p><strong>Как работает:</strong> если обычная свёртка уменьшает размер (применяя ядро, суммируя), транспонированная делает обратное — берёт каждый элемент входа, умножает на ядро и размещает результат в выходе с интервалом (stride). Вывод: выход больше входа.</p>
+
+<div class="scheme">
+   Обычная свёртка (stride=1):     Транспонированная (stride=2):
+
+   Вход 5×5 --(Conv 3×3)→ Выход 3×3   Вход 3×3 --(TransConv 3×3, s=2)→ Выход 5×5
+
+   Один вывод = скаляр в окне       Один вход = ядро размещено в выходе
+   ┌─────┐                         ┌───────┐
+   │ X X X │  →  ●                 │ . . . │
+   │ X X X │      выход 3×3        │ . ● . │  ← один элемент входа
+   │ X X X │                       │ . . . │
+   └─────┘                         └───────┘
+
+                                   (размещаются с интервалом stride=2)
+<span class="cap">Транспонированная свёртка — обратная операция, растит размеры. Полезна для декодирования в сегментации и генерации.</span></div>
+
+<p><strong>Проблема: шахматные артефакты (checkerboard artifacts).</strong> При некоторых комбинациях ядра и stride могут возникнуть видимые «шахматные» узоры в выходе — это признак плохого апсемплинга.</p>
+
+<p><strong>Решение:</strong> сначала upsample (увеличить размер с помощью интерполяции), потом обычная свёртка (Conv). Результат аналогичен, но без артефактов.</p>
+
+<!-- ============================================ -->
+<h2 id="s13"><span class="num">13.</span> Depthwise separable и типовые блоки</h2>
+
+<h3>Depthwise separable свёртка</h3>
+
+<p><strong>Идея:</strong> разделить стандартную свёртку на две дешёвые операции.</p>
+
+<p>Стандартная свёртка $k \times k \times C_{\text{in}} \times C_{\text{out}}$ имеет $k^2 \cdot C_{\text{in}} \cdot C_{\text{out}}$ параметров.</p>
+
+<p><strong>Depthwise separable:</strong></p>
+
+<ol>
+  <li><strong>Depthwise:</strong> $k \times k \times 1$ ядро применяем к каждому входному каналу отдельно. Параметры: $k^2 \cdot C_{\text{in}}$.</li>
+  <li><strong>Pointwise (1×1):</strong> затем 1×1 свёртка, которая комбинирует каналы. Параметры: $C_{\text{in}} \times C_{\text{out}}$.</li>
+</ol>
+
+<p><strong>Итого параметров:</strong> $k^2 \cdot C_{\text{in}} + C_{\text{in}} \cdot C_{\text{out}}$ vs $k^2 \cdot C_{\text{in}} \cdot C_{\text{out}}$ изначально.</p>
+
+<p><strong>Сокращение:</strong> $\frac{k^2 \cdot C_{\text{in}} + C_{\text{in}} \cdot C_{\text{out}}}{k^2 \cdot C_{\text{in}} \cdot C_{\text{out}}} = \frac{1}{C_{\text{out}}} + \frac{1}{k^2}$.</p>
+
+<p>Пример: $k=3$, $C_{\text{in}}=32$, $C_{\text{out}}=64$:</p>
+
+<ul>
+  <li><strong>Обычная:</strong> $9 \times 32 \times 64 = 18\,432$ параметров.</li>
+  <li><strong>Depthwise separable:</strong> $9 \times 32 + 32 \times 64 = 288 + 2\,048 = 2\,336$ параметров.</li>
+  <li><strong>Сокращение:</strong> в 8 раз!</li>
+</ul>
+
+<p>Используется в MobileNet — архитектуре для мобильных устройств с ограниченными ресурсами.</p>
+
+<h3>Типовой блок CNN</h3>
+
+<p>Практически каждый слой CNN имеет стандартный рецепт:</p>
+
+<div class="scheme">
+   ┌──────────────────────┐
+   │ Вход: H×W×C_in      │
+   └──────────────────────┘
+           ↓
+   ┌──────────────────────┐
+   │ Conv k×k, C_out      │  ← может быть depthwise-separable
+   └──────────────────────┘
+           ↓
+   ┌──────────────────────┐
+   │ BatchNorm            │  ← стабилизация
+   └──────────────────────┘
+           ↓
+   ┌──────────────────────┐
+   │ ReLU                 │  ← нелинейность
+   └──────────────────────┘
+           ↓
+   ┌──────────────────────┐
+   │ [Dropout2d / MaxPool]│  ← опционально
+   └──────────────────────┘
+           ↓
+   ┌──────────────────────┐
+   │ Выход: H'×W'×C_out  │
+   └──────────────────────┘
+<span class="cap">Conv → BatchNorm → ReLU — это канон. Почему BN перед активацией? Потому что BN нормализует входы к ReLU, делая активацию более стабильной.</span></div>
+
+<p><strong>Почему BN <em>перед</em> активацией?</strong> BatchNorm нормализует данные, если применить её после ReLU, половина нормализуемых значений уже нулевые (ReLU выключает отрицательное). Перед ReLU более логично.</p>
+
+<p><strong>Почему bias в Conv можно удалить, если следом BatchNorm?</strong> BatchNorm имеет параметр $\beta$ (shift), который может выразить любой bias. Дополнительный bias в Conv был бы избыточен. Экономим параметры.</p>
+
+<!-- ============================================ -->
+<h2 id="s14"><span class="num">14.</span> Полная архитектура простой CNN</h2>
+
+<p>Давайте сложим всё вместе и построим полную CNN для классификации CIFAR-10 (изображения 32×32 RGB):</p>
+
+<div class="scheme">
+   Вход: 32×32×3 (RGB картинка)
+          ↓
+   ┌──────────────────────────────────────────┐
+   │ Conv 3×3, 32 фильтра, stride=1, p='same' │
+   │ BatchNorm, ReLU                          │
+   │ Выход: 32×32×32                          │
+   └──────────────────────────────────────────┘
+          ↓
+   ┌──────────────────────────────────────────┐
+   │ MaxPool 2×2, stride=2                    │
+   │ Выход: 16×16×32                          │
+   └──────────────────────────────────────────┘
+          ↓
+   ┌──────────────────────────────────────────┐
+   │ Conv 3×3, 64 фильтра, stride=1, p='same' │
+   │ BatchNorm, ReLU                          │
+   │ Выход: 16×16×64                          │
+   └──────────────────────────────────────────┘
+          ↓
+   ┌──────────────────────────────────────────┐
+   │ MaxPool 2×2, stride=2                    │
+   │ Выход: 8×8×64                            │
+   └──────────────────────────────────────────┘
+          ↓
+   ┌──────────────────────────────────────────┐
+   │ Conv 3×3, 128 фильтра, stride=1, p='same'│
+   │ BatchNorm, ReLU                          │
+   │ Выход: 8×8×128                           │
+   └──────────────────────────────────────────┘
+          ↓
+   ┌──────────────────────────────────────────┐
+   │ GlobalAveragePooling                     │
+   │ Выход: 128                               │
+   └──────────────────────────────────────────┘
+          ↓
+   ┌──────────────────────────────────────────┐
+   │ Linear 128 → 10 (классы)                 │
+   │ Softmax (в loss, не в слое)              │
+   │ Выход: 10 вероятностей                   │
+   └──────────────────────────────────────────┘
+<span class="cap">Простая, но эффективная CNN. Параметры считаются на микро-задачах. GlobalAveragePooling делает сеть инвариантной к размеру входа.</span></div>
+
+<p><strong>Код на PyTorch:</strong></p>
+
+<pre><code><span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+
+model = nn.Sequential(
+    <span class="cmt"># Блок 1</span>
+    nn.Conv2d(<span class="num2">3</span>, <span class="num2">32</span>, kernel_size=<span class="num2">3</span>, padding=<span class="num2">1</span>),
+    nn.BatchNorm2d(<span class="num2">32</span>),
+    nn.ReLU(),
+    nn.MaxPool2d(<span class="num2">2</span>, stride=<span class="num2">2</span>),  <span class="cmt"># 32×32×3 → 16×16×32</span>
+
+    <span class="cmt"># Блок 2</span>
+    nn.Conv2d(<span class="num2">32</span>, <span class="num2">64</span>, kernel_size=<span class="num2">3</span>, padding=<span class="num2">1</span>),
+    nn.BatchNorm2d(<span class="num2">64</span>),
+    nn.ReLU(),
+    nn.MaxPool2d(<span class="num2">2</span>, stride=<span class="num2">2</span>),  <span class="cmt"># 16×16×32 → 8×8×64</span>
+
+    <span class="cmt"># Блок 3</span>
+    nn.Conv2d(<span class="num2">64</span>, <span class="num2">128</span>, kernel_size=<span class="num2">3</span>, padding=<span class="num2">1</span>),
+    nn.BatchNorm2d(<span class="num2">128</span>),
+    nn.ReLU(),
+
+    <span class="cmt"># Классификация</span>
+    nn.AdaptiveAvgPool2d(<span class="num2">1</span>),  <span class="cmt"># GlobalAveragePooling</span>
+    nn.Flatten(),
+    nn.Linear(<span class="num2">128</span>, <span class="num2">10</span>),  <span class="cmt"># 10 классов</span>
+)
+
+loss_fn = nn.CrossEntropyLoss()  <span class="cmt"># softmax встроена</span>
+opt = torch.optim.Adam(model.parameters(), lr=<span class="num2">0.001</span>)</code></pre>
+
+<!-- ============================================ -->
+<h2 id="qa">🎯 Препод спросит</h2>
+
+<details class="qa"><summary>Почему MLP плохо работает на картинках, а свёртки работают?</summary>
+<div class="ans">
+<p>Два причины. Первая: размер входа. Картинка 224×224×3 = 150k пикселей. MLP с одним скрытым слоем 1000 нейронов → 150M параметров только в первом слое. Переобучение неизбежно. Свёртка с 32 фильтрами 3×3 → 9·32=288 параметров, выигрыш в миллионы раз.</p>
+<p>Вторая: структура. MLP не понимает соседства пикселей — каждый пиксель обрабатывается независимо. Если кот сдвинется на 1 пиксель, MLP его не узнает. Свёртка локальна и разделяет веса — одно ядро применяется везде, получается трансляционная эквивариантность. Плюс пулинг вводит инвариантность к позиции.</p>
+</div></details>
+
+<details class="qa"><summary>Объясни разницу между эквивариантностью и инвариантностью.</summary>
+<div class="ans">
+<p>Эквивариантность: сдвиг входа → сдвиг выхода ровно на столько же. Это свёртка. Если объект сдвинулся, его изображение на карте признаков сдвинулось ровно настолько же. Полезно: позиция объекта сохраняется, выход пространственно структурирован.</p>
+<p>Инвариантность: сдвиг входа → выход не меняется. Это пулинг и глобальный пулинг. Если объект сдвинулся, выход остаётся тем же. Полезно: представление объекта независимо от его позиции на картинке, можно использовать для классификации.</p>
+<p>Архитектура: свёртки+пулинг. Сначала эквивариантность (выравниваем признаки), потом инвариантность (забываем позицию и берём главное), получаем финальный вектор признаков для классификации.</p>
+</div></details>
+
+<details class="qa"><summary>Как считается формула размера выхода при свёртке?</summary>
+<div class="ans">
+<p>$H_{\text{out}} = \lfloor (H_{\text{in}} + 2p - k) / s \rfloor + 1$. Здесь $H_{\text{in}}$ — высота входа, $p$ — padding, $k$ — размер ядра, $s$ — stride. Интуиция: входная размерность плюс добавленные нули ($2p$), минус ядро ($k$) — это рабочий размер. Делим на stride (шаг скольжения), округляем вниз, добавляем 1 (первая позиция входа).</p>
+<p>Пример: 224×224, k=3, p=1, s=1: $(224+2-3)/1 + 1 = 224$. Same padding! При s=2: $\lfloor 223/2 \rfloor + 1 = 112$. Вдвое меньше. ✓</p>
+</div></details>
+
+<details class="qa"><summary>Что такое padding и зачем он нужен?</summary>
+<div class="ans">
+<p>Padding — добавление нулей вокруг входной карты. Зачем? Без padding края входа видят меньше контекста, чем центр (углы видят только 4 соседа вместо 9 для 3×3 ядра). Это асимметрия.</p>
+<p>Same padding ($p = (k - 1)/2$ при $s = 1$) гарантирует, что выход той же размерности, что вход. Полезно: архитектура проще, нет неожиданного сжатия размеров.</p>
+<p>Valid padding (p=0) теряет края, выход меньше. Реже используется, но экономит вычисления на глубоких слоях.</p>
+</div></details>
+
+<details class="qa"><summary>Сколько параметров в Conv 3×3, 64 входных канала, 128 выходных?</summary>
+<div class="ans">
+<p>$k \times k \times C_{\text{in}} \times C_{\text{out}} + C_{\text{out}} = 3 \times 3 \times 64 \times 128 + 128 = 9 \times 8\,192 + 128 = 73\,728 + 128 = 73\,856$ параметров.</p>
+<p>Первое слагаемое — веса ядер (9 элементов × 64 входных канала × 128 ядер=фильтров), второе — bias для каждого фильтра. Не зависит от пространственных размеров входа!</p>
+</div></details>
+
+<details class="qa"><summary>Что такое 1×1 свёртка и зачем она?</summary>
+<div class="ans">
+<p>1×1 свёртка — это линейная комбинация каналов в каждой пространственной позиции, без пространственного контекста. Матрица весов $C_{\text{out}} \times C_{\text{in}}$ применяется к вектору каналов в каждой позиции независимо.</p>
+<p>Зачем? Bottleneck (сжатие каналов 64 → 16 → 64 с меньшим числом параметров), дешёвая нелинейность между каналами (Conv 1×1 + ReLU), изменение числа каналов. Используется в ResNet и GoogLeNet.</p>
+</div></details>
+
+<details class="qa"><summary>Как растёт рецептивное поле с глубиной?</summary>
+<div class="ans">
+<p>Формула: $RF_l = RF_{l-1} + (k_l - 1) \cdot \prod_{i=1}^{l-1} s_i$. На каждом слое рецептивное поле увеличивается на $(k-1)$ умножить на совокупный stride предыдущих слоёв.</p>
+<p>Пример: три слоя Conv 3×3, все s=1, p='same'. RF растёт: 1 → 3 → 5 → 7. Три слоя 3×3 дают RF=7, как один слой Conv 7×7, но с меньшим числом параметров (2·9=18 vs 49) и большей нелинейностью (три активации вместо одной).</p>
+<p>Важно: большое рецептивное поле требуется для классификации целых объектов, а не их частей.</p>
+</div></details>
+
+<details class="qa"><summary>Dilated свёртка vs обычная свёртка со stride?</summary>
+<div class="ans">
+<p>Обычная свёртка с stride=2 растит рецептивное поле, но теряет разрешение вчетверо. Dilated свёртка (dilation=2) растит рецептивное поле без потери разрешения.</p>
+<p>Ядро 3×3 с d=2 охватывает эффективно область 5×5, но параметров всё ещё 9, и выход той же размерности, что вход. Идеально для сегментации, где нужен полноразмерный выход (пиксель-в-пиксель), но нейрон должен видеть весь объект.</p>
+</div></details>
+
+<details class="qa"><summary>MaxPool: как работает backward pass?</summary>
+<div class="ans">
+<p>Максимум пулинга имеет градиент, который проходит только через позицию, где был максимум. Если в окне 2×2 максимум был на позиции (1,1), то dL/d(input[1,1]) += dL/d(output), остальные три позиции получают градиент 0.</p>
+<p>Это имеет смысл: максимум — это выбор, информация течёт через самую важную позицию. Нет параметров, которые обучаются, поэтому backward тривиален.</p>
+</div></details>
+
+<details class="qa"><summary>BatchNorm: train vs eval режим. В чём разница?</summary>
+<div class="ans">
+<p>Train режим: нормализуем по батчу. Вычисляем среднее и дисперсию текущего батча, используем их для нормализации. Плюс обновляем running_mean и running_var (скользящие среднее/дисперсия из всех батчей обучения).</p>
+<p>Eval режим: нормализуем по running statistics (накопленные из обучения). Это гарантирует консистентность между обучением и инференсом.</p>
+<p>Типичная ошибка: забыть model.eval() перед инференсом. Тогда нормализация по маленькому батчу (может быть 1 пример!) даёт ненадёжные статистики, выход отличается от обучения, точность падает.</p>
+</div></details>
+
+<details class="qa"><summary>Почему в типовом блоке Conv → BN → ReLU, а не Conv → ReLU → BN?</summary>
+<div class="ans">
+<p>Потому что BatchNorm лучше работает на ненормированных данных, нормализует входы к ReLU, делая активацию более стабильной. Если применить BN после ReLU, половина значений уже выключены (отрицательные части ReLU), и нормализация менее информативна.</p>
+<p>Плюс: если Conv → BN, то bias в Conv можно удалить (параметр β в BN может выразить любой смещение). Экономим параметры.</p>
+</div></details>
+
+<details class="qa"><summary>GlobalAveragePooling: почему это лучше, чем Flatten + FC?</summary>
+<div class="ans">
+<p>GlobalAveragePooling делает среднее по всей пространственной карте признаков. Выход 1-мерный вектор, независимый от размера входа. Если вход был 32×32×128 или 224×224×128, выход всё ещё 128-мерный!</p>
+<p>Преимущества: (1) инвариантность к размеру входа (нет нужды в resizing перед инференсом), (2) намного меньше параметров (нет Flatten + большого FC), (3) меньше переобучения, (4) интерпретируемость: каждая компонента выхода — среднее активации канала, что соответствует признаку.</p>
+</div></details>
+
+<!-- ============================================ -->
+<h2 id="tasks">📝 Микро-задачи</h2>
+
+<div class="task">
+  <div class="tt">Задача 1. Размер выхода свёртки</div>
+  <p>Вход 64×64, Conv 5×5, padding=2, stride=1. Какой размер выхода?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Формула: $H_{\text{out}} = \lfloor (64 + 2 \cdot 2 - 5) / 1 \rfloor + 1 = \lfloor (64 + 4 - 5) \rfloor + 1 = \lfloor 63 \rfloor + 1 = 64$.</p>
+    <p><strong>Выход: 64×64.</strong> Это same padding (выход той же размерности).</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 2. Размер выхода с stride > 1</div>
+  <p>Вход 128×128, Conv 3×3, padding=1, stride=2. Размер выхода?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$H_{\text{out}} = \lfloor (128 + 2 - 3) / 2 \rfloor + 1 = \lfloor 127/2 \rfloor + 1 = \lfloor 63.5 \rfloor + 1 = 63 + 1 = 64$.</p>
+    <p><strong>Выход: 64×64.</strong> Stride=2 сокращает размер примерно вдвое (не ровно, из-за padding и ceiling).</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 3. Параметры свёрточного слоя</div>
+  <p>Conv 3×3, 128 входных каналов, 256 выходных фильтров. Сколько параметров?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$k^2 \cdot C_{\text{in}} \cdot C_{\text{out}} + C_{\text{out}} = 3^2 \times 128 \times 256 + 256 = 9 \times 32\,768 + 256 = 294\,912 + 256 = 295\,168$.</p>
+    <p><strong>295,168 параметров.</strong> Не зависит от размеров входной карты!</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 4. Рецептивное поле</div>
+  <p>Три слоя Conv 3×3, stride=1 везде, padding='same'. Какое рецептивное поле на выходе третьего слоя?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$RF_0 = 1$ (каждый пиксель входа).</p>
+    <p>$RF_1 = 1 + (3-1) \times 1 = 1 + 2 = 3$.</p>
+    <p>$RF_2 = 3 + (3-1) \times 1 = 3 + 2 = 5$.</p>
+    <p>$RF_3 = 5 + (3-1) \times 1 = 5 + 2 = 7$.</p>
+    <p><strong>Рецептивное поле 7×7.</strong> Три слоя 3×3 дают RF как одна свёртка 7×7, но параметров 18 vs 49 и нелинейностей три вместо одной.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 5. Dilated свёртка</div>
+  <p>Conv 3×3 с dilation=2. Какой эффективный размер ядра?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$k_{\text{eff}} = k + (k-1)(d-1) = 3 + (3-1)(2-1) = 3 + 2 = 5$.</p>
+    <p><strong>Эффективный размер 5×5.</strong> Но параметров всё ещё 9 (как обычная 3×3). Рецептивное поле растёт, разрешение не теряется. Идеально для сегментации.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 6. Число параметров полной CNN</div>
+  <p>Conv 3×3, 32 фильтра, 64→128 выходные каналы, padding=1. Сколько параметров? (Не считай FC и GlobalAveragePooling)</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$3 \times 3 \times 64 \times 128 + 128 = 9 \times 8\,192 + 128 = 73\,728 + 128 = 73\,856$ параметров для Conv.</p>
+    <p>Если после BatchNorm: $\gamma, \beta$ по 128 параметров каждый → ещё 256 параметров в BN.</p>
+    <p><strong>Всего с BN: 73,856 + 256 = 74,112 параметров.</strong> Всё ещё не зависит от пространственных размеров входа.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 7. Depthwise separable vs обычная</div>
+  <p>Conv 3×3, 64 входных канала, 128 выходных. Параметры обычной vs depthwise separable?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>Обычная:</strong> $3 \times 3 \times 64 \times 128 + 128 = 9 \times 8\,192 + 128 = 73\,856$ параметров.</p>
+    <p><strong>Depthwise separable:</strong> depthwise $3 \times 3 \times 64 + 64 = 576 + 64 = 640$; pointwise $64 \times 128 + 128 = 8\,192 + 128 = 8\,320$.</p>
+    <p>Всего depthwise separable: $640 + 8\,320 = 8\,960$ параметров.</p>
+    <p><strong>Сокращение: 73,856 / 8,960 ≈ 8.2 раза!</strong> Используется в MobileNet для мобильных устройств.</p>
+  </div></details>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+
+<div class="cheat">
+  <div class="bt">Скелет устного ответа по билету 4</div>
+  <ol>
+    <li><strong>Проблема MLP.</strong> Картинка 224×224×3 = 150k входов. MLP с 1000 скрытыми → 150M параметров в первом слое. Плюс не видит соседства пикселей, не инвариантна к сдвигам.</li>
+    <li><strong>Три идеи свёртки.</strong> (1) локальность — смотрим на k×k окно; (2) разделение весов — одно ядро везде; (3) эквивариантность — сдвиг входа → сдвиг выхода.</li>
+    <li><strong>Операция свёртки.</strong> Дискретная кросс-корреляция: $Y[i,j] = \sum W[u,v] \cdot X[i·s+u, j·s+v] + b$. Ядро скользит, на каждой позиции — скалярное произведение плюс bias.</li>
+    <li><strong>Гиперпараметры.</strong> k (размер ядра), p (padding, 'same' или 'valid'), s (stride, шаг скольжения), d (dilation, шаг внутри ядра).</li>
+    <li><strong>Формула размера.</strong> $H_{\text{out}} = \lfloor (H_{\text{in}} + 2p - k) / s \rfloor + 1$. Same padding при s=1: $p = (k-1)/2$.</li>
+    <li><strong>Параметры слоя.</strong> $k^2 \cdot C_{\text{in}} \cdot C_{\text{out}} + C_{\text{out}}$. Не зависит от размеров входа! Выигрыш vs MLP в миллионы.</li>
+    <li><strong>Многоканальность.</strong> Ядро размером $k×k×C_{\text{in}}$, работает со всеми входными каналами, даёт один скаляр (один выход). $C_{\text{out}}$ ядер → $C_{\text{out}}$ выходных каналов.</li>
+    <li><strong>Свёртка 1×1.</strong> Линейная комбинация каналов в каждой позиции. Зачем: bottleneck, дешёвая нелинейность между каналами, смена числа каналов.</li>
+    <li><strong>Рецептивное поле.</strong> $RF_l = RF_{l-1} + (k_l - 1) \prod s_i$. Растёт с глубиной. Три 3×3 слоя → RF=7, как один 7×7 но дешевле и выразительнее.</li>
+    <li><strong>Dilated свёртка.</strong> $k_{\text{eff}} = k + (k-1)(d-1)$. Растит RF без потери разрешения. Для сегментации.</li>
+    <li><strong>Pooling.</strong> MaxPool (максимум), AvgPool (среднее), GlobalAveragePooling (среднее по всей карте). Нет параметров. Вводит инвариантность. Градиент MaxPool идёт только в максимум.</li>
+    <li><strong>BatchNorm, Conv→BN→ReLU, параметры $\gamma, \beta$. Train: нормализуем по батчу; eval: по running statistics. Типичная ошибка: забыть model.eval().</strong></li>
+  </ol>
+</div>
+
+<div class="navrow">
+  <a class="backlink" href="03-losses-mle.html">← Лекция 3. Loss-функции и ММП</a>
+  <a class="backlink" href="05-cnn-architectures.html">Лекция 5. Архитектуры CNN →</a>
+</div>
+
+</div>
+</body>
+</html>

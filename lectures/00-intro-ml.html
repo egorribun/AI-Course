@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лекция 0. Каркас машинного обучения</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:17px;
+  line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line);
+  padding:38px 24px 30px;
+  margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация назад ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление лекции ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+/* ---------- Сетка карточек (главная) ---------- */
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px; margin:20px 0}
+.lec{
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:17px 19px; text-decoration:none; color:var(--text);
+  display:block; transition:.16s; position:relative;
+}
+.lec:hover{border-color:var(--accent); transform:translateY(-2px); background:var(--card-2)}
+.lec .n{
+  font-family:var(--mono); font-size:12px; color:var(--accent);
+  font-weight:700; letter-spacing:.05em;
+}
+.lec .t{font-weight:700; margin:5px 0 6px; font-size:16.5px; line-height:1.35; color:#fff}
+.lec .d{color:var(--text-dim); font-size:13.5px; line-height:1.5}
+.lec .time{
+  margin-top:10px; font-size:12px; color:var(--text-dim);
+  font-family:var(--mono); border-top:1px solid var(--line); padding-top:8px;
+}
+
+/* ---------- Плашка дня ---------- */
+.day{
+  margin:44px 0 8px; padding:16px 22px; border-radius:12px;
+  background:linear-gradient(90deg, rgba(110,168,254,.14), transparent);
+  border-left:4px solid var(--accent);
+}
+.day h2{border:none; margin:0; padding:0; font-size:24px}
+.day p{margin:6px 0 0; color:var(--text-dim); font-size:15px}
+
+hr{border:none; border-top:1px solid var(--line); margin:44px 0}
+
+.small{font-size:14px; color:var(--text-dim)}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+
+</style>
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]},
+  svg: {fontCache:'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Блок A · Разгон · Вводная</div>
+  <h1>Лекция 0. Каркас машинного обучения: задачи, парадигмы, терминология, градиентный спуск</h1>
+  <p class="sub">Понимание основного словаря и логики ML. Это быстрый разгон перед всеми остальными лекциями.</p>
+  <div class="meta">
+    <span class="pill">⏱ 1 ч</span>
+    <span class="pill gray">10 вопросов препода</span>
+    <span class="pill gray">6 микро-задач</span>
+    <span class="pill warn">Фундамент</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<a class="backlink" href="../index.html">← К оглавлению курса</a>
+
+<nav class="toc">
+  <div class="bt">Содержание лекции</div>
+  <ol>
+    <li><a href="#s1">Общая картина: задача ML</a></li>
+    <li><a href="#s2">Три парадигмы: обучение с учителем, без учителя, с подкреплением</a></li>
+    <li><a href="#s3">Выборка: train, val, test и утечка данных</a></li>
+    <li><a href="#s4">Недообучение, переобучение, bias-variance tradeoff</a></li>
+    <li><a href="#s5">Параметры vs гиперпараметры</a></li>
+    <li><a href="#s6">Градиентный спуск и скорость обучения</a></li>
+    <li><a href="#s7">Эпоха, батч, итерация</a></li>
+    <li><a href="#s8">Метрики классификации: accuracy, precision, recall, F1, ROC-AUC</a></li>
+    <li><a href="#s9">Метрики регрессии: MSE, MAE, R²</a></li>
+    <li><a href="#s10">Регуляризация: L1/L2, dropout, early stopping</a></li>
+    <li><a href="#s11">Словарик терминов</a></li>
+    <li><a href="#qa">Препод спросит</a></li>
+    <li><a href="#tasks">Микро-задачи</a></li>
+    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="s1"><span class="num">1.</span> Общая картина: задача ML</h2>
+
+<p>Машинное обучение — это не магия. Это ответ на простейший вопрос: <strong>у нас есть примеры, как вывести правило?</strong></p>
+
+<p>У вас есть 1000 писем: 700 спама, 300 нормальных. Внутри каждого письма — слова. Вопрос: можно ли научить компьютер отличать спам от не-спама, не написав правила вручную?</p>
+
+<p>Оказывается, можно. Не потому что компьютер станет умнее, а потому что мы научимся <em>параметризовать</em> решение: придумаем семейство функций, зависящих от чисел (параметров), и подберём эти числа так, чтобы функция хорошо разделяла примеры.</p>
+
+<div class="box idea">
+  <div class="bt">💡 Фундамент всего курса</div>
+  <p><strong>Машинное обучение = поиск параметризованной функции $f_\theta$, которая на обучающих примерах даёт ответы, близкие к истине.</strong></p>
+  <p>Три вопроса:</p>
+  <ul>
+    <li><em>Какое семейство функций?</em> (архитектура: нейросеть, дерево решений, линейная модель…)</li>
+    <li><em>Как измеряем «ошибку»?</em> (loss-функция: MSE, cross-entropy…)</li>
+    <li><em>Как подбираем параметры?</em> (оптимизация: градиентный спуск, случайный поиск…)</li>
+  </ul>
+</div>
+
+<p>Если вы помните эту триаду на всех экзаменах, вы сможете рассуждать логично о любой современной архитектуре — CNN, Transformer, GAN, всё будет слагаться в единую картину.</p>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> Три парадигмы: обучение с учителем, без учителя, с подкреплением</h2>
+
+<h3>2.1 Обучение с учителем (Supervised Learning)</h3>
+
+<p><strong>Есть:</strong> выборка пар (вход, истинный выход): $\{(x_i, y_i)\}_{i=1}^N$.</p>
+
+<p><strong>Цель:</strong> научить модель предсказывать $y$ по $x$.</p>
+
+<p><strong>Две подзадачи:</strong></p>
+
+<ul>
+  <li><strong>Регрессия:</strong> выход $y$ — число (цена дома, температура, зарплата). Предсказываем вещественное значение.</li>
+  <li><strong>Классификация:</strong> выход $y$ — номер класса (кошка/собака/птица, спам/не спам). Предсказываем метку из конечного набора.</li>
+</ul>
+
+<div class="scheme">
+    ОБУЧЕНИЕ С УЧИТЕЛЕМ
+
+    ┌─────────────────────┐
+    │   выборка (x_i, y_i)│
+    └──────────┬──────────┘
+               │
+          ┌────▼─────┐
+          │  Функция │
+      ────│   f_θ    │─── Предсказание y_pred
+          │          │
+          └──────────┘
+               │
+          ┌────▼────────────┐
+          │  Loss L(y,y_pred) │  ◄── считаем ошибку
+          └────┬─────────────┘
+               │
+          ┌────▼──────────────────┐
+          │ Обновить θ:            │
+          │ θ ← θ - η·∂L/∂θ       │
+          └────────────────────────┘
+
+<span class="cap">Цикл обучения с учителем: данные → модель → loss → градиент → обновление. Повторяем много раз.</span></div>
+
+<h3>2.2 Обучение без учителя (Unsupervised Learning)</h3>
+
+<p><strong>Есть:</strong> только входы $\{x_i\}_{i=1}^N$, <em>нет меток $y$</em>.</p>
+
+<p><strong>Цель:</strong> найти скрытую структуру, паттерны, группировки.</p>
+
+<p><strong>Типичные задачи:</strong></p>
+
+<ul>
+  <li><strong>Кластеризация:</strong> разбить точки на $k$ групп (k-means, DBSCAN, иерархическая кластеризация).</li>
+  <li><strong>Снижение размерности:</strong> представить высокомерные данные в низком числе измерений (PCA, t-SNE, VAE).</li>
+  <li><strong>Восстановление распределения:</strong> научиться генерировать новые примеры, похожие на обучающие (GAN, VAE, диффузионные модели).</li>
+</ul>
+
+<div class="scheme">
+    ОБУЧЕНИЕ БЕЗ УЧИТЕЛЯ
+
+    ┌─────────────────┐
+    │   выборка x_i   │
+    └────────┬────────┘
+             │
+        ┌────▼──────────────┐
+        │   Функция f_θ      │
+        │ (кластеризация,    │  Выход: кластеры,
+        │  снижение размер-  │  представление,
+        │  ности, генерация) │  новые примеры
+        └────┬───────────────┘
+             │
+        ┌────▼────────────────────┐
+        │  Loss (нет меток!):      │
+        │  - реконструкция        │
+        │  - контрастные пары     │
+        │  - информационная мера  │
+        └────┬────────────────────┘
+             │
+        ┌────▼──────────────────────┐
+        │  Обновить θ               │
+        └───────────────────────────┘
+
+<span class="cap">Без меток нужна хитрая loss-функция, которая отражает желаемую структуру данных.</span></div>
+
+<h3>2.3 Обучение с подкреплением (Reinforcement Learning)</h3>
+
+<p><strong>Есть:</strong> агент, окружение, действия и награды.</p>
+
+<p><strong>Цель:</strong> научить агента выбирать действия, которые максимизируют накопленную награду.</p>
+
+<p><strong>Ключевое отличие:</strong> нет заранее известного «правильного ответа». Агент сам экспериментирует, получает награду/штраф и учится.</p>
+
+<p><strong>Примеры:</strong> игры (Atari, Go, шахматы), робот манипулятор, беспилотный автомобиль.</p>
+
+<div class="scheme">
+    ОБУЧЕНИЕ С ПОДКРЕПЛЕНИЕМ
+
+    ┌────────────────┐
+    │     Агент      │
+    │  (нейросеть)   │
+    └────────┬───────┘
+             │ Действие a_t
+             ▼
+    ┌────────────────┐
+    │  Окружение     │
+    │  (среда)       │
+    └────────┬───────┘
+             │ Наблюдение o_t + Награда r_t
+             ▼
+    ┌────────────────────────────┐
+    │ Накопить опыт: (s,a,r,s')   │
+    │ Вычислить целевое значение │
+    │ Обновить policy/value       │
+    └────────────────────────────┘
+
+<span class="cap">Цикл: агент действует → окружение отвечает → опыт накапливается → модель обновляется.</span></div>
+
+<h3>2.4 Сводная таблица парадигм</h3>
+
+<table>
+<thead><tr><th>Парадигма</th><th>Есть ли метки?</th><th>Цель</th><th>Loss-функция</th><th>Примеры</th></tr></thead>
+<tbody>
+<tr><td><strong>Supervised</strong></td><td>Да, $y$ известен</td><td>Предсказать $y$ по $x$</td><td>MSE, cross-entropy</td><td>Классификация, регрессия</td></tr>
+<tr><td><strong>Unsupervised</strong></td><td>Нет</td><td>Найти структуру в $x$</td><td>Реконструкция, контраст</td><td>Кластеризация, снижение размерности</td></tr>
+<tr><td><strong>Reinforcement</strong></td><td>Нет меток, есть награды</td><td>Максимизировать суммарную (кумулятивную) награду</td><td>Временная разница (TD)</td><td>Игры, робот, RL-агент</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> Выборка: train, val, test и утечка данных</h2>
+
+<p>Одна из самых частых ошибок новичков: <em>переобучение на всех данных, включая тестовые</em>. Это мертворождённый результат.</p>
+
+<div class="box idea">
+  <div class="bt">💡 Магический раздел данных</div>
+  <p>Всю выборку из $N$ примеров делим на <strong>три непересекающихся части</strong>:</p>
+  <ul>
+    <li><strong>Train (60–80%):</strong> на этом обучаем модель. Модель видит эти примеры много раз.</li>
+    <li><strong>Validation (10–20%):</strong> эти примеры модель видит, но не обучается на них. Используем для выбора гиперпараметров, ранней остановки, выбора архитектуры.</li>
+    <li><strong>Test (10–20%):</strong> заключённый в золото сундук. Смотрим на него <strong>ровно один раз в конце</strong>, чтобы сообщить финальную метрику. Ни для чего больше не используем.</li>
+  </ul>
+</div>
+
+<div class="scheme">
+    Исходные данные (N примеров)
+           │
+    ┌──────┼──────┬────────┐
+    │      │      │        │
+    ▼      ▼      ▼        ▼
+  Train  Val   Test   (уже не смотрим!)
+  (60%)  (15%)  (25%)
+    │      │      │
+    │ Обучение    │ Выбор гипер-
+    │      │      │ параметров
+    │      └──────┤
+    │             ▼
+    │         Метрика val
+    │         Лучшая модель?
+    │             │
+    └─────────────┘
+           │
+      Финальная проверка
+           │
+           ▼
+      Test метрика
+      (только один раз!)
+
+<span class="cap">Data split. Test смотрим один раз — после того как все гиперпараметры выбраны.</span></div>
+
+<h3>3.1 Что такое утечка данных (Data Leakage)?</h3>
+
+<p>Информация из тестовой выборки (или валидационной) просочилась в обучение. Результат: метрика на тесте нереалистично хороша, в боевых условиях модель падает.</p>
+
+<p><strong>Примеры утечек:</strong></p>
+
+<ol>
+  <li><strong>Нормализация на всей выборке.</strong> Правильно: вычислить среднее и std на train, применить к val/test. Неправильно: вычислить на train+val+test — информация о scale распределения утекла из тестовой части в обучение.</li>
+  <li><strong>Выбор признаков на всей выборке.</strong> Нельзя делать feature selection на train+val, потом оценивать на тесте. Выбор признаков — часть обучения, он тоже должен происходить на тренировочных данных.</li>
+  <li><strong>Временные ряды:</strong> если данные упорядочены по времени, нельзя брать train и test вразнобой. Train должен быть раньше test — иначе модель видит будущее!</li>
+  <li><strong>Дублирующиеся примеры.</strong> Если один пример есть в train и test (опечатка в логике разбиения), это тоже утечка.</li>
+</ol>
+
+<div class="box errbox">
+  <div class="bt">⚠️ Data leakage — врущая метрика</div>
+  <p>Сообщить на конференции результат с утечкой — это репутационный убой. Всегда проверяй:
+  <ul>
+    <li>Нормализация: scale/mean параметры вычислены только на train?</li>
+    <li>Feature engineering: новые признаки строились только на train?</li>
+    <li>Выбор гиперпараметров: происходил на val, а не на test?</li>
+    <li>Данные упорядочены по времени? Test должен быть позже train.</li>
+  </ul></p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> Недообучение, переобучение, bias-variance tradeoff</h2>
+
+<p>Модель может ошибаться по двум причинам:</p>
+
+<div class="box idea">
+  <div class="bt">💡 Две причины ошибки</div>
+  <p><strong>Bias (смещение):</strong> модель слишком простая, не может выразить истинную зависимость. Пример: строим линию через данные, которые явно квадратичные. Даже на бесконечной выборке ошибка не упадёт.</p>
+  <p><strong>Variance (дисперсия):</strong> модель слишком сложная, чувствительна к шуму в конкретной выборке. На другой похожей выборке результат будет совсем другой. Пример: полином степени 50 через 10 точек.</p>
+</div>
+
+<h3>4.1 Недообучение (Underfitting)</h3>
+
+<p><strong>Ситуация:</strong> большой bias, маленькая variance. Модель слишком простая, даже на train-данных ошибка высокая.</p>
+
+<p><strong>Симптомы:</strong></p>
+<ul>
+  <li>Loss на train медленно снижается и застревает на высоком уровне.</li>
+  <li>Loss на train ≈ Loss на val (оба значения высоки).</li>
+  <li>Модель просто не учится.</li>
+</ul>
+
+<p><strong>Лечение:</strong> сделать модель сложнее (больше параметров, глубже сеть, лучше признаки), обучать дольше, улучшить данные.</p>
+
+<h3>4.2 Переобучение (Overfitting)</h3>
+
+<p><strong>Ситуация:</strong> маленький bias, большая variance. Модель выучила train-данные включая шум, но на новых данных плохо.</p>
+
+<p><strong>Симптомы:</strong></p>
+<ul>
+  <li>Loss на train упал очень низко (близко к нулю).</li>
+  <li>Loss на val > Loss на train, и зазор растёт.</li>
+  <li>На test метрика хуже, чем ожидаешь из val.</li>
+</ul>
+
+<p><strong>Лечение:</strong> регуляризация (L1/L2, dropout), больше данных, рано остановиться, сделать модель проще.</p>
+
+<h3>4.3 Bias-Variance Tradeoff — кривые обучения</h3>
+
+<p>Как растут ошибки в зависимости от сложности модели? Или от количества данных?</p>
+
+<div class="scheme">
+    Ошибка vs Сложность модели (для фиксированного объёма данных)
+
+    Loss│
+        │                   train loss
+        │                 ╱
+        │          ╱─────╯
+        │  ╲──────╯
+        │   ╲  ╱──────────── Underfitting    Overfitting
+        │    ╲╱
+        │     ╱╲
+        │    ╱  ╲
+        │   ╱    ╲────╲   val loss
+        │  ╱          ╲────╲
+        │ ╱                ╲╲
+        └────────────────────────────────────────────
+          простая           сложная
+          модель            модель
+                     ↑
+              Оптимум
+
+<span class="cap">Тренировочная ошибка монотонно падает (модель больше запоминает). Валидационная ошибка сначала падает, потом растёт (переобучение). Оптимум в точке баланса.</span></div>
+
+<p><strong>Числовой пример:</strong> допустим истинная функция $y = 2x + 1 + \varepsilon$, где $\varepsilon \sim N(0, 1)$.</p>
+
+<ul>
+  <li><strong>Модель 1 (линейная y = ax):</strong> даже бесконечно много данных не помогут — bias. Loss → 1 (только шум).</li>
+  <li><strong>Модель 2 (линейная y = ax + b):</strong> почти идеальна. Loss → 1 (шум).</li>
+  <li><strong>Модель 3 (полином степени 10):</strong> с 10 точками — переобучение, variance. С 1000 точками — bias ≈ 0 (полином почти линейный), variance маленькая. Loss ≈ 1.</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> Параметры vs гиперпараметры</h2>
+
+<p><strong>Параметры θ:</strong> числа внутри модели, которые <em>обучаются</em> на основе данных.</p>
+
+<ul>
+  <li>Веса нейросети $w_{ij}$.</li>
+  <li>Смещения bias $b_i$.</li>
+  <li>Коэффициенты линейной регрессии.</li>
+</ul>
+
+<p><em>Мы ищем оптимальные параметры методом градиентного спуска.</em></p>
+
+<p><strong>Гиперпараметры:</strong> настройки алгоритма обучения, которые мы <em>выбираем вручную</em> (или через поиск).</p>
+
+<ul>
+  <li>Скорость обучения η (learning rate).</li>
+  <li>Размер батча (batch size).</li>
+  <li>Число эпох (epochs).</li>
+  <li>Архитектура (число слоёв, ширина).</li>
+  <li>Коэффициент регуляризации λ.</li>
+  <li>Тип оптимизатора (SGD, Adam, RMSprop).</li>
+</ul>
+
+<p><em>Гиперпараметры подбираем через перебор, grid search, случайный поиск или Bayesian optimization на валидационной выборке.</em></p>
+
+<div class="box warnbox">
+  <div class="bt">⚠️ Не путай!</div>
+  <p><strong>Параметры:</strong> числа, которые модель <em>вычисляет сама</em> из данных.</p>
+  <p><strong>Гиперпараметры:</strong> числа, которые мы <em>выбираем и передаём</em> модели.</p>
+  <p>На экзамене: если препод спрашивает «какие параметры вашей модели?» — отвечай про $w$, $b$, не про learning rate.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s6"><span class="num">6.</span> Градиентный спуск и скорость обучения</h2>
+
+<h3>6.1 Идея: спуск по склону в тумане</h3>
+
+<p>Представь себя альпинистом на горе в густом тумане. Ты хочешь спуститься вниз (минимизировать высоту — потери $L$). Видишь только землю у своих ног (градиент $\nabla L$). Как действовать?</p>
+
+<p>Логично: оглянись вокруг, найди направление вниз, сделай шаг туда. Повтори много раз. Это — градиентный спуск.</p>
+
+<h3>6.2 Формула</h3>
+
+<div class="formula">
+$$ \theta \leftarrow \theta - \eta \nabla L(\theta) $$
+<span class="note">$\theta$ — параметры, $\eta$ — скорость обучения, $\nabla L$ — градиент loss-функции</span>
+</div>
+
+<p>На каждом шаге делаем шаг в направлении <strong>наискорейшего спуска</strong> (антиградиента) с размером шага $\eta$.</p>
+
+<h3>6.3 Выбор скорости обучения η</h3>
+
+<div class="scheme">
+    Слишком большое η          Хороший η            Слишком малое η
+    (шаги огромные)            (как надо)           (шаги микроскопические)
+
+    Loss │                    │                     │
+         │    ╱╲╱╲╱╲╱╲        │   ╲                │     ╲
+         │   ╱            ╱   │    ╲___            │      ╲__
+         │  ╱            ╱    │        ╲           │         ╲
+         │ ╱            ╱     │         ╲          │          ╲
+         │╱────────────╱      │          ╲         │           ╲
+         └────────────────    │           ╲        │            ╲___
+                    ↑         │            ╲───   │
+             Расходится!      │                   │
+             или не ходит    Converges!    Converges very slowly
+
+    • Может          • Сходится        • Тратит много
+      даже            гладко            времени
+      расходиться   • Примерно       • Может застрять
+    • Прыгает         10-20             в локальном
+      через           итераций до      минимуме из-за
+      минимум        видимого          особенности
+                      прогресса        функции
+
+<span class="cap">Три режима: нестабильность, оптимум, недостаточная скорость. Нужен goldilocks η.</span></div>
+
+<h3>6.4 Числовой пример</h3>
+
+<p>Функция: $L(\theta) = (\theta - 3)^2$. Минимум при $\theta = 3$. Стартуем с $\theta_0 = 0$. Градиент $\nabla L = 2(\theta - 3)$.</p>
+
+<ul>
+  <li>$\eta = 0.1$: $\theta_0 = 0 \to \theta_1 = 0 - 0.1 \cdot 2(-3) = 0.6 \to \theta_2 = 0.6 - 0.1 \cdot 2(-2.4) = 1.08 \to \ldots \to 3.0$ (мягкое приближение).</li>
+  <li>$\eta = 0.5$: $\theta_0 = 0 \to \theta_1 = 0 - 0.5 \cdot (-6) = 3$ (попали с первого шага, повезло!).</li>
+  <li>$\eta = 1.1$: $\theta_0 = 0 \to \theta_1 = 0 - 1.1 \cdot (-6) = 6.6 \to \theta_2 = 6.6 - 1.1 \cdot 2(3.6) = -1.92 \to$ (прыгает туда-сюда, не сходится).</li>
+</ul>
+
+<p>На практике часто используют адаптивные оптимизаторы (Adam, RMSprop), которые сами подбирают эффективный $\eta$ для каждого параметра — об этом в лекции 6.</p>
+
+<!-- ============================================ -->
+<h2 id="s7"><span class="num">7.</span> Эпоха, батч, итерация</h2>
+
+<p>Три слова, которые студенты частенько путают. Разберёмся.</p>
+
+<div class="box idea">
+  <div class="bt">💡 Точные определения</div>
+  <p><strong>Итерация (iteration):</strong> один шаг градиентного спуска на одном батче. Обновляем параметры один раз.</p>
+  <p><strong>Батч (batch):</strong> подмножество обучающей выборки, которое обрабатывается за одну итерацию. Размер батча — гиперпараметр.</p>
+  <p><strong>Эпоха (epoch):</strong> один полный проход по всей обучающей выборке. Если выборка разбита на батчи, то одна эпоха = много итераций.</p>
+</div>
+
+<h3>7.1 Числовой пример</h3>
+
+<p>Обучающая выборка: 10000 примеров. Размер батча: 100. Планируем обучение на 10 эпох.</p>
+
+<ul>
+  <li><strong>Одна эпоха обработает:</strong> 10000 / 100 = <strong>100 итераций</strong>.</li>
+  <li><strong>Всего итераций:</strong> 100 итераций × 10 эпох = <strong>1000 итераций</strong>.</li>
+  <li><strong>Одна итерация:</strong> forward pass на 100 примерах, backward pass, обновление параметров.</li>
+</ul>
+
+<h3>7.2 Батчирование: зачем нужно?</h3>
+
+<p><strong>Плюсы:</strong></p>
+<ul>
+  <li><strong>Параллелизм:</strong> GPU обрабатывает сразу 100–1000 примеров одновременно, получается ~10x дешевле, чем 100 раз по одному примеру.</li>
+  <li><strong>Стабильность градиента:</strong> градиент на батче — это среднее градиентов по примерам. Средняя величина менее шумная, чем отдельный пример.</li>
+  <li><strong>Регуляризация:</strong> батч-шум сам по себе помогает избежать переобучения.</li>
+</ul>
+
+<p><strong>Минусы:</strong> очень большой батч может привести к застреванию в плохих локальных минимумах (не хватает стохастичности).</p>
+
+<p><strong>Правило большого пальца:</strong> батч от 32 до 256 — хороший выбор. Для огромных моделей могут быть 1024–2048.</p>
+
+<!-- ============================================ -->
+<h2 id="s8"><span class="num">8.</span> Метрики классификации: accuracy, precision, recall, F1, ROC-AUC</h2>
+
+<p>Loss-функция (MSE, cross-entropy) — это то, что мы <em>оптимизируем</em>. Но метрика — это то, что мы <em>смотрим</em> в конце, чтобы понять, хорошо ли работает модель.</p>
+
+<h3>8.1 Матрица ошибок (Confusion Matrix)</h3>
+
+<p>Рассмотрим бинарную классификацию (спам / не спам). Модель выдаёт binary prediction: 0 или 1. Реальный ответ: 0 или 1. Есть четыре исхода:</p>
+
+<table>
+<thead><tr><th colspan="2"></th><th colspan="2">Истина</th></tr><tr><th colspan="2"></th><th>Позитив (1)</th><th>Негатив (0)</th></tr></thead>
+<tbody>
+<tr><td rowspan="2"><strong>Предсказание</strong></td><td><strong>Позитив (1)</strong></td><td><strong>TP</strong> (True Positive)<br/>Спам, правильно</td><td><strong>FP</strong> (False Positive)<br/>Не спам, а мы сказали спам</td></tr>
+<tr><td><strong>Негатив (0)</strong></td><td><strong>FN</strong> (False Negative)<br/>Спам, но мы не заметили</td><td><strong>TN</strong> (True Negative)<br/>Не спам, правильно</td></tr>
+</tbody>
+</table>
+
+<h3>8.2 Основные метрики</h3>
+
+<div class="formula">
+$$ \text{Accuracy} = \frac{TP + TN}{TP + TN + FP + FN} \quad \text{— доля правильных ответов} $$
+$$ \text{Precision} = \frac{TP}{TP + FP} \quad \text{— из предсказанных как спам, сколько на самом деле спам} $$
+$$ \text{Recall} = \frac{TP}{TP + FN} \quad \text{— из реального спама, сколько мы поймали} $$
+$$ \text{F1} = 2 \cdot \frac{\text{Precision} \times \text{Recall}}{\text{Precision} + \text{Recall}} \quad \text{— гармоническое среднее}$$
+</div>
+
+<h3>8.3 Когда какую метрику использовать?</h3>
+
+<p><strong>Accuracy:</strong> если классы <strong>сбалансированы</strong> (примерно поровну позитивов и негативов). Если классы дисбалансированы, accuracy врёт!</p>
+
+<p><strong>Precision:</strong> когда <strong>ложный позитив дорогой</strong>. Пример: фильтр спама. Лучше пропустить спам (FN), чем удалить нормальное письмо (FP). Ты хочешь быть уверен, что письмо действительно спам, прежде чем его удалить.</p>
+
+<p><strong>Recall:</strong> когда <strong>ложный негатив дорогой</strong>. Пример: диагностика болезни. Лучше сказать, что болезнь есть, но она не подтвердится (FP), чем пропустить болезнь (FN). Не нельзя мисс.</p>
+
+<p><strong>F1:</strong> когда <strong>оба типа ошибок одинаково плохи</strong>, и классы дисбалансированы.</p>
+
+<h3>8.4 Числовой пример: почему accuracy врёт при дисбалансе</h3>
+
+<p>Выборка: 990 не-спама, 10 спама (дисбаланс 99:1). Модель выучилась говорить: «Всё не спам».</p>
+
+<ul>
+  <li>TP = 0, FN = 10 (пропустили 10 спамов)</li>
+  <li>TN = 990, FP = 0 (правильно определили не-спам)</li>
+  <li><strong>Accuracy = (0 + 990) / 1000 = 99%</strong> ← Выглядит отлично!</li>
+  <li><strong>Precision = 0 / (0 + 0) = undefined</strong> ← Модель не предсказала ни одного спама.</li>
+  <li><strong>Recall = 0 / (0 + 10) = 0%</strong> ← Не поймали ни одного спама!</li>
+  <li><strong>F1 = 0</strong> ← Наказано справедливо.</li>
+</ul>
+
+<p><strong>Вывод:</strong> при дисбалансе смотри Precision, Recall, F1, ROC-AUC — не Accuracy.</p>
+
+<h3>8.5 ROC-AUC</h3>
+
+<p>ROC-кривая показывает trade-off между TPR (recall) и FPR (ложный позитив rate): $FPR = FP / (FP + TN)$.</p>
+
+<p>AUC (Area Under Curve) — площадь под этой кривой. AUC = 1 идеально, AUC = 0.5 как случайное гадание.</p>
+
+<p>Плюс ROC-AUC: не зависит от выбора порога вероятности. Если модель выдаёт вероятность $p$, то порог (классифицируем как спам если $p > 0.5$) можно выбирать гибко.</p>
+
+<!-- ============================================ -->
+<h2 id="s9"><span class="num">9.</span> Метрики регрессии: MSE, MAE, R²</h2>
+
+<p>Здесь выход $y \in \mathbb{R}$ — вещественное число, не класс.</p>
+
+<h3>9.1 Mean Squared Error (MSE)</h3>
+
+<div class="formula">
+$$ \text{MSE} = \frac{1}{N} \sum_{i=1}^{N} (y_i - \hat{y}_i)^2 $$
+</div>
+
+<p><strong>Плюсы:</strong> гладкая, дифференцируема, стандартная.</p>
+
+<p><strong>Минусы:</strong> единицы в квадрате (если $y$ — метры, MSE в м²), чувствительна к выбросам.</p>
+
+<h3>9.2 Mean Absolute Error (MAE)</h3>
+
+<div class="formula">
+$$ \text{MAE} = \frac{1}{N} \sum_{i=1}^{N} |y_i - \hat{y}_i| $$
+</div>
+
+<p><strong>Плюсы:</strong> в тех же единицах что исходные данные, робустна к выбросам.</p>
+
+<p><strong>Минусы:</strong> не дифференцируема в нуле (на практике не мешает), гиперболическая кривая.</p>
+
+<h3>9.3 R² (коэффициент детерминации)</h3>
+
+<div class="formula">
+$$ R^2 = 1 - \frac{\sum_i (y_i - \hat{y}_i)^2}{\sum_i (y_i - \bar{y})^2} $$
+<span class="note">$\bar{y}$ — среднее значение $y$ по выборке</span>
+</div>
+
+<p><strong>Смысл:</strong> доля дисперсии в $y$, объяснённая моделью. $R^2 = 1$ — идеально, $R^2 = 0$ — модель не лучше, чем просто предсказывать среднее, $R^2 < 0$ — модель хуже среднего (произошла беда).</p>
+
+<!-- ============================================ -->
+<h2 id="s10"><span class="num">10.</span> Регуляризация: L1/L2, dropout, early stopping</h2>
+
+<p>Как бороться с переобучением? Вот три классических приёма.</p>
+
+<h3>10.1 L2-регуляризация (Ridge)</h3>
+
+<div class="formula">
+$$ L_{\text{total}} = L_{\text{data}} + \lambda \sum_i w_i^2 $$
+</div>
+
+<p><strong>Идея:</strong> добавляем штраф за большие веса. Модель предпочтёт маленькие веса, которые означают гладкую функцию, менее склонную переобучиться.</p>
+
+<p><strong>Эффект:</strong> веса стягиваются к нулю, но редко точно обнуляются.</p>
+
+<h3>10.2 L1-регуляризация (Lasso)</h3>
+
+<div class="formula">
+$$ L_{\text{total}} = L_{\text{data}} + \lambda \sum_i |w_i| $$
+</div>
+
+<p><strong>Идея:</strong> штраф пропорционален абсолютному значению веса.</p>
+
+<p><strong>Эффект:</strong> многие веса обнуляются полностью → sparse representation, естественный feature selection.</p>
+
+<h3>10.3 Dropout</h3>
+
+<p>На каждой итерации случайно выключаем $p$ fraction нейронов (обычно $p = 0.5$). На инференсе все нейроны активны, но веса масштабируются на $(1-p)$.</p>
+
+<p><strong>Эффект:</strong> сеть не может больше переобучиться, полагаясь на цепочку из нескольких нейронов. Как бы ансамбль.</p>
+
+<h3>10.4 Early Stopping</h3>
+
+<p>Во время обучения мониторим loss на валидационной выборке. Как только loss на val перестал улучшаться (начал расти) — останавливаем обучение, сохраняем модель из точки минимума val loss.</p>
+
+<p><strong>Эффект:</strong> поймали момент, когда модель начала переобучаться, не дали ей погрузиться ещё глубже.</p>
+
+<!-- ============================================ -->
+<h2 id="s11"><span class="num">11.</span> Словарик терминов</h2>
+
+<p>Чтобы не заблудиться в терминологии, вот таблица.</p>
+
+<table>
+<thead><tr><th>Английский</th><th>Русский</th><th>Смысл на 10 секунд</th></tr></thead>
+<tbody>
+<tr><td><strong>Loss, objective</strong></td><td>Потеря, целевая функция</td><td>Число, которое мы минимизируем. Показывает, как далеко предсказание от истины на обучающих данных.</td></tr>
+<tr><td><strong>Metric</strong></td><td>Метрика</td><td>Число, которое мы смотрим в конце. Может быть не дифференцируема (accuracy).</td></tr>
+<tr><td><strong>Epoch</strong></td><td>Эпоха</td><td>Один полный проход по всей обучающей выборке.</td></tr>
+<tr><td><strong>Batch</strong></td><td>Батч</td><td>Подмножество выборки, обрабатывается за одну итерацию.</td></tr>
+<tr><td><strong>Iteration</strong></td><td>Итерация</td><td>Один шаг градиентного спуска на одном батче.</td></tr>
+<tr><td><strong>Feature, input</strong></td><td>Признак, вход</td><td>Один элемент вектора $x$ — измеримое свойство объекта.</td></tr>
+<tr><td><strong>Label, target, ground truth</strong></td><td>Метка, целевая переменная, истина</td><td>Правильный ответ $y$ для примера $(x, y)$ из обучающей выборки.</td></tr>
+<tr><td><strong>Inference</strong></td><td>Инференс, вывод</td><td>Использование обученной модели на новых данных. Только forward, без gradients.</td></tr>
+<tr><td><strong>Fine-tuning</strong></td><td>Дообучение</td><td>Взяли предобученную модель и обучили её дальше на новых данных.</td></tr>
+<tr><td><strong>Embedding</strong></td><td>Встраивание, вектор признаков</td><td>Вектор, в который модель кодирует входные данные. Часто выход из скрытого слоя.</td></tr>
+<tr><td><strong>Logit</strong></td><td>Логит, сырой выход</td><td>Выход нейросети до softmax. Например, для 3 классов выдали [2.1, -0.5, 1.3].</td></tr>
+<tr><td><strong>Backbone</strong></td><td>Основа, базовая часть</td><td>Основная часть модели (CNN или Transformer), которая извлекает признаки.</td></tr>
+<tr><td><strong>Head</strong></td><td>Голова, выходной модуль</td><td>Финальные слои, специфичные для конкретной задачи. Часто меняется при transfer learning.</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="qa">🎯 Препод спросит</h2>
+
+<details class="qa"><summary>Чем обучение с учителем отличается от без учителя?</summary>
+<div class="ans">
+<p>При обучении с учителем есть пары (вход, истинный выход), и мы минимизируем loss между предсказанием и истиной. Без учителя истины нет — нет пар, только входы. Целью становится найти структуру, кластеры или уменьшить размерность, и loss формулируется хитро: реконструкция, контрастные пары или информационная мера. Supervised применять легче (данные есть), unsupervised — для исследовательских задач и когда маркировка дорога.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое data leakage и почему это плохо?</summary>
+<div class="ans">
+<p>Data leakage — когда информация из test/val просочилась в train. Причины: нормализация на всей выборке, выбор признаков на всей выборке, временные ряды где test раньше train, дублирующиеся примеры. Результат: метрика на test нереалистично хороша, потом в боевых условиях модель падает. На экзамене надо знать примеры и правила: scale параметры только из train, feature selection на train, test не смотрим при подборе гиперпараметров.</p>
+</div></details>
+
+<details class="qa"><summary>Чем отличаются недообучение и переобучение?</summary>
+<div class="ans">
+<p>Недообучение (underfitting): модель слишком простая, большой bias. Loss на train высокий и не снижается, loss на train ≈ loss на val. Лечение: усложнить модель. Переобучение (overfitting): модель слишком сложная, большая variance. Loss на train упал низко, но loss на val выше и растёт. Лечение: регуляризация, больше данных, рано остановиться.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое bias-variance tradeoff?</summary>
+<div class="ans">
+<p>При фиксированном объёме данных, по мере усложнения модели, ошибка bias монотонно падает (модель может выразить больше), а ошибка variance растёт (чувствительность к шуму выборки). Итоговая ошибка = bias² + variance + шум. Оптимум где-то в середине. На практике: train loss монотонно падает, val loss сначала падает, потом растёт. Точка минимума val loss — это баланс bias и variance.</p>
+</div></details>
+
+<details class="qa"><summary>Параметры и гиперпараметры — в чём разница?</summary>
+<div class="ans">
+<p>Параметры — это числа внутри модели, которые обучаются из данных (веса $w$, bias $b$). Гиперпараметры — это настройки алгоритма (learning rate, batch size, архитектура, λ регуляризации). Параметры ищем градиентным спуском, гиперпараметры подбираем вручную или через grid/random search на val.</p>
+</div></details>
+
+<details class="qa"><summary>Почему accuracy врёт на дисбалансированных классах?</summary>
+<div class="ans">
+<p>Пример: 99% данных класс 0, 1% класс 1. Модель выучилась говорить всегда класс 0. Accuracy = 99% ← выглядит отлично! Но Recall для класса 1 = 0%, F1 = 0. Accuracy не учитывает, что нас интересует класс 1. Решение: смотреть на Precision, Recall, F1, ROC-AUC вместо Accuracy при дисбалансе.</p>
+</div></details>
+
+<details class="qa"><summary>Что такое эпоха, батч, итерация и как они связаны?</summary>
+<div class="ans">
+<p>Выборка N примеров, batch size B. Одна эпоха = N/B итераций (один full pass по выборке). Каждая итерация: берём батч из B примеров, делаем forward, backward, обновляем параметры. Пример: 10000 примеров, batch 100 → одна эпоха = 100 итераций. Батчирование — для параллелизма на GPU и стабильности градиента.</p>
+</div></details>
+
+<details class="qa"><summary>Как выбрать скорость обучения η?</summary>
+<div class="ans">
+<p>Слишком большое η — расходимся (прыгаем через минимум). Слишком малое — очень медленно. Начни с 0.001 или 0.01 (для нейросетей), посмотри на loss — если падает гладко, хорошо. Если шумит или растёт — уменьши. На практике используют адаптивные оптимизаторы (Adam, RMSprop), которые подбирают η автоматически.</p>
+</div></details>
+
+<details class="qa"><summary>Зачем нужна регуляризация и какие есть виды?</summary>
+<div class="ans">
+<p>Регуляризация борется с переобучением. Виды: (1) L2 — штраф за большие веса, стягивает к нулю; (2) L1 — штраф за абсолютное значение, обнуляет веса, sparse; (3) Dropout — во время обучения выключаем ~50% нейронов случайно; (4) Early stopping — останавливаем как только val loss начал расти. На практике часто комбинируют: L2 + Dropout + Early stopping.</p>
+</div></details>
+
+<details class="qa"><summary>Почему мы делим данные на train/val/test, если можно обучить на всём?</summary>
+<div class="ans">
+<p>Потому что на train-данных ты можешь изначально переобучиться, и ты это не заметишь. Val нужен для выбора гиперпараметров и ранней остановки — это объективная мера, как модель работает на новых данных. Test — это финальная проверка, и мы смотрим на test только один раз, чтобы не переобучиться на выбор гиперпараметров даже случайно. Если смотреть на test много раз, то он становится как val, и реальная обобщающая способность неизвестна.</p>
+</div></details>
+
+<!-- ============================================ -->
+<h2 id="tasks">📝 Микро-задачи</h2>
+
+<div class="task">
+  <div class="tt">Задача 1. Train/val/test split</div>
+  <p>Выборка 5000 примеров. Нужно разбить на train/val/test в пропорции 60%/20%/20%. Сколько примеров в каждой части?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Train: $5000 \times 0.6 = 3000$ примеров.</p>
+    <p>Val: $5000 \times 0.2 = 1000$ примеров.</p>
+    <p>Test: $5000 \times 0.2 = 1000$ примеров.</p>
+    <p>Проверка: $3000 + 1000 + 1000 = 5000$ ✓.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 2. Эпохи, батчи, итерации</div>
+  <p>Обучающая выборка 8000 примеров, batch size 32, планируем 50 эпох. Сколько итераций всего? Сколько итераций в одной эпохе?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>Итерации в одной эпохе:</strong> $8000 / 32 = 250$ итераций.</p>
+    <p><strong>Всего итераций за 50 эпох:</strong> $250 \times 50 = 12\,500$ итераций.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 3. Confusion matrix и метрики</div>
+  <p>На тесте 100 примеров: 50 позитивов, 50 негативов. Модель предсказала: TP = 40, FP = 5, FN = 10, TN = 45. Найди accuracy, precision, recall, F1.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$\text{Accuracy} = \dfrac{40 + 45}{100} = \dfrac{85}{100} = 0.85 = 85\%$</p>
+    <p>$\text{Precision} = \dfrac{40}{40 + 5} = \dfrac{40}{45} \approx 0.889 = 88.9\%$</p>
+    <p>$\text{Recall} = \dfrac{40}{40 + 10} = \dfrac{40}{50} = 0.8 = 80\%$</p>
+    <p>$\text{F1} = 2 \cdot \dfrac{0.889 \times 0.8}{0.889 + 0.8} = 2 \cdot \dfrac{0.711}{1.689} \approx 0.842 = 84.2\%$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 4. Дисбалансированные классы</div>
+  <p>900 примеров класса 0, 100 класса 1. Модель выучилась: всегда предсказывает 0. Какая accuracy? Какой recall для класса 1? Что это означает?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>TP = 0, FP = 0, FN = 100, TN = 900.</p>
+    <p>$\text{Accuracy} = \dfrac{0 + 900}{1000} = 90\%$ ← выглядит хорошо!</p>
+    <p>$\text{Recall}_{\text{class 1}} = \dfrac{0}{0 + 100} = 0\%$ ← но это плохо!</p>
+    <p><strong>Смысл:</strong> accuracy врёт при дисбалансе. Модель просто игнорирует меньший класс. Надо смотреть на Recall/Precision/F1.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 5. MSE vs MAE</div>
+  <p>Данные: $y = [1, 2, 3, 4, 100]$ (последний выброс). Предсказания одна: $\hat{y} = [2, 2, 3, 4, 50]$. Считай MSE и MAE.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>Ошибки:</strong> $e = [-1, 0, 0, 0, 50]$.</p>
+    <p>$\text{MSE} = \dfrac{1 + 0 + 0 + 0 + 2500}{5} = \dfrac{2501}{5} = 500.2$ ← квадрат 50 доминирует!</p>
+    <p>$\text{MAE} = \dfrac{1 + 0 + 0 + 0 + 50}{5} = \dfrac{51}{5} = 10.2$ ← более адекватно.</p>
+    <p><strong>Вывод:</strong> MSE чувствительна к выбросам (квадрат), MAE робастнее.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 6. Learning rate</div>
+  <p>Миним Loss функции в точке $\theta = 5$. Стартуем $\theta_0 = 0$. Градиент $\nabla L = 2(\theta - 5)$. Начальный градиент $\nabla L(0) = -10$. Какой шаг сделаем с $\eta = 0.1$? С $\eta = 1$?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$\eta = 0.1$: $\theta_1 = 0 - 0.1 \cdot (-10) = 1$ (мягкий шаг).</p>
+    <p>$\eta = 1$: $\theta_1 = 0 - 1 \cdot (-10) = 10$ (большой шаг, перепрыгнули минимум!).</p>
+    <p><strong>Проверка:</strong> при $\eta = 1$ мы оказались дальше, чем ошибка — признак слишком большого learning rate.</p>
+  </div></details>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+
+<div class="cheat">
+  <div class="bt">Скелет устного ответа на билет 0 (вводная)</div>
+  <ol>
+    <li><strong>Общее.</strong> ML = поиск параметризованной функции $f_\theta$ по примерам. Три компонента: архитектура, loss, оптимизатор.</li>
+    <li><strong>Парадигмы.</strong> Supervised (есть y, регрессия/классификация), unsupervised (нет y, кластеризация/генерация), reinforcement (награды, агент).</li>
+    <li><strong>Данные.</strong> Train (учим), val (выбор гиперпараметров, ранняя остановка), test (один раз в конце). Утечка данных — беда.</li>
+    <li><strong>Ошибки.</strong> Bias (модель слишком простая), variance (слишком сложная). Underfitting если обе ошибки high на train, overfitting если train low но val high.</li>
+    <li><strong>Трейдофф.</strong> По мере усложнения: bias ↓, variance ↑. Оптимум в балансе. На практике: train loss монотонно ↓, val loss сначала ↓ потом ↑.</li>
+    <li><strong>Параметры vs гиперпараметры.</strong> Параметры (w, b) — обучаются из данных. Гиперпараметры (η, batch, архитектура) — выбираем вручную на val.</li>
+    <li><strong>Градиентный спуск.</strong> $\theta \leftarrow \theta - \eta \nabla L$. Идея: шаги в направлении наискорейшего спуска. η выбирают не слишком большим (расходимся) и не слишком малым (медленно).</li>
+    <li><strong>Эпоха/батч/итерация.</strong> Одна эпоха = полный проход по выборке = N/B итераций, где B = размер батча. За одну итерацию: forward на батче, backward, обновление параметров.</li>
+    <li><strong>Классификация метрики.</strong> Accuracy (все классы равны), Precision (FP дорогой), Recall (FN дорогой), F1 (баланс), ROC-AUC (не зависит от порога). При дисбалансе — не Accuracy.</li>
+    <li><strong>Регрессия метрики.</strong> MSE (стандартная, чувствительна к выбросам), MAE (робустная, в исходных единицах), R² (доля объяснённой дисперсии).</li>
+    <li><strong>Регуляризация.</strong> L2 (штраф за квадрат весов, smooth), L1 (штраф за |веса|, sparse), Dropout (выключаем нейроны), Early stopping (прекращаем когда val растёт).</li>
+    <li><strong>Терминология.</strong> Loss (минимизируем), metric (смотрим), feature/label (данные), embedding (представление), logit (сырой выход), backbone/head (части модели).</li>
+  </ol>
+</div>
+
+<div class="navrow">
+  <a class="backlink" href="../index.html">← Оглавление</a>
+  <a class="backlink" href="01-fcnn.html">Лекция 1. Полносвязные сети →</a>
+</div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Методы ИИ — интенсив на 3 дня</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  font-size:17px;
+  line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line);
+  padding:38px 24px 30px;
+  margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация назад ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление лекции ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+/* ---------- Сетка карточек (главная) ---------- */
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px; margin:20px 0}
+.lec{
+  background:var(--card); border:1px solid var(--line); border-radius:12px;
+  padding:17px 19px; text-decoration:none; color:var(--text);
+  display:block; transition:.16s; position:relative;
+}
+.lec:hover{border-color:var(--accent); transform:translateY(-2px); background:var(--card-2)}
+.lec .n{
+  font-family:var(--mono); font-size:12px; color:var(--accent);
+  font-weight:700; letter-spacing:.05em;
+}
+.lec .t{font-weight:700; margin:5px 0 6px; font-size:16.5px; line-height:1.35; color:#fff}
+.lec .d{color:var(--text-dim); font-size:13.5px; line-height:1.5}
+.lec .time{
+  margin-top:10px; font-size:12px; color:var(--text-dim);
+  font-family:var(--mono); border-top:1px solid var(--line); padding-top:8px;
+}
+
+/* ---------- Плашка дня ---------- */
+.day{
+  margin:44px 0 8px; padding:16px 22px; border-radius:12px;
+  background:linear-gradient(90deg, rgba(110,168,254,.14), transparent);
+  border-left:4px solid var(--accent);
+}
+.day h2{border:none; margin:0; padding:0; font-size:24px}
+.day p{margin:6px 0 0; color:var(--text-dim); font-size:15px}
+
+hr{border:none; border-top:1px solid var(--line); margin:44px 0}
+
+.small{font-size:14px; color:var(--text-dim)}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+
+</style>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Интенсив · Подготовка к устному экзамену</div>
+  <h1>Методы искусственного интеллекта</h1>
+  <p class="sub">Полный курс с нуля по всем 25 экзаменационным вопросам. Каждая лекция — готовый конспект: интуиция, схемы, формулы, вопросы препода с ответами и микро-задачи с решениями.</p>
+  <div class="meta">
+    <span class="pill">28 лекций</span>
+    <span class="pill gray">~36 часов</span>
+    <span class="pill gray">~170 микро-задач</span>
+    <span class="pill gray">~300 вопросов препода</span>
+    <span class="pill good">3 дня</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<div class="box idea">
+  <div class="bt">💡 Как этим пользоваться</div>
+  <p><strong>Каждая лекция построена одинаково:</strong> интуиция и зачем это нужно → схема устройства → формулы с разбором каждого символа → числовой пример → плюсы/минусы → раздел «🎯 Препод спросит» с каверзными вопросами и готовыми ответами → «📝 Микро-задачи» с пошаговыми решениями → «⚡ Ответ за 3 минуты» — скелет устного ответа по билету.</p>
+  <p><strong>Метод работы (важно, не читай пассивно):</strong> прочитал раздел → закрыл → переписал схему и формулы от руки в конспект своими словами → открыл «Препод спросит», <em>сначала ответил вслух сам</em>, потом раскрыл ответ → решил задачи, не подглядывая. Экзамен устный: если ты не можешь произнести объяснение вслух, ты его не знаешь.</p>
+  <p><strong>Раздел «Ответ за 3 минуты»</strong> — это то, что ты говоришь у доски. Выучи скелеты всех билетов: даже при пробелах в деталях структурный ответ спасает.</p>
+</div>
+
+<h2>План на 3 дня</h2>
+
+<table>
+<thead><tr><th>День</th><th>Блок</th><th>Лекции</th><th>Часы</th><th>Что закрываем</th></tr></thead>
+<tbody>
+<tr><td><strong>День 1</strong></td><td>A. Фундамент и зрение</td><td>0 → 7</td><td>12 ч</td><td>Вопросы 1, 2, 3, 4, 5, 6, 7</td></tr>
+<tr><td><strong>День 2</strong></td><td>B. Представления и генерация</td><td>8 → 15</td><td>12 ч</td><td>Вопросы 8, 9, 10, 11, 12, 13, 14</td></tr>
+<tr><td><strong>День 3</strong></td><td>C. Трансформеры + D. RL</td><td>16 → 27</td><td>12 ч</td><td>Вопросы 15–25</td></tr>
+</tbody>
+</table>
+
+<div class="box warnbox">
+  <div class="bt">⚠️ Режим 12 часов — как не сгореть</div>
+  <p>Работай циклами <strong>50 минут работы / 10 минут отдыха</strong>, после каждых трёх циклов — 30 минут перерыв с едой и прогулкой. Это даёт примерно 9 часов чистой работы из 12 — больше выжать нельзя, дальше падает удержание материала.</p>
+  <p><strong>Последние 40 минут каждого дня</strong> — не новый материал, а повторение вслух скелетов из «Ответ за 3 минуты» по всем пройденным за день темам. Это критично: без повторения к утру останется 30%.</p>
+  <p><strong>Первые 20 минут дня 2 и 3</strong> — быстрый прогон вчерашних скелетов. Ещё +20 минут утром — окупаются втрое.</p>
+</div>
+
+<!-- ================== ДЕНЬ 1 ================== -->
+<div class="day">
+  <h2>День 1 · Блок A — Фундамент и компьютерное зрение</h2>
+  <p>Самый важный день. Лекция 1 — фундамент всего курса, лекции 4–5 закрывают весь блок CV. Если день 1 понят, остальное пойдёт втрое быстрее.</p>
+</div>
+
+<div class="grid">
+
+<a class="lec" href="lectures/00-intro-ml.html">
+  <div class="n">ЛЕКЦИЯ 0 · РАЗГОН</div>
+  <div class="t">Каркас: как устроено машинное обучение</div>
+  <div class="d">Три парадигмы обучения, train/val/test, переобучение и bias-variance, градиентный спуск, эпоха/батч/итерация, метрики (accuracy, precision, recall, F1, ROC-AUC), регуляризация, словарь терминов.</div>
+  <div class="time">⏱ 1 ч · база для всего остального</div>
+</a>
+
+<a class="lec" href="lectures/01-fcnn.html">
+  <div class="n">ЛЕКЦИЯ 1 · ВОПРОС 1</div>
+  <div class="t">Полносвязные сети. Активации. Backprop</div>
+  <div class="d">Нейрон и его геометрия, однослойная сеть и XOR, зачем нужна нелинейность, MLP, forward pass в матрицах, все функции активации, выходной слой для регрессии и классификации, четыре формулы backprop, затухание градиента, инициализация.</div>
+  <div class="time">⏱ 2 ч 30 мин · критическая тема</div>
+</a>
+
+<a class="lec" href="lectures/02-autodiff-pinn.html">
+  <div class="n">ЛЕКЦИЯ 2 · ВОПРОС 2</div>
+  <div class="t">Автодифференцирование. PINN</div>
+  <div class="d">Четыре способа брать производную, вычислительный граф, forward mode vs reverse mode, backprop как частный случай autodiff, autograd в PyTorch. Физически информированные сети: loss из невязки уравнения, почему tanh а не ReLU.</div>
+  <div class="time">⏱ 1 ч 30 мин</div>
+</a>
+
+<a class="lec" href="lectures/03-losses-mle.html">
+  <div class="n">ЛЕКЦИЯ 3 · ВОПРОС 3</div>
+  <div class="t">Loss-функции. Метод максимального правдоподобия</div>
+  <div class="d">MSE, MAE, Huber; минимум MSE = среднее, минимум MAE = медиана. Энтропия, кросс-энтропия, KL. Почему нельзя MSE для классификации. ММП: вывод MSE из гауссовского шума, MAE из шума Лапласа, CE из категориального. Регуляризация как MAP.</div>
+  <div class="time">⏱ 2 ч · любимый вопрос преподов</div>
+</a>
+
+<a class="lec" href="lectures/04-cnn-layers.html">
+  <div class="n">ЛЕКЦИЯ 4 · ВОПРОС 4</div>
+  <div class="t">Слои свёрточных сетей</div>
+  <div class="d">Почему MLP не годится для картинок, локальность и разделение весов, свёртка по шагам, формула размера выхода, подсчёт параметров, многоканальность, свёртка 1×1, рецептивное поле, dilated, пулинг, BatchNorm, транспонированная свёртка, depthwise separable.</div>
+  <div class="time">⏱ 2 ч · много задач у доски</div>
+</a>
+
+<a class="lec" href="lectures/05-cnn-architectures.html">
+  <div class="n">ЛЕКЦИЯ 5 · ВОПРОС 5</div>
+  <div class="t">Архитектуры CNN. Передача обучения</div>
+  <div class="d">LeNet → AlexNet → VGG → Inception → ResNet → DenseNet → MobileNet → ViT. Проблема деградации и почему работают skip-connections. Transfer learning: feature extraction vs fine-tuning, таблица решений по четырём сценариям, практические грабли.</div>
+  <div class="time">⏱ 2 ч</div>
+</a>
+
+<a class="lec" href="lectures/06-optimizers.html">
+  <div class="n">ЛЕКЦИЯ 6 · ВОПРОС 6</div>
+  <div class="t">Оптимизация: SGD, Momentum, RMSProp, Adam</div>
+  <div class="d">Batch GD vs SGD vs mini-batch, овраги и седловые точки, learning rate и расписания, Momentum и Nesterov, AdaGrad и его смерть, RMSProp, Adam и коррекция смещения, AdamW. Матричные производные: таблица формул, проверка размерностей, нормальное уравнение.</div>
+  <div class="time">⏱ 2 ч 30 мин</div>
+</a>
+
+<a class="lec" href="lectures/07-hyperparams.html">
+  <div class="n">ЛЕКЦИЯ 7 · ВОПРОС 7</div>
+  <div class="t">Аугментация и настройка гиперпараметров</div>
+  <div class="d">Диагностика по кривым обучения, sanity checks, вся аугментация (включая Mixup/CutMix), список гиперпараметров и их важность. Grid vs Random search, байесовская оптимизация с гауссовским процессом и acquisition-функциями, Hyperband. Плюсы и минусы каждого.</div>
+  <div class="time">⏱ 2 ч</div>
+</a>
+
+</div>
+
+<!-- ================== ДЕНЬ 2 ================== -->
+<div class="day">
+  <h2>День 2 · Блок B — Представления, генеративные модели, задачи CV</h2>
+  <p>Самый концептуально насыщенный день: как научить сеть хорошим представлениям без разметки и как заставить её генерировать.</p>
+</div>
+
+<div class="grid">
+
+<a class="lec" href="lectures/08-metric-learning.html">
+  <div class="n">ЛЕКЦИЯ 8 · ВОПРОС 8</div>
+  <div class="t">Метрические методы. Сиамские сети</div>
+  <div class="d">Зачем учить расстояние вместо классов, embedding-пространство, сиамская и триплетная архитектуры, contrastive loss, triplet loss и выбор триплетов (hard negative mining), ArcFace/CosFace. Задачи few-shot и верификации лиц.</div>
+  <div class="time">⏱ 1 ч 30 мин</div>
+</a>
+
+<a class="lec" href="lectures/09-contrastive-ssl.html">
+  <div class="n">ЛЕКЦИЯ 9 · ВОПРОС 9</div>
+  <div class="t">Контрастивное обучение и self-supervised</div>
+  <div class="d">Претекст-задачи, InfoNCE и NT-Xent, SimCLR, MoCo с очередью и momentum-энкодером, BYOL и SimSiam без негативов, коллапс представлений. Маскированное моделирование: BERT, MAE. CLIP.</div>
+  <div class="time">⏱ 1 ч 30 мин</div>
+</a>
+
+<a class="lec" href="lectures/10-vae.html">
+  <div class="n">ЛЕКЦИЯ 10 · ВОПРОС 10</div>
+  <div class="t">Автоэнкодеры: AE, VAE, CVAE</div>
+  <div class="d">Обычный автоэнкодер и почему он не генеративный. Вывод ELBO по шагам, KL-регуляризация латента, репараметризационный трюк и зачем он нужен, условный CVAE, posterior collapse, β-VAE. Сравнение с GAN.</div>
+  <div class="time">⏱ 2 ч · есть вывод формул</div>
+</a>
+
+<a class="lec" href="lectures/11-gan.html">
+  <div class="n">ЛЕКЦИЯ 11 · ВОПРОС 11</div>
+  <div class="t">Генеративные модели: GAN</div>
+  <div class="d">Минимаксная игра генератора и дискриминатора, оптимальный дискриминатор и связь с дивергенцией Йенсена–Шеннона, нестабильность обучения, mode collapse, non-saturating loss, WGAN и Липшиц, DCGAN/StyleGAN/CycleGAN, метрики IS и FID.</div>
+  <div class="time">⏱ 2 ч</div>
+</a>
+
+<a class="lec" href="lectures/12-diffusion.html">
+  <div class="n">ЛЕКЦИЯ 12 · ВОПРОС 12</div>
+  <div class="t">Диффузионные модели</div>
+  <div class="d">Прямой процесс зашумления и трюк с замкнутой формулой, обратный процесс, что на самом деле предсказывает сеть, упрощённый loss, связь с VAE и score matching, DDIM, classifier-free guidance, latent diffusion (Stable Diffusion), U-Net.</div>
+  <div class="time">⏱ 2 ч</div>
+</a>
+
+<a class="lec" href="lectures/13-cv-tasks.html">
+  <div class="n">ЛЕКЦИЯ 13 · ВОПРОС 12</div>
+  <div class="t">Задачи компьютерного зрения</div>
+  <div class="d">Классификация → детекция → сегментация (семантическая, инстанс, паноптическая) → ключевые точки → трекинг. IoU, NMS, mAP, Dice. Двухстадийные (R-CNN, Faster R-CNN) и одностадийные (YOLO, SSD) детекторы, anchor'ы, U-Net, DETR, SORT/DeepSORT.</div>
+  <div class="time">⏱ 2 ч · много терминов</div>
+</a>
+
+<a class="lec" href="lectures/14-rnn-lstm.html">
+  <div class="n">ЛЕКЦИЯ 14 · ВОПРОС 13</div>
+  <div class="t">Рекуррентные сети. LSTM и biLSTM</div>
+  <div class="d">Зачем нужна память, развёртка RNN по времени, BPTT и почему градиент затухает экспоненциально. Устройство LSTM: три гейта и состояние ячейки, конвейер константной ошибки. GRU. biLSTM. Регрессия, авторегрессия, seq2seq, teacher forcing.</div>
+  <div class="time">⏱ 2 ч 30 мин · критическая тема</div>
+</a>
+
+<a class="lec" href="lectures/15-attention-seq2seq.html">
+  <div class="n">ЛЕКЦИЯ 15 · ВОПРОС 14</div>
+  <div class="t">Механизм внимания в seq2seq</div>
+  <div class="d">Бутылочное горлышко фиксированного вектора контекста, идея внимания, оценки Bahdanau и Luong, softmax по позициям, вектор контекста на каждом шаге декодера, интерпретируемость через матрицу выравнивания. Мостик к трансформерам.</div>
+  <div class="time">⏱ 1 ч 30 мин</div>
+</a>
+
+</div>
+
+<!-- ================== ДЕНЬ 3 ================== -->
+<div class="day">
+  <h2>День 3 · Блок C — Трансформеры и тексты, Блок D — Обучение с подкреплением</h2>
+  <p>Полдня на трансформеры и NLP, полдня на RL. RL — отдельный мир со своей терминологией, не пугайся: там всё крутится вокруг одного уравнения Беллмана.</p>
+</div>
+
+<div class="grid">
+
+<a class="lec" href="lectures/16-transformers.html">
+  <div class="n">ЛЕКЦИЯ 16 · ВОПРОС 15</div>
+  <div class="t">Трансформеры: архитектура и элементы</div>
+  <div class="d">Полная схема энкодера и декодера, из чего состоит блок: multi-head attention, FFN, residual, LayerNorm (pre-LN vs post-LN), позиционное кодирование и зачем оно нужно, эмбеддинги, весь путь данных от токена до выхода.</div>
+  <div class="time">⏱ 2 ч · критическая тема</div>
+</a>
+
+<a class="lec" href="lectures/17-self-attention.html">
+  <div class="n">ЛЕКЦИЯ 17 · ВОПРОС 16</div>
+  <div class="t">Внимание и самовнимание: Q, K, V, маски</div>
+  <div class="d">Аналогия с поиском по словарю, откуда берутся Q, K, V, формула scaled dot-product и зачем делить на √d, многоголовость, три вида масок (causal, padding, cross), сложность O(n²) и способы её снизить. Разбор attention на числах вручную.</div>
+  <div class="time">⏱ 2 ч</div>
+</a>
+
+<a class="lec" href="lectures/18-lstm-vs-transformer.html">
+  <div class="n">ЛЕКЦИЯ 18 · ВОПРОС 17</div>
+  <div class="t">LSTM vs Трансформер</div>
+  <div class="d">Сравнение по всем осям: параллелизм обучения, длина пути градиента, сложность по длине, память, потребность в данных, индуктивные смещения, инференс. Сводная таблица и честный ответ «когда что выбирать».</div>
+  <div class="time">⏱ 1 ч · лёгкая, но её любят спрашивать</div>
+</a>
+
+<a class="lec" href="lectures/19-text-word2vec.html">
+  <div class="n">ЛЕКЦИЯ 19 · ВОПРОС 18</div>
+  <div class="t">Тексты, токенизация, word2vec</div>
+  <div class="d">Предобработка: нормализация, лемматизация vs стемминг, стоп-слова. Что такое токен: слово, символ, subword (BPE, WordPiece), проблема OOV. От one-hot к эмбеддингам. Word2vec: CBOW и Skip-gram, negative sampling, иерархический softmax, векторная арифметика.</div>
+  <div class="time">⏱ 1 ч 30 мин</div>
+</a>
+
+<a class="lec" href="lectures/20-mt-bleu.html">
+  <div class="n">ЛЕКЦИЯ 20 · ВОПРОС 19</div>
+  <div class="t">Машинный перевод. Языковая модель. BLEU</div>
+  <div class="d">Что такое языковая модель, цепное правило вероятности, перплексия. Схема обучения переводчика: teacher forcing, инференс через greedy и beam search. BLEU: n-граммная точность с отсечением, brevity penalty, расчёт вручную. Ограничения BLEU, METEOR, chrF, BERTScore, COMET.</div>
+  <div class="time">⏱ 1 ч 30 мин · BLEU считают у доски</div>
+</a>
+
+<a class="lec" href="lectures/21-enc-dec.html">
+  <div class="n">ЛЕКЦИЯ 21 · ВОПРОС 20</div>
+  <div class="t">Энкодер, Декодер, Энкодер-Декодер</div>
+  <div class="d">Три семейства архитектур: BERT-подобные (двунаправленные, для понимания), GPT-подобные (causal, для генерации), T5/BART (seq2seq). Чем отличаются задачи предобучения, какие маски, что для чего применять. Сводная таблица с примерами моделей.</div>
+  <div class="time">⏱ 1 ч 15 мин</div>
+</a>
+
+<a class="lec" href="lectures/22-rl-intro.html">
+  <div class="n">ЛЕКЦИЯ 22 · ВОПРОС 21</div>
+  <div class="t">Обучение с подкреплением: устройство агента</div>
+  <div class="d">Чем RL отличается от обучения с учителем, цикл агент-среда, MDP и марковское свойство, награда и дисконтирование, зачем нужна γ. Три компонента агента: стратегия (policy), полезность (value), модель среды. Классификация агентов, exploration vs exploitation, ε-жадность.</div>
+  <div class="time">⏱ 1 ч 45 мин</div>
+</a>
+
+<a class="lec" href="lectures/23-bellman.html">
+  <div class="n">ЛЕКЦИЯ 23 · ВОПРОС 22</div>
+  <div class="t">Уравнение Беллмана и уравнение оптимальности</div>
+  <div class="d">V(s) и Q(s,a), связь между ними в обе стороны. Вывод уравнения Беллмана из определения возврата. Уравнение оптимальности Беллмана и почему в нём max вместо усреднения. Backup-диаграммы, сжимающее отображение и единственность решения.</div>
+  <div class="time">⏱ 1 ч 30 мин · ядро всего RL</div>
+</a>
+
+<a class="lec" href="lectures/24-vi-pi-mc.html">
+  <div class="n">ЛЕКЦИЯ 24 · ВОПРОС 22</div>
+  <div class="t">Итерации по полезностям и стратегиям. Монте-Карло</div>
+  <div class="d">Value iteration и policy iteration: алгоритмы по шагам, чем отличаются, что сходится быстрее. Обобщённая итерация по стратегиям. Методы Монте-Карло: оценка по эпизодам без модели среды, first-visit vs every-visit, MC-контроль, exploring starts.</div>
+  <div class="time">⏱ 2 ч · считают на сетке</div>
+</a>
+
+<a class="lec" href="lectures/25-td-qlearning.html">
+  <div class="n">ЛЕКЦИЯ 25 · ВОПРОС 23</div>
+  <div class="t">TD-обучение, SARSA, Q-learning</div>
+  <div class="d">Идея временных разностей: обновляться на каждом шаге, не дожидаясь конца эпизода. TD-ошибка, TD(0), сравнение MC vs TD vs DP. SARSA (on-policy) и Q-learning (off-policy), разбор различия на примере обрыва. DQN: replay buffer, target network.</div>
+  <div class="time">⏱ 2 ч</div>
+</a>
+
+<a class="lec" href="lectures/26-policy-gradient.html">
+  <div class="n">ЛЕКЦИЯ 26 · ВОПРОС 24</div>
+  <div class="t">Методы на основе стратегии: CEM, Policy Gradient</div>
+  <div class="d">Кросс-энтропийный метод: элитные эпизоды и переобучение на них. Теорема о градиенте стратегии и log-derivative трюк, REINFORCE, зачем нужен baseline, высокая дисперсия. Стохастические стратегии и непрерывные действия. TRPO/PPO обзорно.</div>
+  <div class="time">⏱ 2 ч</div>
+</a>
+
+<a class="lec" href="lectures/27-actor-critic.html">
+  <div class="n">ЛЕКЦИЯ 27 · ВОПРОС 25</div>
+  <div class="t">Value-based vs Policy-based. Actor-Critic</div>
+  <div class="d">Честное сравнение двух семейств по всем осям: непрерывные действия, стохастичность, дисперсия и смещение, сходимость, sample efficiency. Actor-Critic как синтез: актёр правит стратегию, критик оценивает. A2C/A3C, преимущество (advantage), GAE, DDPG, SAC.</div>
+  <div class="time">⏱ 1 ч 45 мин</div>
+</a>
+
+</div>
+
+<hr>
+
+<h2>Соответствие лекций билетам</h2>
+
+<table>
+<thead><tr><th>№ билета</th><th>Формулировка</th><th>Лекция</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>Однослойные и многослойные полносвязные сети. Функции активации. Прямое и обратное распространение</td><td><a href="lectures/01-fcnn.html">Л1</a> (+ <a href="lectures/00-intro-ml.html">Л0</a>)</td></tr>
+<tr><td>2</td><td>Автоматическое дифференцирование. PINN</td><td><a href="lectures/02-autodiff-pinn.html">Л2</a></td></tr>
+<tr><td>3</td><td>Loss-функции. Метод максимального правдоподобия. Связь ММП и L2</td><td><a href="lectures/03-losses-mle.html">Л3</a></td></tr>
+<tr><td>4</td><td>Слои свёрточных сетей</td><td><a href="lectures/04-cnn-layers.html">Л4</a></td></tr>
+<tr><td>5</td><td>Архитектуры CNN. Передача обучения</td><td><a href="lectures/05-cnn-architectures.html">Л5</a></td></tr>
+<tr><td>6</td><td>Оптимизация: SGD, Momentum, Adam, RMSProp. Матричные производные</td><td><a href="lectures/06-optimizers.html">Л6</a></td></tr>
+<tr><td>7</td><td>Аугментация, гиперпараметры, байесовская оптимизация</td><td><a href="lectures/07-hyperparams.html">Л7</a></td></tr>
+<tr><td>8</td><td>Метрические методы. Сиамские сети. Функции ошибок</td><td><a href="lectures/08-metric-learning.html">Л8</a></td></tr>
+<tr><td>9</td><td>Контрастивное обучение и self-supervised learning</td><td><a href="lectures/09-contrastive-ssl.html">Л9</a></td></tr>
+<tr><td>10</td><td>Автоэнкодеры: VAE, CVAE, репараметризационный трюк</td><td><a href="lectures/10-vae.html">Л10</a></td></tr>
+<tr><td>11</td><td>Генеративные модели: GAN</td><td><a href="lectures/11-gan.html">Л11</a></td></tr>
+<tr><td>12</td><td>Диффузионные модели · Задачи компьютерного зрения</td><td><a href="lectures/12-diffusion.html">Л12</a>, <a href="lectures/13-cv-tasks.html">Л13</a></td></tr>
+<tr><td>13</td><td>Рекуррентные сети. LSTM, biLSTM. Регрессия, авторегрессия, seq2seq</td><td><a href="lectures/14-rnn-lstm.html">Л14</a></td></tr>
+<tr><td>14</td><td>Механизм внимания в seq2seq</td><td><a href="lectures/15-attention-seq2seq.html">Л15</a></td></tr>
+<tr><td>15</td><td>Трансформеры: архитектура, элементы, принцип работы</td><td><a href="lectures/16-transformers.html">Л16</a></td></tr>
+<tr><td>16</td><td>Внимание и самовнимание. Q, K, V, Masked Attention</td><td><a href="lectures/17-self-attention.html">Л17</a></td></tr>
+<tr><td>17</td><td>LSTM vs Трансформер</td><td><a href="lectures/18-lstm-vs-transformer.html">Л18</a></td></tr>
+<tr><td>18</td><td>Предобработка текстов. Word2vec. Что такое токен</td><td><a href="lectures/19-text-word2vec.html">Л19</a></td></tr>
+<tr><td>19</td><td>Машинный перевод. Модель языка. BLEU</td><td><a href="lectures/20-mt-bleu.html">Л20</a></td></tr>
+<tr><td>20</td><td>Архитектуры Энкодер, Декодер, Энкодер-Декодер</td><td><a href="lectures/21-enc-dec.html">Л21</a></td></tr>
+<tr><td>21</td><td>RL: строение агента. Стратегия, полезность, модель</td><td><a href="lectures/22-rl-intro.html">Л22</a></td></tr>
+<tr><td>22</td><td>Уравнение Беллмана · Итерации по полезностям/стратегиям, Монте-Карло</td><td><a href="lectures/23-bellman.html">Л23</a>, <a href="lectures/24-vi-pi-mc.html">Л24</a></td></tr>
+<tr><td>23</td><td>Базовые алгоритмы RL: TD, Q-learning</td><td><a href="lectures/25-td-qlearning.html">Л25</a></td></tr>
+<tr><td>24</td><td>Алгоритмы на основе стратегии: CEM, Policy Gradient</td><td><a href="lectures/26-policy-gradient.html">Л26</a></td></tr>
+<tr><td>25</td><td>Value-based vs Policy-based. Actor-Critic</td><td><a href="lectures/27-actor-critic.html">Л27</a></td></tr>
+</tbody>
+</table>
+
+<div class="box exambox">
+  <div class="bt">🎯 Если время кончается — приоритеты</div>
+  <p><strong>Обязательный минимум (без этого не сдать):</strong> лекции 1, 3, 4, 6, 14, 16, 17, 23, 25. Это ядра, на которые опираются все остальные ответы, и именно оттуда идут смежные вопросы.</p>
+  <p><strong>Высокий приоритет:</strong> 5, 10, 15, 18, 22, 24, 27 — вопросы «сравните A и B», которые преподы любят больше всего.</p>
+  <p><strong>Можно пройти быстрее:</strong> 2, 7, 8, 9, 11, 12, 13, 19, 20, 21, 26 — здесь достаточно уверенно держать структуру ответа и ключевые формулы.</p>
+</div>
+
+<div class="box idea">
+  <div class="bt">💡 Сквозные связи — это то, чем добивают на экзамене</div>
+  <p>Преподаватель почти наверняка спросит что-то на стыке тем. Держи эти мостики наготове: <em>backprop — это reverse-mode автодифференцирования</em> (Л1↔Л2); <em>MSE и cross-entropy — это ММП при разных предположениях о шуме</em> (Л3); <em>skip-connection в ResNet решает ту же проблему затухания градиента, что и cell state в LSTM</em> (Л5↔Л14); <em>attention решает ту же проблему бутылочного горлышка, что и увеличение размерности контекста, но без потери информации</em> (Л15↔Л16); <em>contrastive learning и метрическое обучение — одна идея, разница только в источнике позитивных пар</em> (Л8↔Л9); <em>VAE, GAN и диффузия — три разных способа обойти невычислимость правдоподобия</em> (Л10–Л12); <em>Q-learning — это стохастическая аппроксимация уравнения оптимальности Беллмана</em> (Л23↔Л25); <em>policy gradient — это тот же градиентный спуск, только градиент оценивается сэмплированием</em> (Л26).</p>
+</div>
+
+<p class="small">Курс собран под конкретный список из 25 экзаменационных вопросов. Все схемы, задачи и вопросы преподавателя — часть подготовки, а не декорация: проходи их вслух.</p>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лекция 11. Генеративные модели: GAN</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--sans); font-size:17px; line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line); padding:38px 24px 30px; margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+</style>
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]},
+  svg: {fontCache:'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Блок B · Вопрос 11 · Генеративные модели</div>
+  <h1>Лекция 11. Генеративно-состязательные сети (GAN)</h1>
+  <p class="sub">Минимаксная игра двух игроков, вывод оптимального дискриминатора, связь с дивергенцией Йенсена–Шеннона, Mode Collapse, Wasserstein GAN, DCGAN, StyleGAN, CycleGAN, метрики Inception Score и FID.</p>
+  <div class="meta">
+    <span class="pill">⏱ 2 ч</span>
+    <span class="pill gray">10 вопросов препода</span>
+    <span class="pill gray">6 микро-задач</span>
+    <span class="pill good">Билет 11</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<a class="backlink" href="../index.html">← К оглавлению курса</a>
+
+<nav class="toc">
+  <div class="bt">Содержание лекции</div>
+  <ol>
+    <li><a href="#s1">Интуиция: игра в фальшивомонетчика и полицию</a></li>
+    <li><a href="#s2">Математическая постановка минимаксной игры</a></li>
+    <li><a href="#s3">Оптимальный дискриминатор $D^*(x)$ и связь с JSD</a></li>
+    <li><a href="#s4">Проблема насыщения градиента и Non-Saturating Loss</a></li>
+    <li><a href="#s5">Нестабильность обучения и коллапс мод (Mode Collapse)</a></li>
+    <li><a href="#s6">Wasserstein GAN (WGAN) и WGAN-GP</a></li>
+    <li><a href="#s7">Архитектуры: DCGAN, cGAN, StyleGAN, CycleGAN</a></li>
+    <li><a href="#s8">Метрики качества генерации: Inception Score и FID</a></li>
+    <li><a href="#s9">Практическая реализация на PyTorch</a></li>
+    <li><a href="#qa">Препод спросит</a></li>
+    <li><a href="#tasks">Микро-задачи</a></li>
+    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="s1"><span class="num">1.</span> Интуиция: игра в фальшивомонетчика и полицию</h2>
+
+<p>В отличие от VAE (где мы выводим нижнюю оценку правдоподобия ELBO и явно моделируем вероятностное распределение $q(z|x)$), в <strong>GAN (Generative Adversarial Networks, Ян Гудфеллоу, 2014)</strong> мы полностью отказываемся от явного вычисления функции плотности вероятности $p(x)$.</p>
+
+<p>Вместо этого мы обучаем <strong>две нейросети одновременно</strong> в состязательном режиме (game-theoretic framework):</p>
+
+<ul>
+  <li><strong>Генератор ($G$):</strong> «Фальшивомонетчик». Принимает на вход случайный шум $z \sim p_z(z)$ (например, из $\mathcal{N}(0, I)$) и пытается сгенерировать синтетический объект $G(z)$, неотличимый от настоящих данных $x \sim p_{\text{data}}(x)$.</li>
+  <li><strong>Дискриминатор ($D$):</strong> «Полицейский / Эксперт». Принимает на вход объект $x$ и выдает скаляр $D(x) \in [0, 1]$ — вероятность того, что объект $x$ взят из реального датасета ($1$), а не сгенерирован генератором ($0$).</li>
+</ul>
+
+<div class="scheme">
+  Шум z ~ N(0, I) ──▶ [ Генератор G(z) ] ──▶ Сгенерированное x_fake
+                                                    │
+  Реальные x ~ p_data(x) ───────────────────────────┼──▶ [ Дискриминатор D ] ──▶ Вероятность D(x) ∈ [0, 1]
+                                                    │                             (1 = Real, 0 = Fake)
+                                                    ▼
+                                    Loss: состязательный градиент
+                                    D максимизирует точность классификации
+                                    G пытается обмануть D (D(G(z)) → 1)
+
+<span class="cap">Схема состязательного обучения GAN: Генератор и Дискриминатор обучаются по очереди с противоположными целями.</span></div>
+
+<div class="box idea">
+  <div class="bt">💡 Равновесие по Нэшу (Nash Equilibrium)</div>
+  <p>Обучение GAN сходится, когда достигается <em>равновесие по Нэшу</em> в игре с нулевой суммой: Генератор генерирует идеальные примеры, точно соответствующие распределению реальных данных $p_g(x) = p_{\text{data}}(x)$, а Дискриминатор не может отличить их и выдает для любого входа вероятность ровно $D(x) = \frac{1}{2}$ (случайное угадывание).</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> Математическая постановка минимаксной игры</h2>
+
+<p>Формально обучение GAN описывается как антагонистическая минимаксная игра для функционала стоимости $V(D, G)$:</p>
+
+<div class="formula">
+$$ \min_G \max_D V(D, G) = \mathbb{E}_{x \sim p_{\text{data}}(x)} [\log D(x)] + \mathbb{E}_{z \sim p_z(z)} [\log (1 - D(G(z)))] $$
+<span class="note">Основное уравнение GAN (Goodfellow et al., 2014). $D$ максимизирует $V(D,G)$, $G$ минимизирует $V(D,G)$.</span>
+</div>
+
+<h3>Разбор каждого слагаемого:</h3>
+<ul>
+  <li>$\mathbb{E}_{x \sim p_{\text{data}}} [\log D(x)]$: Дискриминатор стремится сделать $D(x) \to 1$ для реальных объектов. При $D(x)=1$, $\log(1) = 0$ (максимум логарифма).</li>
+  <li>$\mathbb{E}_{z \sim p_z} [\log (1 - D(G(z)))]$: Дискриминатор стремится сделать $D(G(z)) \to 0$ для подделок, тогда $\log(1 - 0) = 0$. А генератор $G$ стремится сделать $D(G(z)) \to 1$, тогда $(1 - D(G(z))) \to 0$, а $\log \to -\infty$ (минимизация).</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> Оптимальный дискриминатор $D^*(x)$ и связь с JSD</h2>
+
+<div class="box mathbox">
+  <div class="bt">📐 Строгий математический вывод оптимального дискриминатора $D^*(x)$</div>
+  <p>Зафиксируем генератор $G$ и найдем дискриминатор $D$, максимизирующий $V(D, G)$. Перепишем матожидания через интегралы по непрерывной плотности $p_{\text{data}}(x)$ и индуцированной плотности генератора $p_g(x)$:</p>
+  $$ V(D, G) = \int_{\mathcal{X}} p_{\text{data}}(x) \log D(x) \, dx + \int_{\mathcal{Z}} p_z(z) \log(1 - D(G(z))) \, dz $$
+  <p>Применяя замену переменной $x = G(z)$ во втором интеграле, получаем:</p>
+  $$ V(D, G) = \int_{\mathcal{X}} \left[ p_{\text{data}}(x) \log D(x) + p_g(x) \log(1 - D(x)) \right] dx $$
+  <p>Для максимизации интеграла достаточно максимизировать подынтегральное выражение для каждого конкретного $x$. Пусть $a = p_{\text{data}}(x)$, $b = p_g(x)$, а переменная $y = D(x) \in [0, 1]$. Исследуем функцию $f(y) = a \ln y + b \ln (1 - y)$:</p>
+  $$ f'(y) = \frac{a}{y} - \frac{b}{1 - y} = 0 \implies a(1 - y) - by = 0 \implies a - (a + b)y = 0 \implies y^* = \frac{a}{a + b} $$
+  <p>Вторая производная $f''(y) = -\frac{a}{y^2} - \frac{b}{(1-y)^2} < 0$, следовательно, точка является глобальным максимумом.</p>
+</div>
+
+<div class="formula">
+$$ D^*(x) = \frac{p_{\text{data}}(x)}{p_{\text{data}}(x) + p_g(x)} $$
+<span class="note">Аналитическая формула оптимального дискриминатора при фиксированном генераторе $G$.</span>
+</div>
+
+<h3>Связь с дивергенцией Йенсена–Шеннона (Jensen-Shannon Divergence):</h3>
+<p>Подставим оптимальный дискриминатор $D^*(x)$ обратно в функционал $V(D^*, G)$:</p>
+$$ V(D^*, G) = \int_{\mathcal{X}} \left[ p_{\text{data}}(x) \log \frac{p_{\text{data}}(x)}{p_{\text{data}}(x) + p_g(x)} + p_g(x) \log \frac{p_g(x)}{p_{\text{data}}(x) + p_g(x)} \right] dx $$
+<p>Прибавим и вычтем $\log 2$ в каждом логарифме:</p>
+$$ V(D^*, G) = -\log 4 + \int p_{\text{data}}(x) \log \frac{p_{\text{data}}(x)}{\frac{p_{\text{data}}(x) + p_g(x)}{2}} dx + \int p_g(x) \log \frac{p_g(x)}{\frac{p_{\text{data}}(x) + p_g(x)}{2}} dx $$
+$$ V(D^*, G) = -\log 4 + D_{\text{KL}}\left(p_{\text{data}} \parallel \frac{p_{\text{data}} + p_g}{2}\right) + D_{\text{KL}}\left(p_g \parallel \frac{p_{\text{data}} + p_g}{2}\right) $$
+
+<div class="formula">
+$$ V(D^*, G) = -\log 4 + 2 \cdot D_{\text{JS}}(p_{\text{data}} \parallel p_g) $$
+<span class="note">Теорема Гудфеллоу: минимизация функции потерь GAN относительно $G$ при оптимальном $D$ эквивалентна минимизации дивергенции Йенсена–Шеннона между распределением данных и генератора.</span>
+</div>
+
+<p>Так как дивергенция Йенсена–Шеннона симметрична, неотрицательна и равна нулю тогда и только тогда, когда $p_g = p_{\text{data}}$, глобальный минимум функционала равен <strong>$-\log 4 \approx -1.386$</strong> (или $-\ln 2 \approx -0.693$ при логарифмах по основанию 2).</p>
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> Проблема насыщения градиента и Non-Saturating Loss</h2>
+
+<p>В начале обучения генератор $G$ генерирует мусор. Дискриминатор $D$ обучается моментально и с высокой уверенностью отвергает подделки: $D(G(z)) \approx 0$.</p>
+
+<p>Посмотрим на исходный градиент генератора $\nabla_{\theta_G} \log(1 - D(G(z)))$:</p>
+<ul>
+  <li>При $D(G(z)) \to 0$ производная функции $\log(1 - u)$ по $u$ в окрестности $0$ имеет вид $\frac{-1}{1-u} \approx -1$. Однако сам дискриминатор $D$ имеет сигмоиду на выходе, производная которой $\sigma'(z) = \sigma(z)(1-\sigma(z)) \approx 0 \cdot 1 = 0$.</li>
+  <li>В итоге градиенты генератора <strong>исчезают (Vanishing Gradients)</strong> в самом начале, когда они нужнее всего!</li>
+</ul>
+
+<div class="box warnbox">
+  <div class="bt">⚠️ Решение: Non-Saturating GAN Loss (Эвристика Гудфеллоу)</div>
+  <p>Вместо минимизации вероятности быть пойманным $\min_G \log(1 - D(G(z)))$ генератор обучают <strong>максимизировать вероятность обмануть дискриминатор</strong>:</p>
+  $$ \max_G \mathbb{E}_{z \sim p_z} [\log D(G(z))] \quad \Longleftrightarrow \quad \min_G \mathbb{E}_{z \sim p_z} [-\log D(G(z))] $$
+  <p>Эта модификация дает сильный, ненасыщающийся градиент при $D(G(z)) \approx 0$ и обеспечивает быстрое стартовое обучение.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> Нестабильность обучения и коллапс мод (Mode Collapse)</h2>
+
+<p>Обучение GAN принципиально сложнее стандартных нейросетей, поскольку мы ищем не минимум функции потерь, а <em>седловую точку</em> (седло) двух динамических систем.</p>
+
+<h3>Типичные патологии обучения GAN:</h3>
+<table>
+<thead><tr><th>Проблема</th><th>Физический смысл</th><th>Симптомы</th><th>Методы решения</th></tr></thead>
+<tbody>
+<tr><td><strong>Mode Collapse (Коллапс мод)</strong></td><td>Генератор выучивает только одну или несколько подмод данных (например, генерирует только цифру «8» из всего MNIST), полностью игнорируя остальные классы.</td><td>Качество картинок отличное, но разнообразие нулевое.</td><td>WGAN-GP, Unrolled GAN, Minibatch Discrimination, PacGAN.</td></tr>
+<tr><td><strong>Dying Discriminator / Overpowering</strong></td><td>Дискриминатор становится слишком идеальным ($D(x)=1, D(G(z))=0$). Градиенты генератора обращаются в ноль.</td><td>$L_D \to 0$, $L_G \to \infty$, обучение встает.</td><td>WGAN, Label Smoothing, зашумление входов $D$, замедление обучения $D$.</td></tr>
+<tr><td><strong>Осцилляции (Non-convergence)</strong></td><td>Генератор и дискриминатор гоняются по кругу вокруг оптимума без сходимости (предельные циклы).</td><td>Loss хаотично колеблется, веса расходятся.</td><td>Историческое усреднение (EMA), оптимизатор Adam с $\beta_1=0.5$ (или $0.0$).</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s6"><span class="num">6.</span> Wasserstein GAN (WGAN) и WGAN-GP</h2>
+
+<h3>Почему JSD и KL плохи для непересекающихся распределений?</h3>
+<p>В многомерном пространстве данных (например, $256 \times 256 \times 3 \approx 196\,608$ измерений) реальные изображения лежат на тонком низкоразмерном многообразии (manifold). Распределение генератора $p_g$ также является тонким многообразием. Вероятность того, что два случайных многообразия пересекутся в пространстве размерности 200k, равна <strong>нулю</strong> с вероятностью 1.</p>
+<p>Если $p_{\text{data}}$ и $p_g$ не имеют общего носителя ($\text{supp}(p_{\text{data}}) \cap \text{supp}(p_g) = \emptyset$):</p>
+$$ D_{\text{JS}}(p_{\text{data}} \parallel p_g) = \log 2 = \text{const} \implies \nabla_\theta D_{\text{JS}} = 0 $$
+<p>Градиент дивергенции Йенсена–Шеннона равен нулю почти всюду! Дискриминатор мгновенно разделяет их гиперплоскостью, и генератор не получает обучающего сигнала.</p>
+
+<h3>Расстояние Вассерштейна (Earth Mover's Distance):</h3>
+<div class="formula">
+$$ W(p_{\text{data}}, p_g) = \inf_{\gamma \in \Pi(p_{\text{data}}, p_g)} \mathbb{E}_{(x, y) \sim \gamma} [\|x - y\|] $$
+<span class="note">Минимальная «работа» (масса $\times$ расстояние), необходимая для перемещения одного распределения в другое.</span>
+</div>
+
+<p>Расстояние Вассерштейна <strong>непрерывно и дифференцируемо почти всюду</strong> даже для полностью непересекающихся распределений!</p>
+
+<h3>Двойственность Канторовича–Рубинштейна и WGAN:</h3>
+<p>Вычисление инфимума напрямую невозможно. По теореме двойственности:</p>
+<div class="formula">
+$$ W(p_{\text{data}}, p_g) = \sup_{\|f\|_L \le 1} \mathbb{E}_{x \sim p_{\text{data}}} [f(x)] - \mathbb{E}_{x \sim p_g} [f(x)] $$
+<span class="note">Супремум берется по всем 1-Липшицевым функциям $f: \mathcal{X} \to \mathbb{R}$ (где $|f(x_1) - f(x_2)| \le \|x_1 - x_2\|$).</span>
+</div>
+
+<p>В WGAN сеть $D$ называют не дискриминатором, а <strong>Критиком (Critic)</strong> $f_w(x)$, который выдает вещественное число без сигмоиды на выходе:</p>
+$$ L_{\text{Critic}} = \mathbb{E}_{z \sim p_z} [f_w(G_\theta(z))] - \mathbb{E}_{x \sim p_{\text{data}}} [f_w(x)] $$
+$$ L_{\text{Generator}} = -\mathbb{E}_{z \sim p_z} [f_w(G_\theta(z))] $$
+
+<h3>Как обеспечить 1-Липшицевость критика?</h3>
+<ol>
+  <li><strong>WGAN (Weight Clipping):</strong> Принудительное ограничение весов критика в компактный диапазон $w \in [-c, c]$ (например, $c=0.01$). <em>Минусы:</em> снижает емкость сети, приводит к взрыву или исчезновению градиентов.</li>
+  <li><strong>WGAN-GP (Gradient Penalty, Gulrajani et al., 2017):</strong> Добавление штрафа за отклонение нормы градиента критика от 1 на случайных интерполяциях $\hat{x} = \epsilon x + (1 - \epsilon) G(z)$:
+    <div class="formula">
+    $$ L_{\text{GP}} = \mathbb{E}_{\hat{x}} \left[ \left( \|\nabla_{\hat{x}} f_w(\hat{x})\|_2 - 1 \right)^2 \right] $$
+    $$ L_{\text{Total Critic}} = L_{\text{Critic}} + \lambda L_{\text{GP}}, \quad \lambda = 10 $$
+    </div>
+  </li>
+</ol>
+
+<!-- ============================================ -->
+<h2 id="s7"><span class="num">7.</span> Семейство архитектур: DCGAN, cGAN, StyleGAN, CycleGAN</h2>
+
+<h3>7.1 DCGAN (Deep Convolutional GAN, Radford et al., 2015)</h3>
+<p>Ввели свод инженерных правил («золотой стандарт»), позволивших стабильно обучать свёрточные GAN:</p>
+<ul>
+  <li>Заменить Spatial Pooling на <strong>Strided Convolutions</strong> в дискриминаторе и <strong>Fractionally-Strided (Transposed) Convolutions</strong> в генераторе.</li>
+  <li>Использовать <strong>Batch Normalization</strong> в генераторе и дискриминаторе (за исключением выходного слоя $G$ и входного слоя $D$).</li>
+  <li>Удалить полносвязные скрытые слои в глубоких архитектурах (Global Average Pooling).</li>
+  <li>Активации в Генераторе: <strong>ReLU</strong> на всех слоях, кроме выхода (там <strong>Tanh</strong> для масштабирования в $[-1, 1]$).</li>
+  <li>Активации в Дискриминаторе: <strong>LeakyReLU (slope=0.2)</strong> на всех слоях.</li>
+</ul>
+
+<h3>7.2 Conditional GAN (cGAN, Mirza & Osindero, 2014)</h3>
+<p>Позволяет управлять генерацией (например, указывать желаемый класс цифры $y$):</p>
+<ul>
+  <li>Вектор метки $y$ конкатенируется с шумом $z$ на входе генератора: $G(z, y)$.</li>
+  <li>Вектор метки $y$ (или карта признаков) подается на вход дискриминатору: $D(x, y)$.</li>
+</ul>
+
+<h3>7.3 Pix2Pix и CycleGAN</h3>
+<table>
+<thead><tr><th>Модель</th><th>Тип задачи</th><th>Требования к данным</th><th>Ключевой Loss</th></tr></thead>
+<tbody>
+<tr><td><strong>Pix2Pix</strong></td><td>Image-to-Image (эскиз $\to$ фото, карта $\to$ спутник)</td><td><strong>Парные данные</strong> $(x, y)$</td><td>cGAN Loss + $\lambda \|y - G(x)\|_1$ + PatchGAN дискриминатор.</td></tr>
+<tr><td><strong>CycleGAN</strong></td><td>Image-to-Image (лошадь $\leftrightarrow$ зебра, лето $\leftrightarrow$ зима)</td><td><strong>Непарные данные</strong> (два набора изображений $X$ и $Y$)</td><td>Adversarial Loss + <strong>Cycle Consistency Loss</strong>: $\|F(G(x)) - x\|_1 + \|G(F(y)) - y\|_1$.</td></tr>
+</tbody>
+</table>
+
+<div class="scheme">
+  CYCLE CONSISTENCY LOSS В CycleGAN:
+
+  x ∈ X (Лошадь) ──▶ [ Генератор G ] ──▶ G(x) (Зебра) ──▶ [ Генератор F ] ──▶ F(G(x)) ≈ x (Снова лошадь!)
+                                                             ▲
+                                             Cycle Loss = ||F(G(x)) - x||_1
+
+<span class="cap">Cycle Consistency гарантирует, что изображение не теряет контент при переносе стиля.</span></div>
+
+<h3>7.4 StyleGAN (Karras et al., NVIDIA, 2019–2021)</h3>
+<p>Революция в качестве генерации лиц ($1024 \times 1024$ без артефактов):</p>
+<ul>
+  <li><strong>Mapping Network:</strong> 8-слойный MLP преобразует $z \in \mathcal{Z}$ в распутанное промежуточное латентное пространство $w \in \mathcal{W}$ (Disentanglement).</li>
+  <li><strong>Синтезирующая сеть:</strong> Начинает не с $z$, а с константного обучаемого тензора $4 \times 4 \times 512$. Вектор $w$ управляет стилями на каждом масштабе через <strong>AdaIN (Adaptive Instance Normalization)</strong>:
+    $$ \text{AdaIN}(x_i, y) = y_{s,i} \left( \frac{x_i - \mu(x_i)}{\sigma(x_i)} \right) + y_{b,i} $$
+  </li>
+  <li><strong>Стохастическая вариативность:</strong> Добавление шума после каждого свёрточного слоя для генерации микроструктур (веснушки, поры, отдельные волоски).</li>
+  <li><strong>Style Mixing:</strong> Использование разных векторов $w_1$ и $w_2$ на разных масштабах (грубая геометрия vs цвет волос/освещение).</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s8"><span class="num">8.</span> Метрики качества генерации: Inception Score и FID</h2>
+
+<h3>8.1 Inception Score (IS, Salimans et al., 2016)</h3>
+<p>Прогоняет сгенерированные картинки через классификатор Inception-v3, обученный на ImageNet:</p>
+<div class="formula">
+$$ \text{IS}(G) = \exp \left( \mathbb{E}_{x \sim p_g} [D_{\text{KL}}(p(y|x) \parallel p(y))] \right) $$
+<span class="note">$p(y|x)$ — условное распределение классов для одной картинки. $p(y) = \mathbb{E}_x [p(y|x)]$ — маргинальное распределение по всей выборке.</span>
+</div>
+<ul>
+  <li><strong>Качество объекта (Sharpness):</strong> Для одной картинки сеть должна быть уверена в одном классе $\implies$ энтропия $p(y|x)$ минимальна (острый пик).</li>
+  <li><strong>Разнообразие (Diversity):</strong> По всей сгенерированной выборке должны быть представлены все классы равномерно $\implies$ энтропия $p(y)$ максимальна.</li>
+  <li><em>Недостатки IS:</em> Не сравнивает сгенерированные картинки с реальным датасетом; легко обмануть генерацией одного идеального изображения каждого класса (не ловит внутриклассовый Mode Collapse).</li>
+</ul>
+
+<h3>8.2 Fréchet Inception Distance (FID, Heusel et al., 2017)</h3>
+<p><strong>Золотой стандарт оценки генеративных моделей.</strong> Извлекает признаки из предпоследнего слоя (2048-мерный `pool3`) сети Inception-v3 для реальных и сгенерированных изображений и аппроксимирует их многомерными Гауссианами $\mathcal{N}(\mu_r, \Sigma_r)$ и $\mathcal{N}(\mu_g, \Sigma_g)$:</p>
+
+<div class="formula">
+$$ \text{FID} = \|\mu_r - \mu_g\|_2^2 + \text{Tr}\left(\Sigma_r + \Sigma_g - 2(\Sigma_r \Sigma_g)^{1/2}\right) $$
+<span class="note">Расстояние Фреше (2-Вассерштейна) между Гауссианами признаков. Чем FID МЕНЬШЕ, тем качество и разнообразие ВЫШЕ.</span>
+</div>
+<ul>
+  <li>Учитывает как схожесть средних значений признаков ($\|\mu_r - \mu_g\|^2$), так и структуру ковариаций ($\Sigma$).</li>
+  <li>Чувствителен к шуму, размытию, артефактам и выпадению мод (Mode Collapse).</li>
+</ul>
+
+<!-- ============================================ -->
+<h2 id="s9"><span class="num">9.</span> Практическая реализация на PyTorch</h2>
+
+<p>Классический обучающий цикл DCGAN / Vanilla GAN с Non-Saturating loss:</p>
+
+<pre><code><span class="kw">import</span> torch
+<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
+
+<span class="cmt"># 1. Архитектура Генератора (DCGAN стиль)</span>
+<span class="kw">class</span> Generator(nn.Module):
+    <span class="kw">def</span> __init__(self, z_dim=<span class="num2">100</span>, img_channels=<span class="num2">1</span>, feature_g=<span class="num2">64</span>):
+        <span class="kw">super</span>().__init__()
+        self.net = nn.Sequential(
+            <span class="cmt"># Вход: z (N x z_dim x 1 x 1) -> 4x4</span>
+            nn.ConvTranspose2d(z_dim, feature_g * <span class="num2">4</span>, kernel_size=<span class="num2">4</span>, stride=<span class="num2">1</span>, padding=<span class="num2">0</span>, bias=<span class="kw">False</span>),
+            nn.BatchNorm2d(feature_g * <span class="num2">4</span>),
+            nn.ReLU(<span class="kw">True</span>),
+            <span class="cmt"># 4x4 -> 8x8</span>
+            nn.ConvTranspose2d(feature_g * <span class="num2">4</span>, feature_g * <span class="num2">2</span>, kernel_size=<span class="num2">4</span>, stride=<span class="num2">2</span>, padding=<span class="num2">1</span>, bias=<span class="kw">False</span>),
+            nn.BatchNorm2d(feature_g * <span class="num2">2</span>),
+            nn.ReLU(<span class="kw">True</span>),
+            <span class="cmt"># 8x8 -> 16x16</span>
+            nn.ConvTranspose2d(feature_g * <span class="num2">2</span>, feature_g, kernel_size=<span class="num2">4</span>, stride=<span class="num2">2</span>, padding=<span class="num2">1</span>, bias=<span class="kw">False</span>),
+            nn.BatchNorm2d(feature_g),
+            nn.ReLU(<span class="kw">True</span>),
+            <span class="cmt"># 16x16 -> 32x32</span>
+            nn.ConvTranspose2d(feature_g, img_channels, kernel_size=<span class="num2">4</span>, stride=<span class="num2">2</span>, padding=<span class="num2">1</span>, bias=<span class="kw">False</span>),
+            nn.Tanh() <span class="cmt"># Выход в диапазоне [-1, 1]</span>
+        )
+
+    <span class="kw">def</span> forward(self, z):
+        <span class="kw">return</span> self.net(z)
+
+<span class="cmt"># 2. Обучающий шаг</span>
+criterion = nn.BCELoss()
+opt_D = torch.optim.Adam(D.parameters(), lr=<span class="num2">0.0002</span>, betas=(<span class="num2">0.5</span>, <span class="num2">0.999</span>))
+opt_G = torch.optim.Adam(G.parameters(), lr=<span class="num2">0.0002</span>, betas=(<span class="num2">0.5</span>, <span class="num2">0.999</span>))
+
+<span class="kw">for</span> real_imgs, _ <span class="kw">in</span> dataloader:
+    batch_size = real_imgs.size(<span class="num2">0</span>)
+    real_labels = torch.ones(batch_size, <span class="num2">1</span>, device=device)
+    fake_labels = torch.zeros(batch_size, <span class="num2">1</span>, device=device)
+
+    <span class="cmt"># --- ШАГ 1: Обучение Дискриминатора ---</span>
+    opt_D.zero_grad()
+    d_real_out = D(real_imgs)
+    loss_D_real = criterion(d_real_out, real_labels)
+
+    z = torch.randn(batch_size, <span class="num2">100</span>, <span class="num2">1</span>, <span class="num2">1</span>, device=device)
+    fake_imgs = G(z)
+    d_fake_out = D(fake_imgs.detach()) <span class="cmt"># detach чтобы не считать градиенты по G!</span>
+    loss_D_fake = criterion(d_fake_out, fake_labels)
+
+    loss_D = loss_D_real + loss_D_fake
+    loss_D.backward()
+    opt_D.step()
+
+    <span class="cmt"># --- ШАГ 2: Обучение Генератора (Non-Saturating Loss) ---</span>
+    opt_G.zero_grad()
+    d_fake_for_G = D(fake_imgs)
+    <span class="cmt"># Генератор хочет, чтобы D принял fake за real (цель = 1)</span>
+    loss_G = criterion(d_fake_for_G, real_labels)
+    loss_G.backward()
+    opt_G.step()
+</code></pre>
+
+<!-- ============================================ -->
+<h2 id="qa">🎯 Препод спросит</h2>
+
+<details class="qa"><summary>Почему в GAN нельзя просто обучить генератор минимизировать MSE между $G(z)$ и реальными картинками?</summary>
+<div class="ans">
+<p>Потому что шум $z$ никак не привязан к конкретному входному изображению $x$. Если минимизировать MSE между выходом генератора и случайными примерами из выборки, генератор сойдется к <strong>попиксельному среднему всех картинок датасета</strong> (размытое невнятное пятно). Дискриминатор же оценивает реалистичность всей структуры изображения целиком, заставляя генерировать четкие детали на многообразии данных.</p>
+</div></details>
+
+<details class="qa"><summary>Чему равен оптимальный дискриминатор $D^*(x)$ и значение функции стоимости при идеальном генераторе?</summary>
+<div class="ans">
+<p>Оптимальный дискриминатор равен $D^*(x) = \frac{p_{\text{data}}(x)}{p_{\text{data}}(x) + p_g(x)}$. Когда генератор идеален ($p_g = p_{\text{data}}$), $D^*(x) = \frac{p_{\text{data}}(x)}{2 p_{\text{data}}(x)} = \frac{1}{2}$ для всех $x$. Значение функции стоимости при этом строго равно $V(D^*, G) = -\log(4) = -2\ln(2) \approx -1.386$ (или $-\ln 2 \approx -0.693$).</p>
+</div></details>
+
+<details class="qa"><summary>В чем математическая причина проблемы Mode Collapse?</summary>
+<div class="ans">
+<p>В стандартном GAN мы оптимизируем дивергенцию Йенсена–Шеннона $D_{\text{JS}}$, которая штрафует генерацию нереалистичных объектов сильнее, чем пропуск целых мод. Если дискриминатор локально слаб на одной моде (например, на цифре «1»), генератор моментально стягивает все свои распределения $z \mapsto \text{«1»}$, так как это дает гарантированно низкий лосс. Дискриминатор затем переключается и начинает штрафовать «1», после чего генератор прыгает на моду «7», и так по кругу.</p>
+</div></details>
+
+<details class="qa"><summary>Зачем в WGAN нужно требование 1-Липшицевости и как оно реализовано в WGAN-GP?</summary>
+<div class="ans">
+<p>Требование 1-Липшицевости ($\|\nabla f(x)\| \le 1$) возникает из формулы двойственности Канторовича–Рубинштейна для расстояния Вассерштейна. Без этого ограничения критик мог бы устремить свои выходы к $\pm\infty$, сделав лосс бесконечным. В WGAN-GP это ограничение накладывается через дифференцируемый штраф за отклонение нормы градиента критика по входу от единицы: $\mathbb{E}_{\hat{x}} [(\|\nabla_{\hat{x}} D(\hat{x})\|_2 - 1)^2]$ в случайных точках интерполяции.</p>
+</div></details>
+
+<details class="qa"><summary>Почему в шаге обучения дискриминатора нужно вызывать `fake_imgs.detach()`?</summary>
+<div class="ans">
+<p>Вызов `.detach()` отсоединяет тензор `fake_imgs` от вычислительного графа генератора. Если не сделать `.detach()`, при обратном проходе `loss_D.backward()` градиенты протекут через весь генератор, что потратит лишнюю память/время GPU и ошибочно накопит нежелательные градиенты в параметрах генератора.</p>
+</div></details>
+
+<details class="qa"><summary>Чем StyleGAN принципиально отличается от традиционных генераторов?</summary>
+<div class="ans">
+<p>В традиционных GAN шум $z$ подается в первый слой и напрямую масштабируется. В StyleGAN входная сеть Mapping Network переводит $z \to w \in \mathcal{W}$ (распутывая признаки). Синтез начинается с константного тензора $4\times 4$, а вектор $w$ модулирует слои через адаптивную нормализацию AdaIN. Это позволяет раздельно управлять крупными стилями (поза, форма лица), средними (черты лица, прическа) и мелкими (текстура кожи, веснушки через шум).</p>
+</div></details>
+
+<details class="qa"><summary>Зачем в CycleGAN нужен Cycle Consistency Loss?</summary>
+<div class="ans">
+<p>Обычный Adversarial Loss для непарных выборок $X \to Y$ гарантирует лишь то, что сгенерированное $G(x)$ выглядит как объект из распределения $Y$. Однако он не обязывает $G(x)$ сохранять содержимое исходного $x$ (генератор может переводить любую лошадь в одну и ту же фиксированную зебру). Cycle Consistency Loss $\|F(G(x)) - x\|_1$ требует возможности восстановить исходное изображение обратным генератором $F$, что гарантирует сохранение геометрии и контента.</p>
+</div></details>
+
+<details class="qa"><summary>В чем главные недостатки Inception Score (IS) и почему все перешли на FID?</summary>
+<div class="ans">
+<p>IS оценивает только распределение предсказаний классификатора $p(y|x)$ и $p(y)$, полностью игнорируя реальные обучающие данные! Если модель просто запомнит по одному идеальному изображению на каждый из 1000 классов ImageNet, она получит максимальный IS при абсолютном коллапсе мод. FID сравнивает реальные и синтетические данные в пространстве признаков (средние и ковариации), чувствителен к шуму, искажениям и коллапсу мод.</p>
+</div></details>
+
+<details class="qa"><summary>В чем математическая разница между Minimax Loss и Non-Saturating Loss генератора и почему первый приводит к затуханию градиентов на старте?</summary>
+<div class="ans">
+<p>В исходной формулировке Goodfellow et al. (2014) генератор минимизирует $\mathcal{L}_G^{\text{minimax}} = \mathbb{E}_{z}[\log(1 - D(G(z)))]$. В начале обучения дискриминатор $D$ быстро учится отличать плохие подделки от реальных данных, поэтому $D(G(z)) \approx 0$. Производная функции $\log(1 - u)$ по $u = D(G(z))$ равна $-\frac{1}{1-u} \approx -1$, а градиент по параметрам генератора $\nabla_{\theta_G} \mathcal{L}_G = -\frac{1}{1-D(G(z))} \nabla_{\theta_G} D(G(z)) \approx 0$, так как сам дискриминатор в зоне уверенных нулей имеет насыщающуюся сигмоиду с $\sigma'(x) \to 0$. Градиент затухает ровно тогда, когда генератору сильнее всего нужен обучающий сигнал.</p>
+<p>В <strong>Non-Saturating Loss</strong> генератор вместо минимизации вероятности ошибки дискриминатора максимизирует вероятность того, что дискриминатор признает подделку реальной: $\mathcal{L}_G^{\text{NS}} = -\mathbb{E}_{z}[\log D(G(z))]$. Производная $-\log(u)$ по $u$ равна $-\frac{1}{u}$. При $u \to 0$ (генератор слаб) величина $\frac{1}{u} \to +\infty$, что дает мощный градиент и позволяет генератору быстро улучшать качество, а при $u \to 1$ градиент плавно затухает, предотвращая переобучение.</p>
+</div></details>
+
+<details class="qa"><summary>Почему в WGAN ограничение весов (Weight Clipping) приводит к деградации сети и как штраф на градиент (Gradient Penalty, WGAN-GP) решает эту проблему?</summary>
+<div class="ans">
+<p>В оригинальном WGAN (Arjovsky et al., 2017) для соблюдения 1-липшицевости критика веса $w$ жестко обрезались в компактный интервал $w \in [-c, c]$ после каждого шага оптимизатора. Это порождало две критические проблемы:</p>
+<ol>
+  <li><strong>Исчезновение или взрыв градиентов:</strong> При малом $c$ градиент затухал экспоненциально с глубиной сети; при большом $c$ сеть обучалась крайне медленно до достижения границ.</li>
+  <li><strong>Упрощение емкости модели (Capacity Underuse):</strong> Из-за линейного характера ограничения веса критика быстро сбивались к крайним предельным значениям $+c$ и $-c$, превращая сложную нелинейную нейросеть в простую функцию с сильно ограниченной выразительностью.</li>
+</ol>
+<p>В <strong>WGAN-GP</strong> (Gulrajani et al., 2017) 1-липшицевость обеспечивается мягким дифференцируемым регуляризатором: в функцию потерь критика добавляется штраф за отклонение нормы градиента по входу от единицы на случайных линейных интерполяциях $\hat{x} = \epsilon x + (1-\epsilon)\tilde{x}$ (где $\epsilon \sim U(0,1)$):</p>
+$$\mathcal{L}_{\text{GP}} = \lambda \, \mathbb{E}_{\hat{x}} \left[ \left( \|\nabla_{\hat{x}} D(\hat{x})\|_2 - 1 \right)^2 \right]$$
+<p>Это стабилизирует обучение без жестких ограничений на веса, сохраняет полную емкость критика и избавляет от необходимости использовать BatchNorm в дискриминаторе.</p>
+</div></details>
+
+<!-- ============================================ -->
+<h2 id="tasks">📝 Микро-задачи</h2>
+
+<div class="task">
+  <div class="tt">Задача 1. Расчет функции стоимости при идеальном дискриминаторе</div>
+  <p>Предположим, генератор генерирует картинки, которые дискриминатор безошибочно определяет как подделки ($D(G(z)) = 0.01$), а реальные картинки определяет безошибочно ($D(x) = 0.99$). Чему приближенно равен функционал $V(D, G)$?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Формула: $V(D, G) = \mathbb{E}[\log D(x)] + \mathbb{E}[\log(1 - D(G(z)))]$.</p>
+    <p>$\log(0.99) \approx -0.01005$.</p>
+    <p>$\log(1 - 0.01) = \log(0.99) \approx -0.01005$.</p>
+    <p>$V(D, G) \approx -0.01005 - 0.01005 = -0.0201 \approx 0$.</p>
+    <p><strong>Вывод:</strong> Дискриминатор почти достиг своего теоретического максимума ($0$).</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 2. Размерность выхода транспонированной свёртки (ConvTranspose2d)</div>
+  <p>В генераторе DCGAN входной латентный вектор размера $(B, 100, 1, 1)$ подается в `nn.ConvTranspose2d(100, 256, kernel_size=4, stride=1, padding=0)`. Какой пространственный размер $H_{out} \times W_{out}$ будет на выходе?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Формула размера выхода транспонированной свёртки:</p>
+    <p>$$ H_{out} = (H_{in} - 1) \times \text{stride} - 2 \times \text{padding} + \text{kernel\_size} $$</p>
+    <p>Подставляем: $H_{in} = 1, \text{stride} = 1, \text{padding} = 0, \text{kernel\_size} = 4$:</p>
+    <p>$$ H_{out} = (1 - 1) \times 1 - 0 + 4 = 4 $$</p>
+    <p>Выходной тензор имеет размерность $(B, 256, 4, 4)$.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 3. Сравнение градиентов Saturating vs Non-Saturating Loss</div>
+  <p>Пусть выход дискриминатора для фейка равен $u = D(G(z)) = 0.05$ (слабый генератор). Посчитайте значение функции потерь для генератора при: (а) Minimax loss $L_1 = \log(1 - u)$; (б) Non-saturating loss $L_2 = -\log(u)$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>(а) $L_1 = \ln(1 - 0.05) = \ln(0.95) \approx -0.0513$. Градиент $\frac{d L_1}{du} = -\frac{1}{1-u} = -\frac{1}{0.95} \approx -1.05$.</p>
+    <p>(б) $L_2 = -\ln(0.05) \approx -(-2.9957) = 2.996$. Градиент $\frac{d L_2}{du} = -\frac{1}{u} = -\frac{1}{0.05} = -20$.</p>
+    <p><strong>Вывод:</strong> Градиент Non-saturating loss по абсолютному значению в <strong>19 раз больше</strong> ($-20$ против $-1.05$), что обеспечивает мощный обучающий сигнал при слабом генераторе.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 4. Вычисление 1D расстояния Вассерштейна</div>
+  <p>Даны два 1D распределения: $P$ — Dirac delta в точке $x=0$, $Q$ — Dirac delta в точке $x=\theta$. Чему равны $D_{\text{JS}}(P \parallel Q)$ и $W(P, Q)$ при $\theta \ne 0$?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>1. При $\theta \ne 0$ распределения $P$ и $Q$ не пересекаются: $\text{supp}(P) \cap \text{supp}(Q) = \emptyset$. Следовательно, $D_{\text{JS}}(P \parallel Q) = \ln(2) \approx 0.693 = \text{const}$. Градиент по $\theta$ равен $0$.</p>
+    <p>2. Расстояние Вассерштейна — это минимальная масса $\times$ расстояние: $W(P, Q) = 1 \cdot |\theta - 0| = |\theta|$.</p>
+    <p><strong>Вывод:</strong> Градиент $\frac{d W}{d\theta} = \text{sign}(\theta) \ne 0$, расстояние непрерывно стремится к нулю при $\theta \to 0$, что позволяет обучать модель градиентным спуском.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 5. Расчет FID для 1D распределений</div>
+  <p>Реальные признаки имеют среднее $\mu_r = 2.0$ и дисперсию $\sigma_r^2 = 4.0$. Сгенерированные признаки имеют $\mu_g = 5.0$ и $\sigma_g^2 = 9.0$. Рассчитайте FID.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>В одномерном случае формула FID упрощается до:</p>
+    <p>$$ \text{FID} = (\mu_r - \mu_g)^2 + (\sigma_r - \sigma_g)^2 $$</p>
+    <p>Подставляем значения ($\sigma_r = \sqrt{4} = 2$, $\sigma_g = \sqrt{9} = 3$):</p>
+    <p>$$ (\mu_r - \mu_g)^2 = (2 - 5)^2 = (-3)^2 = 9 $$</p>
+    <p>$$ (\sigma_r - \sigma_g)^2 = (2 - 3)^2 = (-1)^2 = 1 $$</p>
+    <p>$$ \text{FID} = 9 + 1 = 10.0 $$</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 6. Количество параметров в WGAN-GP Gradient Penalty</div>
+  <p>Почему в WGAN-GP нельзя использовать Batch Normalization в Критике (Дискриминаторе)? Что используют взамен?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>Причина:</strong> BatchNorm создает зависимость между сэмплами внутри одного батча (нормализация по батчу $\mu_B, \sigma_B$). В WGAN-GP градиентный штраф вычисляется <em>индивидуально для каждого сэмпла</em> $\|\nabla_{\hat{x}_i} D(\hat{x}_i)\|_2$. BatchNorm нарушает эту независимость и делает расчет градиента некорректным.</p>
+    <p><strong>Решение:</strong> В критике WGAN-GP используют <strong>Layer Normalization</strong>, <strong>Instance Normalization</strong> или <strong>Spectral Normalization</strong>.</p>
+  </div></details>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+
+<div class="cheat">
+  <div class="bt">Скелет устного ответа по билету 11 (GAN)</div>
+  <ol>
+    <li><strong>Суть и идея.</strong> Игровая постановка: Генератор $G(z)$ создает объекты из шума, Дискриминатор $D(x)$ отличает реальные от фейков. Явного вычисления плотности $p(x)$ нет.</li>
+    <li><strong>Минимаксная игра.</strong> $\min_G \max_D V(D, G) = \mathbb{E}_{x}[\log D(x)] + \mathbb{E}_{z}[\log(1 - D(G(z)))]$. $D$ максимизирует классификацию, $G$ минимизирует.</li>
+    <li><strong>Оптимальный дискриминатор.</strong> $D^*(x) = \frac{p_{\text{data}}(x)}{p_{\text{data}}(x) + p_g(x)}$. При подстановке $V(D^*, G) = -\log 4 + 2 D_{\text{JS}}(p_{\text{data}} \parallel p_g)$. Оптимум при $p_g = p_{\text{data}}$, $D^*(x) = 1/2$.</li>
+    <li><strong>Non-Saturating Loss.</strong> В начале обучения $D$ слишком силен $\implies \log(1 - D(G(z)))$ затухает. Решение: учить $G$ максимизировать $\log D(G(z))$.</li>
+    <li><strong>Проблемы обучения.</strong> Mode Collapse (генерация одной моды), осцилляции, исчезающие градиенты из-за непересекающихся многообразий ($D_{\text{JS}} = \text{const}$).</li>
+    <li><strong>WGAN.</strong> Переход к метрике 1-Вассерштейна (Earth Mover's Distance) через двойственность Канторовича–Рубинштейна: критик 1-Липшицев. Градиент есть всегда.</li>
+    <li><strong>WGAN-GP.</strong> Штраф за градиент $\|\nabla_{\hat{x}} D(\hat{x})\|_2 \approx 1$ вместо нестабильного клиппинга весов. Замена BatchNorm на Layer/InstanceNorm.</li>
+    <li><strong>DCGAN.</strong> Правила Рэднека: свёртки со страйдом вместо пулинга, BatchNorm, LeakyReLU в $D$, ReLU + Tanh в $G$.</li>
+    <li><strong>StyleGAN.</strong> Mapping Network $z \to w$, константный вход, модуляция слоев через AdaIN, шум для деталей, распутанное пространство признаков.</li>
+    <li><strong>CycleGAN.</strong> Обучение на непарных данных с помощью Cycle Consistency Loss: $\|F(G(x)) - x\|_1 + \|G(F(y)) - y\|_1$.</li>
+    <li><strong>Метрики: IS.</strong> Inception Score оценивает четкость ($p(y|x)$) и разнообразие ($p(y)$), но не сравнивает с реальным датасетом.</li>
+    <li><strong>Метрики: FID.</strong> Fréchet Inception Distance — расстояние между Гауссианами признаков слоя pool3 Inception-v3: $\|\mu_r - \mu_g\|^2 + \text{Tr}(\Sigma_r + \Sigma_g - 2(\Sigma_r \Sigma_g)^{1/2})$. Золотой стандарт.</li>
+  </ol>
+</div>
+
+<div class="navrow">
+  <a class="backlink" href="10-vae.html">← Лекция 10. Автоэнкодеры</a>
+  <a class="backlink" href="12-diffusion.html">Лекция 12. Диффузионные модели →</a>
+</div>
+
+</div>
+</body>
+</html>

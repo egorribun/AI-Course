@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Лекция 20. Машинный перевод, языковая модель, BLEU</title>
+<style>
+/* ==========================================================
+   Курс «Методы ИИ» — единая тема оформления
+   ========================================================== */
+
+:root{
+  --bg:        #0f1115;
+  --bg-soft:   #161a21;
+  --card:      #1b202a;
+  --card-2:    #212734;
+  --line:      #2c3444;
+  --text:      #e6e9ef;
+  --text-dim:  #a7b0c0;
+  --accent:    #6ea8fe;
+  --accent-2:  #9b7bff;
+  --good:      #4ade80;
+  --warn:      #fbbf24;
+  --bad:       #f87171;
+  --exam:      #ff9f6e;
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", "Helvetica Neue", Arial, sans-serif;
+}
+
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:20px}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--sans); font-size:17px; line-height:1.72;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:980px; margin:0 auto; padding:0 24px 120px}
+
+/* ---------- Шапка ---------- */
+header.top{
+  background:linear-gradient(135deg,#1a2030 0%, #131722 60%, #1c1730 100%);
+  border-bottom:1px solid var(--line); padding:38px 24px 30px; margin-bottom:36px;
+}
+header.top .inner{max-width:980px; margin:0 auto}
+header.top .kicker{
+  color:var(--accent); font-size:13px; letter-spacing:.16em;
+  text-transform:uppercase; font-weight:700; margin-bottom:10px;
+}
+header.top h1{margin:0 0 10px; font-size:34px; line-height:1.22; font-weight:800; letter-spacing:-.01em}
+header.top .sub{color:var(--text-dim); font-size:16px; margin:0}
+header.top .meta{margin-top:16px; display:flex; gap:10px; flex-wrap:wrap}
+.pill{
+  display:inline-block; padding:5px 13px; border-radius:999px;
+  background:rgba(110,168,254,.13); border:1px solid rgba(110,168,254,.35);
+  color:var(--accent); font-size:13px; font-weight:600;
+}
+.pill.gray{background:rgba(167,176,192,.10); border-color:rgba(167,176,192,.3); color:var(--text-dim)}
+.pill.warn{background:rgba(251,191,36,.12); border-color:rgba(251,191,36,.35); color:var(--warn)}
+.pill.good{background:rgba(74,222,128,.12); border-color:rgba(74,222,128,.35); color:var(--good)}
+
+/* ---------- Навигация ---------- */
+.backlink{
+  display:inline-flex; align-items:center; gap:7px;
+  color:var(--text-dim); text-decoration:none; font-size:14px;
+  padding:7px 14px; border:1px solid var(--line); border-radius:8px;
+  background:var(--bg-soft); transition:.15s;
+}
+.backlink:hover{color:var(--accent); border-color:var(--accent)}
+.navrow{display:flex; justify-content:space-between; gap:12px; margin:56px 0 0; flex-wrap:wrap}
+
+/* ---------- Заголовки ---------- */
+h2{
+  font-size:27px; margin:52px 0 16px; padding-bottom:11px;
+  border-bottom:2px solid var(--line); font-weight:750; letter-spacing:-.01em;
+}
+h2 .num{color:var(--accent); font-family:var(--mono); font-size:20px; margin-right:10px}
+h3{font-size:21px; margin:34px 0 12px; color:#fff; font-weight:700}
+h4{font-size:17.5px; margin:24px 0 9px; color:var(--accent); font-weight:700}
+
+p{margin:0 0 15px}
+ul,ol{margin:0 0 15px; padding-left:26px}
+li{margin-bottom:8px}
+strong{color:#fff; font-weight:700}
+em{color:var(--accent); font-style:normal; font-weight:600}
+a{color:var(--accent)}
+code{
+  font-family:var(--mono); font-size:.9em; background:rgba(110,168,254,.11);
+  color:#bcd4ff; padding:2px 6px; border-radius:5px;
+}
+pre{
+  background:#0b0e13; border:1px solid var(--line); border-left:3px solid var(--accent);
+  border-radius:9px; padding:16px 18px; overflow-x:auto; font-size:14px;
+  line-height:1.62; margin:18px 0;
+}
+pre code{background:none; padding:0; color:#d6deeb; font-size:14px}
+.cmt{color:#6b7a90}
+.kw{color:#c792ea}
+.str{color:#c3e88d}
+.num2{color:#f78c6c}
+
+/* ---------- Блоки-карточки ---------- */
+.box{
+  background:var(--card); border:1px solid var(--line);
+  border-radius:12px; padding:18px 22px; margin:22px 0;
+}
+.box > :last-child{margin-bottom:0}
+.box .bt{
+  font-weight:750; font-size:14px; letter-spacing:.06em; text-transform:uppercase;
+  margin-bottom:10px; display:flex; align-items:center; gap:8px;
+}
+.idea    {border-left:4px solid var(--accent)}
+.idea .bt{color:var(--accent)}
+.warnbox {border-left:4px solid var(--warn);  background:rgba(251,191,36,.055)}
+.warnbox .bt{color:var(--warn)}
+.errbox  {border-left:4px solid var(--bad);   background:rgba(248,113,113,.055)}
+.errbox .bt{color:var(--bad)}
+.okbox   {border-left:4px solid var(--good);  background:rgba(74,222,128,.05)}
+.okbox .bt{color:var(--good)}
+.exambox {border-left:4px solid var(--exam);  background:rgba(255,159,110,.06)}
+.exambox .bt{color:var(--exam)}
+.mathbox {border-left:4px solid var(--accent-2); background:rgba(155,123,255,.06)}
+.mathbox .bt{color:var(--accent-2)}
+
+/* ---------- Формулы ---------- */
+.formula{
+  background:var(--card-2); border:1px solid var(--line); border-radius:10px;
+  padding:14px 20px; margin:18px 0; text-align:center; overflow-x:auto;
+}
+.formula .note{
+  display:block; margin-top:8px; color:var(--text-dim);
+  font-size:13.5px; text-align:center; font-style:italic;
+}
+
+/* ---------- Таблицы ---------- */
+table{
+  width:100%; border-collapse:collapse; margin:20px 0;
+  font-size:15px; background:var(--card); border-radius:10px; overflow:hidden;
+  display:block; overflow-x:auto;
+}
+th{
+  background:var(--card-2); color:#fff; text-align:left;
+  padding:11px 14px; font-weight:700; border-bottom:2px solid var(--line);
+  font-size:14px; white-space:nowrap;
+}
+td{padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.045)}
+
+/* ---------- ASCII-схемы ---------- */
+.scheme{
+  background:#0b0e13; border:1px solid var(--line); border-radius:10px;
+  padding:18px; margin:20px 0; overflow-x:auto;
+  font-family:var(--mono); font-size:13.5px; line-height:1.45;
+  color:#c8d4e8; white-space:pre;
+}
+.scheme .cap{
+  display:block; color:var(--text-dim); font-family:var(--sans);
+  font-size:13px; margin-top:12px; white-space:normal; font-style:italic;
+}
+
+/* ---------- Q&A: «препод спросит» ---------- */
+.qa{margin:14px 0; border:1px solid var(--line); border-radius:10px; overflow:hidden; background:var(--card)}
+.qa > summary{
+  cursor:pointer; padding:13px 18px; font-weight:650; list-style:none; list-style-type:none;
+  background:var(--card-2); transition:.15s; user-select:none; font-size:16px;
+}
+.qa > summary::-webkit-details-marker{display:none}
+.qa > summary::marker{display:none}
+.qa > summary::before{content:"❯ "; color:var(--exam); font-weight:800; display:inline-block; transition:.2s}
+.qa[open] > summary::before{transform:rotate(90deg)}
+.qa > summary:hover{background:#28303f}
+.qa .ans{padding:15px 18px 5px; border-top:1px solid var(--line)}
+.qa .ans > :last-child{margin-bottom:14px}
+
+/* ---------- Задачи ---------- */
+.task{
+  border:1px solid var(--line); border-left:4px solid var(--accent-2);
+  border-radius:10px; padding:16px 20px; margin:18px 0; background:var(--card);
+}
+.task .tt{font-weight:750; color:var(--accent-2); margin-bottom:8px; font-size:15px}
+.task details{margin-top:12px}
+.task details summary{
+  cursor:pointer; color:var(--good); font-weight:650; font-size:14.5px;
+  padding:7px 0; user-select:none; list-style:none; list-style-type:none;
+}
+.task details summary::-webkit-details-marker{display:none}
+.task details summary::marker{display:none}
+.task details summary::before{content:"▸ "; font-weight:800}
+.task details[open] summary::before{content:"▾ "}
+.task details .sol{
+  padding:12px 16px; margin-top:8px; background:rgba(74,222,128,.05);
+  border:1px solid rgba(74,222,128,.2); border-radius:8px; font-size:15.5px;
+}
+.task details .sol > :last-child{margin-bottom:0}
+
+/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+.cheat{
+  background:linear-gradient(135deg, rgba(110,168,254,.10), rgba(155,123,255,.10));
+  border:1px solid rgba(110,168,254,.35); border-radius:12px;
+  padding:20px 24px; margin:28px 0;
+}
+.cheat .bt{color:var(--accent); font-weight:800; letter-spacing:.06em;
+  text-transform:uppercase; font-size:14px; margin-bottom:12px}
+.cheat ol{margin-bottom:0}
+.cheat li{margin-bottom:9px}
+
+/* ---------- Оглавление ---------- */
+.toc{
+  background:var(--bg-soft); border:1px solid var(--line);
+  border-radius:12px; padding:18px 24px; margin:0 0 34px;
+}
+.toc .bt{font-weight:750; color:var(--text-dim); font-size:13px;
+  letter-spacing:.1em; text-transform:uppercase; margin-bottom:10px}
+.toc ol{margin:0; padding-left:22px; columns:2; column-gap:34px}
+.toc li{margin-bottom:5px; break-inside:avoid}
+.toc a{color:var(--text); text-decoration:none; font-size:15px}
+.toc a:hover{color:var(--accent); text-decoration:underline}
+
+@media (max-width:720px){
+  body{font-size:16px}
+  .wrap{padding:0 16px 80px}
+  header.top h1{font-size:26px}
+  .toc ol{columns:1}
+  h2{font-size:23px}
+}
+</style>
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']], displayMath: [['$$','$$'],['\\[','\\]']]},
+  svg: {fontCache:'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Блок C · Вопрос 19 · Генерация текста</div>
+  <h1>Лекция 20. Машинный перевод, языковые модели, BLEU</h1>
+  <p class="sub">Постановка задачи NMT, авторегрессионное моделирование языка, перплексия (Perplexity), стратегии генерации текста (Greedy, Beam Search, Temperature, Top-k, Top-p), метрики оценки качества перевода (BLEU, ROUGE, METEOR, chrF, BERTScore).</p>
+  <div class="meta">
+    <span class="pill">⏱ 2 ч</span>
+    <span class="pill gray">10 вопросов препода</span>
+    <span class="pill gray">6 микро-задач</span>
+    <span class="pill good">Билет 19</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<a class="backlink" href="../index.html">← К оглавлению курса</a>
+
+<nav class="toc">
+  <div class="bt">Содержание лекции</div>
+  <ol>
+    <li><a href="#s1">Постановка задачи Нейросетевого Машинного Перевода (NMT)</a></li>
+    <li><a href="#s2">Языковое моделирование (Language Modeling) и Перплексия (Perplexity)</a></li>
+    <li><a href="#s3">Стратегии декодирования: Greedy Search vs Beam Search</a></li>
+    <li><a href="#s4">Стохастическое сэмплирование: Temperature, Top-$k$, Top-$p$ (Nucleus)</a></li>
+    <li><a href="#s5">Метрика BLEU: модифицированная точность и Brevity Penalty</a></li>
+    <li><a href="#s6">Другие метрики: ROUGE, METEOR, chrF и семантический BERTScore</a></li>
+    <li><a href="#s7">Пошаговый расчет BLEU вручную на примере</a></li>
+    <li><a href="#s8">Практическая реализация на Python</a></li>
+    <li><a href="#qa">Препод спросит</a></li>
+    <li><a href="#tasks">Микро-задачи</a></li>
+    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+  </ol>
+</nav>
+
+<!-- ============================================ -->
+<h2 id="s1"><span class="num">1.</span> Постановка задачи Нейросетевого Машинного Перевода (NMT)</h2>
+
+<p>Задача машинного перевода заключается в нахождении наиболее вероятной целевой последовательности слов $Y = (y_1, \dots, y_T)$ на целевом языке при заданном входном предложении $X = (x_1, \dots, x_S)$ на исходном языке:</p>
+
+<div class="formula">
+$$ Y^* = \arg\max_{Y} P(Y \mid X) = \arg\max_{Y} \prod_{t=1}^T P(y_t \mid y_1, \dots, y_{t-1}, X) $$
+<span class="note">Условная авторегрессионная генерация: вероятность каждого нового слова зависит от всех сгенерированных слов и исходной фразы $X$.</span>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> Языковое моделирование (Language Modeling) и Перплексия (Perplexity)</h2>
+
+<p><strong>Языковая модель (Language Model, LM)</strong> оценивает совместную вероятность любой цепочки слов в языке: $P(w_1, w_2, \dots, w_T) = \prod_{t=1}^T P(w_t \mid w_{\lt t})$.</p>
+
+<h3>Функция потерь: Cross-Entropy / NLL</h3>
+<div class="formula">
+$$ \text{Loss} = \text{NLL} = -\frac{1}{T} \sum_{t=1}^T \log P(w_t \mid w_1, \dots, w_{t-1}) $$
+</div>
+
+<h3>Перплексия (Perplexity, PPL) — главная внутренняя метрика LM:</h3>
+<div class="formula">
+$$ \text{PPL} = \exp(\text{NLL}) = \exp\left( -\frac{1}{T} \sum_{t=1}^T \log P(w_t \mid w_{\lt t}) \right) = \left( \prod_{t=1}^T \frac{1}{P(w_t \mid w_{\lt t})} \right)^{1/T} $$
+</div>
+
+<div class="box idea">
+  <div class="bt">💡 Интуиция перплексии</div>
+  <p>Перплексия — это <strong>эффективный размер выбора (степень неопределенности)</strong> модели. Если $\text{PPL} = 10$, это означает, что модель на каждом шаге колеблется так, будто выбирает одно верное слово из 10 равновероятных кандидатов. Идеальная модель имеет $\text{PPL} = 1.0$. Чем меньше перплексия, тем качественнее языковая модель.</p>
+</div>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> Стратегии декодирования: Greedy Search vs Beam Search</h2>
+
+<div class="scheme">
+  GREEDY SEARCH (ЖАДНЫЙ ВЫБОР):
+  Шаг 1: [Я] (p=0.7) ──▶ Шаг 2: [люблю] (p=0.9) ──▶ Шаг 3: [ИИ] (p=0.8)  (Только 1 путь)
+
+  BEAM SEARCH (ЛУЧЕВОЙ ПОИСК, Beam Width B = 2):
+  Шаг 1: ┬─ [Я]     (p=0.7) ──┬─ [люблю] (0.7*0.9=0.63) ──▶ [ИИ] (0.63*0.8 = 0.504) -> ВЫБРАН!
+         └─ [Мне]   (p=0.25)─┼─ [нравится] (0.25*0.9=0.225)
+                             └─ [кажется]  (0.25*0.6=0.150) (Отброшен)
+
+<span class="cap">Beam Search сохраняет $B$ наиболее вероятных гипотез на каждом шаге, предотвращая попадание в локальные тупики.</span></div>
+
+<div class="box warnbox">
+  <div class="bt">⚠️ Штраф за длину (Length Penalty) в Beam Search</div>
+  <p>Произведение вероятностей $\prod_{t=1}^T P(y_t)$ уменьшается с каждым шагом, из-за чего Beam Search стремится выдавать слишком короткие фразы. Для компенсации логарифм вероятности нормируют на длину с коэффициентом $\alpha \approx 0.6 \dots 0.8$:</p>
+  $$ \text{Score}(Y) = \frac{\sum_{t=1}^T \log P(y_t \mid y_{\lt t}, X)}{\left( \frac{5 + T}{6} \right)^\alpha} $$
+</div>
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> Стохастическое сэмплирование: Temperature, Top-$k$, Top-$p$</h2>
+
+<p>Для творческой генерации (чат-боты, сторителлинг) детерминированный поиск приводит к унылым повторениям. Используют сэмплирование:</p>
+
+<h3>1. Температура ($T > 0$):</h3>
+<div class="formula">
+$$ P(w_i) = \frac{\exp(z_i / T)}{\sum_j \exp(z_j / T)} $$
+<span class="note">$T \to 0$ — превращается в Greedy Search. $T = 1.0$ — стандартные вероятности. $T > 1.0$ — «нагрев» распределения (сглаживание пиков, рост креативности).</span>
+</div>
+
+<h3>2. Top-$k$ Sampling (Fan et al., 2018):</h3>
+<p>Оставляем только $k$ самых вероятных токенов (например, $k=50$), отсекая длинный «хвост» бредовых слов. Вероятности оставшихся $k$ слов перенормируются.</p>
+
+<h3>3. Top-$p$ (Nucleus Sampling, Holtzman et al., 2019):</h3>
+<p>Вместо фиксированного числа слов берем минимальное множество токенов, чья суммарная накопленная вероятность превышает порог $p$ (например, $p=0.9$). На простых шагах пул сжимается до 1–2 уверенных слов, на сложных — расширяется до сотен.</p>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> Метрика BLEU (Bilingual Evaluation Understudy)</h2>
+
+<p>Разработанная в IBM (Papineni et al., 2002), <strong>BLEU</strong> — главная историческая метрика автоматической оценки машинного перевода по сравнению с человеческими референсами.</p>
+
+<div class="formula">
+$$ \text{BLEU} = \text{BP} \cdot \exp\left( \sum_{n=1}^N w_n \log p_n \right) $$
+<span class="note">Обычно берут $N=4$ ($1, 2, 3, 4$-граммы) с равными весами $w_n = 1/4 = 0.25$.</span>
+</div>
+
+<h3>Компоненты формулы BLEU:</h3>
+<ol>
+  <li><strong>Модифицированная точность $n$-грамм ($p_n$):</strong> Доля $n$-грамм гипотезы, встречающихся в референсе, причем каждое вхождение засчитывается <em>не более максимального числа раз, встреченного в эталоне</em> (Clipping Count, защита от спама одного слова).</li>
+  <li><strong>Штраф за краткость (Brevity Penalty, BP):</strong> Защита от коротких переводов из одного слова (у которых $p_1 = 100\%$):
+    $$ \text{BP} = \begin{cases} 1, & \text{если } c > r \\ \exp\left(1 - \frac{r}{c}\right), & \text{если } c \le r \end{cases} $$
+    где $c$ — длина сгенерированного перевода (Candidate), $r$ — длина эталона (Reference).
+  </li>
+</ol>
+
+<!-- ============================================ -->
+<h2 id="s6"><span class="num">6.</span> Другие метрики: ROUGE, METEOR, chrF и BERTScore</h2>
+
+<table>
+<thead><tr><th>Метрика</th><th>Ориентация</th><th>Ключевая особенность</th><th>Где применяется</th></tr></thead>
+<tbody>
+<tr><td><strong>BLEU</strong></td><td>Precision (Точность)</td><td>Геометрическое среднее точностей 1–4 грамм + Brevity Penalty.</td><td>Машинный перевод (MT).</td></tr>
+<tr><td><strong>ROUGE (1, 2, L)</strong></td><td>Recall (Полнота)</td><td>Оценивает, какую долю эталона покрыла модель (ROUGE-L — наибольшая общая подпоследовательность).</td><td>Суммаризация текстов (Summarization).</td></tr>
+<tr><td><strong>METEOR</strong></td><td>Гармоническое среднее</td><td>Учитывает стемминг, синонимы (через WordNet) и штрафует за разрыв порядка слов.</td><td>Продвинутый перевод.</td></tr>
+<tr><td><strong>chrF / chrF++</strong></td><td>Символьные n-граммы</td><td>Сравнивает совпадение символов. Идеально для языков с богатой морфологией (русский, немецкий).</td><td>WMT бенчмарки.</td></tr>
+<tr><td><strong>BERTScore / COMET</strong></td><td><strong>Семантика эмбеддингов</strong></td><td>Считает косинусное сходство векторов BERT между словами. Понимает парафразы и синонимы!</td><td>Современная оценка LLM.</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================ -->
+<h2 id="s7"><span class="num">7.</span> Пошаговый расчет BLEU вручную на примере</h2>
+
+<p><strong>Эталон (Reference, $r=6$):</strong> <em>«the cat is on the mat»</em> (длина $r=6$).<br>
+<strong>Кандидат (Candidate, $c=4$):</strong> <em>«the the the mat»</em> (длина $c=4$).</p>
+
+<ol>
+  <li><strong>Точность униграмм ($p_1$):</strong>
+    <ul>
+      <li>Слово <em>«the»</em> встретилось в кандидате 3 раза. В референсе — максимум 2 раза. Клиппинг: $\text{Count}_{\text{clip}}(\text{«the»}) = 2$.</li>
+      <li>Слово <em>«mat»</em> встретилось 1 раз. В референсе — 1 раз. $\text{Count}_{\text{clip}}(\text{«mat»}) = 1$.</li>
+      <li>$$ p_1 = \frac{2 + 1}{4} = \frac{3}{4} = 0.75 $$</li>
+    </ul>
+  </li>
+  <li><strong>Точность биграмм ($p_2$):</strong>
+    <ul>
+      <li>Биграммы кандидата: <code>«the the»</code>, <code>«the the»</code>, <code>«the mat»</code>.</li>
+      <li>В референсе биграмма <code>«the the»</code> отсутствует (0). Биграмма <code>«the mat»</code> присутствует (1).</li>
+      <li>$$ p_2 = \frac{0 + 0 + 1}{3} = \frac{1}{3} \approx 0.333 $$</li>
+    </ul>
+  </li>
+  <li><strong>Штраф за краткость (BP):</strong>
+    <p>Так как $c = 4 < r = 6$:</p>
+    $$ \text{BP} = \exp\left(1 - \frac{6}{4}\right) = \exp(-0.5) \approx 0.6065 $$
+  </li>
+  <li><strong>Итоговый BLEU-2:</strong>
+    $$ \text{BLEU-2} = 0.6065 \cdot \exp\left( 0.5 \ln 0.75 + 0.5 \ln 0.333 \right) = 0.6065 \cdot \sqrt{0.75 \cdot 0.333} = 0.6065 \cdot 0.50 \approx 0.303 \quad (30.3\%) $$
+  </li>
+</ol>
+
+<!-- ============================================ -->
+<h2 id="s8"><span class="num">8.</span> Практическая реализация на Python</h2>
+
+<pre><code><span class="kw">import</span> math
+<span class="kw">from</span> collections <span class="kw">import</span> Counter
+
+<span class="kw">def</span> calculate_bleu(reference, candidate, max_n=<span class="num2">4</span>):
+    ref_tokens = reference.split()
+    cand_tokens = candidate.split()
+    c = len(cand_tokens)
+    r = len(ref_tokens)
+    
+    <span class="kw">if</span> c == <span class="num2">0</span>: <span class="kw">return</span> <span class="num2">0.0</span>
+    
+    <span class="cmt"># 1. Brevity Penalty</span>
+    bp = <span class="num2">1.0</span> <span class="kw">if</span> c &gt; r <span class="kw">else</span> math.exp(<span class="num2">1</span> - r / c)
+    
+    <span class="cmt"># 2. Modified n-gram precisions</span>
+    log_precisions = []
+    <span class="kw">for</span> n <span class="kw">in</span> range(<span class="num2">1</span>, max_n + <span class="num2">1</span>):
+        cand_ngrams = [tuple(cand_tokens[i:i+n]) <span class="kw">for</span> i <span class="kw">in</span> range(len(cand_tokens) - n + <span class="num2">1</span>)]
+        ref_ngrams = [tuple(ref_tokens[i:i+n]) <span class="kw">for</span> i <span class="kw">in</span> range(len(ref_tokens) - n + <span class="num2">1</span>)]
+        
+        cand_counts = Counter(cand_ngrams)
+        ref_counts = Counter(ref_ngrams)
+        
+        clipped_matches = sum(min(count, ref_counts[ng]) <span class="kw">for</span> ng, count <span class="kw">in</span> cand_counts.items())
+        total_ngrams = max(len(cand_ngrams), <span class="num2">1</span>)
+        
+        p_n = clipped_matches / total_ngrams
+        <span class="kw">if</span> p_n == <span class="num2">0</span>:
+            <span class="kw">return</span> <span class="num2">0.0</span> <span class="cmt"># Если хотя бы одна точность 0, геометрическое среднее зануляется</span>
+        log_precisions.append(math.log(p_n))
+        
+    score = bp * math.exp(sum(log_precisions) / max_n)
+    <span class="kw">return</span> score
+</code></pre>
+
+<!-- ============================================ -->
+<h2 id="qa">🎯 Препод спросит</h2>
+
+<details class="qa"><summary>Что такое Перплексия (Perplexity) и как она связана с кросс-энтропией?</summary>
+<div class="ans">
+<p>Перплексия — это экспонента от усредненных кросс-энтропийных потерь модели на тестовой выборке: $\text{PPL} = \exp(\text{CrossEntropyLoss})$. Интуитивно она показывает эффективное число слов, среди которых колеблется модель на каждом шаге предсказания. Чем ниже PPL, тем более уверена и точна языковая модель.</p>
+</div></details>
+
+<details class="qa"><summary>Зачем в BLEU введен Brevity Penalty (штраф за краткость)?</summary>
+<div class="ans">
+<p>Без Brevity Penalty модель могла бы перевести сложный абзац одним словом <em>«the»</em>, получив точность $p_1 = 100\%$ и идеальный балл BLEU. BP экспоненциально штрафует модель, если сгенерированный текст $c$ короче эталона $r$ ($\text{BP} = \exp(1 - r/c)$), заставляя переводить предложение полностью.</p>
+</div></details>
+
+<details class="qa"><summary>В чем фундаментальный недостаток метрики BLEU?</summary>
+<div class="ans">
+<p>BLEU сравнивает только <strong>точное лексическое совпадение $n$-грамм</strong>. Если модель использовала корректный синоним (например, <em>«автомобиль»</em> вместо <em>«машина»</em>) или перефразировала мысль другими словами, BLEU поставит 0 баллов за эту фразу. Для решения этой проблемы созданы метрики на эмбеддингах — <strong>BERTScore</strong> и <strong>COMET</strong>.</p>
+</div></details>
+
+<details class="qa"><summary>Чем Top-$p$ (Nucleus) сэмплирование лучше Top-$k$ сэмплирования?</summary>
+<div class="ans">
+<p>В Top-$k$ размер пула фиксирован (например, всегда 50 слов). Если следующее слово очевидно (например, после <em>«Президент Соединенных...»</em> слово <em>«Штатов»</em> имеет вероятность 99%), Top-$k$ все равно добавит в пул 49 маловероятных слов и может случайно выбрать бред. Top-$p$ адаптивно сузит пул до одного слова. Когда контекст неоднозначен, Top-$p$ динамически расширит пул кандидатов.</p>
+</div></details>
+
+<details class="qa"><summary>Как параметр температуры $T$ влияет на логиты перед Softmax?</summary>
+<div class="ans">
+<p>Логиты делятся на скаляр $T$: $z_i / T$. При $T < 1.0$ разница между логитами усиливается, Softmax становится резким и острым (детерминированный выбор). При $T > 1.0$ значения логитов сближаются, распределение Softmax становится плоским и близким к равномерному (максимальная случайность и разнообразие).</p>
+</div></details>
+
+<details class="qa"><summary>В чем разница между BLEU и ROUGE?</summary>
+<div class="ans">
+<p>BLEU ориентирован на <strong>Precision (Точность)</strong>: сколько сгенерированных слов было в эталоне (важно для перевода, чтобы не выдумывать лишнего). ROUGE ориентирован на <strong>Recall (Полноту)</strong>: сколько ключевых фактов эталона модель смогла охватить (важно для суммаризации, чтобы не упустить суть).</p>
+</div></details>
+
+<details class="qa"><summary>Как математически вычисляется модифицированная точность $n$-грамм (Modified $n$-gram Precision) в BLEU и почему простой подсчет совпадений неприменим?</summary>
+<div class="ans">
+<p>Обычная точность делит число совпавших $n$-грамм на общее число $n$-грамм в гипотезе. Если модель сгенерирует патологическую строку <em>«the the the the the»</em>, а в эталоне содержится <em>«the cat is on the mat»</em> (где слово <em>«the»</em> встречается 2 раза), стандартная точность униграмм составит $\frac{5}{5} = 1.0$ ($100\%$).</p>
+<p>Для устранения этой уязвимости Papineni et al. (2002) ввели <strong>клиппинг (усечение)</strong> счетчиков по максимальному числу вхождений в любой из эталонов:</p>
+$$ \text{Count}_{\text{clip}}(\text{n-gram}) = \min\left(\text{Count}_{\text{cand}}(\text{n-gram}),\; \max_{r \in R} \text{Count}_r(\text{n-gram})\right) $$
+<p>где $R$ — множество референсных переводов. Корпусная модифицированная точность порядка $n$ вычисляется как:</p>
+$$ p_n = \frac{\sum_{C \in \{\text{Candidates}\}} \sum_{\text{n-gram} \in C} \text{Count}_{\text{clip}}(\text{n-gram})}{\sum_{C \in \{\text{Candidates}\}} \sum_{\text{n-gram} \in C} \text{Count}_{\text{cand}}(\text{n-gram})} $$
+<p>В примере выше $\text{Count}_{\text{cand}}(\text{"the"}) = 5$, $\text{Count}_{\text{ref}}(\text{"the"}) = 2 \implies \text{Count}_{\text{clip}} = \min(5, 2) = 2$, и точность $p_1 = \frac{2}{5} = 0.4$, что надежно штрафует вырожденные повторения.</p>
+</div></details>
+
+<details class="qa"><summary>Какова строгая формула Brevity Penalty (BP) в BLEU и как ведет себя штраф при $c < r$ против $c \ge r$?</summary>
+<div class="ans">
+<p>Формула Brevity Penalty имеет вид:</p>
+$$ \text{BP} = \begin{cases} 1, & \text{если } c > r \\ \exp\left(1 - \frac{r}{c}\right), & \text{если } c \le r \end{cases} $$
+<p>где $c$ — длина перевода кандидата (в токенах), $r$ — эффективная длина эталона.</p>
+<ul>
+  <li><strong>При $c > r$ (кандидат длиннее эталона):</strong> $\text{BP} = 1.0$. Избыточная длина не штрафуется через BP, так как длинный перевод автоматически штрафуется в знаменателе точности $p_n$ из-за появления лишних $n$-грамм, отсутствующих в эталоне.</li>
+  <li><strong>При $c \le r$ (кандидат короче эталона):</strong> $\text{BP} = \exp\left(1 - \frac{r}{c}\right) \le 1.0$. Экспоненциальный штраф компенсирует то, что короткие фразы искусственно завышают точность $p_n$. При $c \to 0$ показатель степени $1 - \frac{r}{c} \to -\infty$, следовательно $\text{BP} \to 0$, что обнуляет итоговый BLEU для пустых или обрезанных переводов.</li>
+</ul>
+</div></details>
+
+<details class="qa"><summary>В чем преимущества метрик chrF, BERTScore и COMET по сравнению с классическим BLEU?</summary>
+<div class="ans">
+<p>Классический BLEU опирается на строгое совпадение точных $n$-грамм токенов, что создает проблемы с синонимией, морфологией и перефразированием. Современные метрики решают эти проблемы:</p>
+<ul>
+  <li><strong>chrF (Character $F$-score):</strong> Оценивает совпадение символьных $n$-грамм (обычно от 1 до 6 символов). Крайне эффективна для синтетических и флективных языков с развитой морфологией (например, русского), так как совпадение корней и основ слов засчитывается даже при различии падежных окончаний.</li>
+  <li><strong>BERTScore:</strong> Вычисляет попарное косинусное сходство между контекстуализированными эмбеддингами токенов кандидата и эталона с помощью предобученной модели (BERT/RoBERTa) с жадным сопоставлением. Учитывает семантическую близость синонимов и устойчив к перестановке слов.</li>
+  <li><strong>COMET (Crosslingual Optimized Metric for Evaluation of Translation):</strong> Нейросетевая модель на базе энкодера XLM-RoBERTa, принимающая на вход одновременно исходный текст (source), гипотезу (hypothesis) и эталон (reference). Обучается напрямую на оценках экспертов-лингвистов (MQM, Direct Assessment) и обладает максимальной корреляцией с человеческим восприятием качества перевода.</li>
+</ul>
+</div></details>
+
+<details class="qa"><summary>Почему Beam Search без нормализации штрафует длинные гипотезы и как работает формула Length Normalization $LP(Y) = \frac{(5+|Y|)^\alpha}{(5+1)^\alpha}$?</summary>
+<div class="ans">
+<p>В авторегрессионных моделях логарифмическая вероятность генерации последовательности $Y = (y_1, \dots, y_{|Y|})$ вычисляется как сумма:</p>
+$$ \log P(Y \mid X) = \sum_{t=1}^{|Y|} \log P(y_t \mid y_{< t}, X) $$
+<p>Поскольку $P(y_t) \le 1$, все логарифмические слагаемые неположительны ($\log P(y_t) \le 0$). С каждым следующим токеном сумма монотонно убывает (становится более отрицательной). В результате стандартный Beam Search систематически отдает предпочтение коротким гипотезам, которые быстрее сгенерировали специальный токен окончания последовательности <code>&lt;EOS&gt;</code>.</p>
+<p>Для устранения этой асимметрии Wu et al. (2016) ввели нормализацию по длине (Length Penalty):</p>
+$$ LP(Y) = \frac{(5 + |Y|)^\alpha}{(5 + 1)^\alpha}, \qquad \text{Score}(Y \mid X) = \frac{\log P(Y \mid X)}{LP(Y)} $$
+<p>где $|Y|$ — число токенов, а $\alpha \in [0.6, 0.8]$ — коэффициент компенсации:</p>
+<ul>
+  <li>Константа $5$ сглаживает штраф для первых нескольких токенов, предотвращая завышение ранга сверхкоротких кандидатов.</li>
+  <li>Делитель $(5+1)^\alpha$ нормирует $LP(Y) = 1$ при единичной длине $|Y|=1$.</li>
+  <li>Параметр $\alpha$ регулирует силу компенсации: при $\alpha=0$ штраф выключен, при $\alpha=1$ выполняется полная нормировка на среднюю лог-вероятность.</li>
+</ul>
+</div></details>
+
+
+<!-- ============================================ -->
+<h2 id="tasks">📝 Микро-задачи</h2>
+
+<div class="task">
+  <div class="tt">Задача 1. Расчет Перплексии по потерям</div>
+  <p>Языковая модель показала усредненный лосс кросс-энтропии $\text{NLL} = 2.3026$ (натуральный логарифм). Чему равна Перплексия модели?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>$$ \text{PPL} = \exp(2.3026) = e^{2.3026} \approx 10.0 $$</p>
+    <p>Модель выбирает следующее слово с уверенностью, эквивалентной выбору из 10 равновероятных слов.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 2. Расчет Brevity Penalty</div>
+  <p>Длина эталона $r = 20$ слов, длина перевода модели $c = 15$ слов. Рассчитайте коэффициент Brevity Penalty.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Так как $c < r$:</p>
+    <p>$$ \text{BP} = \exp\left(1 - \frac{20}{15}\right) = \exp\left(1 - 1.333\right) = \exp(-0.333) \approx 0.7165 $$</p>
+    <p>Итоговый скор BLEU будет уменьшен почти на $28\%$ из-за неполноты длины.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 3. Ручной расчет Top-p (Nucleus) пула</div>
+  <p>Словарь и вероятности: $w_1: 0.50$, $w_2: 0.25$, $w_3: 0.15$, $w_4: 0.07$, $w_5: 0.03$. Задан порог $p = 0.85$. Какие слова войдут в ядро Nucleus?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>Считаем накопленную (кумулятивную) сумму вероятностей по убыванию:</p>
+    <ul>
+      <li>$w_1$: $0.50 \le 0.85$ (берем). Накоплено: 0.50.</li>
+      <li>$w_2$: $0.50 + 0.25 = 0.75 \le 0.85$ (берем). Накоплено: 0.75.</li>
+      <li>$w_3$: $0.75 + 0.15 = 0.90 \ge 0.85$ (берем и останавливаемся, порог $0.85$ достигнут!).</li>
+    </ul>
+    <p>В ядро войдут слова: <strong>$\{w_1, w_2, w_3\}$</strong>. Слова $w_4$ и $w_5$ отсекаются.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 4. Влияние температуры на вероятности</div>
+  <p>Логиты двух токенов: $z_1 = 4.0, z_2 = 2.0$. Найдите вероятность $P(w_1)$ при: (а) $T=1.0$; (б) $T=2.0$.</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p><strong>(а) При $T=1.0$:</strong></p>
+    <p>$P(w_1) = \frac{e^4}{e^4 + e^2} = \frac{54.6}{54.6 + 7.39} = \frac{54.6}{61.99} \approx 0.881 \quad (88.1\%)$.</p>
+    <p><strong>(б) При $T=2.0$:</strong></p>
+    <p>Логиты делятся на 2: $z_1' = 2.0, z_2' = 1.0$.</p>
+    <p>$P(w_1) = \frac{e^2}{e^2 + e^1} = \frac{7.39}{7.39 + 2.72} = \frac{7.39}{10.11} \approx 0.731 \quad (73.1\%)$.</p>
+    <p><em>Повышение температуры снизило доминирование лидера с 88.1% до 73.1%.</em></p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 5. Геометрическое зануление BLEU</div>
+  <p>Перевод модели: $p_1 = 0.8, p_2 = 0.6, p_3 = 0.4, p_4 = 0.0$. Чему равен классический BLEU-4?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>В формуле BLEU используется геометрическое среднее: $\exp\left(\frac{1}{4} \sum \ln p_n\right) = (p_1 p_2 p_3 p_4)^{1/4}$.</p>
+    <p>Так как $p_4 = 0.0$, то $(0.8 \cdot 0.6 \cdot 0.4 \cdot 0.0)^{1/4} = 0.0$.</p>
+    <p>$$ \text{BLEU-4} = 0.0 $$</p>
+    <p><strong>Примечание:</strong> В современных библиотеках (SacreBLEU) для коротких фраз применяют сглаживание (Smoothing), заменяя $0$ на малое значение $\epsilon$.</p>
+  </div></details>
+</div>
+
+<div class="task">
+  <div class="tt">Задача 6. Сравнение Beam Search с шириной B=1 и B=4</div>
+  <p>Пусть словарь $|V| = 32\,000$, длина генерации $T = 50$. Сколько вызовов модели на шаг требуется при Greedy Search ($B=1$) и Beam Search ($B=4$)?</p>
+  <details><summary>Решение</summary><div class="sol">
+    <p>При $B=1$: на каждом шаге обрабатывается 1 гипотеза $\to 50$ прогонов декодера.</p>
+    <p>При $B=4$: на каждом шаге обрабатывается $B=4$ гипотезы параллельно (размер батча 4) $\to 4 \times 50 = 200$ прогонов.</p>
+  </div></details>
+</div>
+
+<!-- ============================================ -->
+<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+
+<div class="cheat">
+  <div class="bt">Скелет устного ответа по билету 19 (Машинный перевод, Языковые модели, BLEU)</div>
+  <ol>
+    <li><strong>Постановка NMT.</strong> Авторегрессионная максимизация условной вероятности $\max \prod P(y_t \mid y_{\lt t}, X)$ через Seq2Seq / Transformer.</li>
+    <li><strong>Языковая модель и PPL.</strong> LM предсказывает вероятность текста $P(w_1, \dots, w_T)$. Лосс — кросс-энтропия (NLL). Перплексия $\text{PPL} = \exp(\text{NLL})$ — эффективное число равновероятных слов при выборе.</li>
+    <li><strong>Декодирование.</strong> Greedy ($B=1$, быстрый, но близорукий) vs Beam Search ($B > 1$, хранит топ-$B$ цепочек со штрафом за длину $\alpha$).</li>
+    <li><strong>Сэмплирование.</strong> Температура $T$ ($z_i/T$, баланс точности и креативности), Top-$k$ (топ $k$ кандидатов), Top-$p$ Nucleus (динамический пул с суммой вероятностей $\ge p$).</li>
+    <li><strong>BLEU (2002).</strong> Геометрическое среднее модифицированной точности $n$-грамм ($p_1, \dots, p_4$) с клиппингом + Brevity Penalty (штраф за краткость $\exp(1 - r/c)$).</li>
+    <li><strong>Другие метрики.</strong> ROUGE (Recall $n$-грамм для суммаризации), METEOR (синонимы WordNet), chrF (символьные $n$-граммы), BERTScore/COMET (семантическое сходство эмбеддингов).</li>
+  </ol>
+</div>
+
+<div class="navrow">
+  <a class="backlink" href="19-text-word2vec.html">← Лекция 19. Тексты, токенизация</a>
+  <a class="backlink" href="21-enc-dec.html">Лекция 21. Энкодер, Декодер, Энкодер-Декодер →</a>
+</div>
+
+</div>
+</body>
+</html>
