@@ -81,6 +81,11 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url);
 
+  // Only handle HTTP and HTTPS requests (ignore chrome-extension://, moz-extension://, etc.)
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    return;
+  }
+
   // 1. External CDN assets (e.g. MathJax) -> Stale-While-Revalidate
   if (url.origin !== self.location.origin) {
     if (url.hostname.includes('cdnjs.cloudflare.com') || url.hostname.includes('jsdelivr')) {
@@ -90,7 +95,9 @@ self.addEventListener('fetch', (event) => {
             const fetchPromise = fetch(req)
               .then((networkResponse) => {
                 if (networkResponse && networkResponse.status === 200) {
-                  cache.put(req, networkResponse.clone());
+                  cache.put(req, networkResponse.clone()).catch((err) => {
+                    console.warn('CDN cache.put warning:', err);
+                  });
                 }
                 return networkResponse;
               })
@@ -102,6 +109,7 @@ self.addEventListener('fetch', (event) => {
       );
       return;
     }
+    return;
   }
 
   // 2. Local Same-Origin assets -> Cache-First with Network Fallback
@@ -116,7 +124,9 @@ self.addEventListener('fetch', (event) => {
         }
         const responseToCache = networkResponse.clone();
         caches.open(CACHE_NAME).then((cache) => {
-          cache.put(req, responseToCache);
+          cache.put(req, responseToCache).catch((err) => {
+            console.warn('Local cache.put warning:', err);
+          });
         });
         return networkResponse;
       }).catch(() => {

@@ -638,11 +638,11 @@
         <p>10 случайных вопросов из всех разделов курса. На каждый вопрос даётся <strong>30 секунд</strong>. Ответьте вслух, сверьтесь с ответом и оцените результат.</p>
         <div style="display:flex; gap:10px; align-items:center; margin:16px 0; flex-wrap:wrap;">
           <label for="blitz-topic-select" style="font-weight:600; font-size:14px;">Тематика блица:</label>
-          <select id="blitz-topic-select" class="search-input" style="max-width:240px; padding:6px 12px;">
+          <select id="blitz-topic-select" class="search-input" style="max-width:260px; padding:6px 12px;">
             <option value="all">Все темы (28 лекций)</option>
-            <option value="cv">👁️ Computer Vision</option>
-            <option value="nlp">📝 NLP & Transformers</option>
-            <option value="rl">🤖 Reinforcement Learning</option>
+            <option value="cv">👁️ Компьютерное зрение</option>
+            <option value="nlp">📝 Языковые модели & Трансформеры</option>
+            <option value="rl">🤖 Обучение с подкреплением</option>
             <option value="math">📐 Математика & Оптимизация</option>
           </select>
           <button type="button" class="btn btn-exam" id="blitz-start-btn" style="font-size:15px; padding:10px 22px;">
@@ -678,10 +678,10 @@
               🎲 Экзаменационный билет
             </button>
             <button type="button" class="sim-tab-btn" role="tab" id="tab-btn-blitz" aria-selected="false" aria-controls="tab-blitz" data-tab="tab-blitz">
-              ⚡ Блиц-опрос (10 Qs)
+              ⚡ Блиц-опрос (10 вопросов)
             </button>
             <button type="button" class="sim-tab-btn" role="tab" id="tab-btn-flashcards" aria-selected="false" aria-controls="tab-flashcards" data-tab="tab-flashcards">
-              🗂️ Flashcards (SM-2)
+              🗂️ Карточки (интервальное повторение)
             </button>
             <button type="button" class="sim-tab-btn" role="tab" id="tab-btn-anki" aria-selected="false" aria-controls="tab-anki" data-tab="tab-anki">
               📥 Экспорт в Anki
@@ -697,12 +697,12 @@
             <button type="button" class="btn btn-primary" id="draw-ticket-btn" style="font-size:15px; padding:10px 20px;">
               🎲 Случайный билет
             </button>
-            <select id="ticket-topic-filter" class="search-input" style="max-width:180px; padding:8px 12px;" aria-label="Фильтр темы билета">
+            <select id="ticket-topic-filter" class="search-input" style="max-width:220px; padding:8px 12px;" aria-label="Фильтр темы билета">
               <option value="all">Все темы</option>
-              <option value="cv">👁️ CV & CNN</option>
-              <option value="nlp">📝 NLP</option>
-              <option value="rl">🤖 RL</option>
-              <option value="math">📐 Математика</option>
+              <option value="cv">👁️ Компьютерное зрение</option>
+              <option value="nlp">📝 Языковые модели</option>
+              <option value="rl">🤖 Обучение с подкреплением</option>
+              <option value="math">📐 Математика & Оптимизация</option>
             </select>
             <select id="ticket-select-dropdown" class="search-input" style="flex:1; min-width:240px; padding:8px 12px;" aria-label="Прямой выбор билета"></select>
           </div>
@@ -717,7 +717,7 @@
 
         <!-- Tab 3: Leitner / SM-2 Flashcards -->
         <div class="sim-panel" role="tabpanel" id="tab-flashcards" aria-labelledby="tab-btn-flashcards">
-          <p style="color:var(--text-dim); margin-top:0;">Система интервальных повторений (SM-2): повторяйте вопросы по алгоритму Leitner, распределяя карточки по коробкам памяти 1–5.</p>
+          <p style="color:var(--text-dim); margin-top:0;">Система интервальных повторений: повторяйте вопросы по алгоритму Лейтнера, распределяя карточки по коробкам памяти 1–5.</p>
           
           <div id="flashcard-stats-bar"></div>
 
@@ -728,10 +728,10 @@
             </div>
             <div class="filter-chips" style="margin:0;">
               <span class="tag-chip active" data-fc-topic="all">Все темы</span>
-              <span class="tag-chip" data-fc-topic="cv">CV</span>
-              <span class="tag-chip" data-fc-topic="nlp">NLP</span>
-              <span class="tag-chip" data-fc-topic="rl">RL</span>
-              <span class="tag-chip" data-fc-topic="math">Math</span>
+              <span class="tag-chip" data-fc-topic="cv">👁️ Компьютерное зрение</span>
+              <span class="tag-chip" data-fc-topic="nlp">📝 Языковые модели</span>
+              <span class="tag-chip" data-fc-topic="rl">🤖 Обучение с подкреплением</span>
+              <span class="tag-chip" data-fc-topic="math">📐 Математика</span>
             </div>
           </div>
 
