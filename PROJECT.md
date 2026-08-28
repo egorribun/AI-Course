@@ -1,71 +1,50 @@
-# Project: Deep Learning Educational Platform
+# Project: Deep Learning Course Full Audit & Modernization
 
 ## Architecture
-- **Web Platform**: Zero-build Static HTML5 / CSS3 / Vanilla JavaScript. 100% GitHub Pages compatible.
-- **PWA & Offline**: Root `sw.js` (Cache-First strategy for local HTML/CSS/JS/Anki, Stale-While-Revalidate for MathJax CDN), `manifest.json`, standalone web app installation support.
-- **EdTech Engines**:
-  - `js/tracker.js`: Course completion, lecture visits, and global progress tracking with LocalStorage persistence.
-  - `js/simulator.js`: Exam simulator (tickets 1-25, 3-min countdown timer, blitz mode, topic drill), Leitner / SM-2 spaced repetition engine (`ai_course_sm2_cards`).
-  - `js/app.js` & `js/lecture.js`: Live search, topic filtering, keyboard shortcuts dispatcher (`[`, `]`, `T`, `/`, `Alt+O`), code copy buttons, print handling.
-- **Content & Rigor**: 28 complete HTML lectures (`lectures/00-*.html` .. `lectures/27-*.html`) covering 25 exam tickets with 300 Q&A blocks, 170 micro-tasks, and 28 cheat-sheets.
-- **Verification & Tooling**: `tests/` (254 pytest suites covering DOM, Math, Code AST, Links, Anki, UI, PWA, SM-2), `tools/export_anki.py` (generates TSV decks and `js/exam_data.js`), `ruff` linter, GitHub Actions CI/CD.
+- Static Educational Web Application & PWA (GitHub Pages deployable).
+- 28 Interactive Lecture HTML Modules (`lectures/00-intro-ml.html` .. `lectures/27-actor-critic.html`).
+- Core Portal UI (`index.html`, `style.css`, `app.js`).
+- Interactive Components (`js/tracker.js`, `js/simulator.js`, `js/exam_data.js`).
+- Service Worker (`sw.js`) with Network-First caching strategy for local assets and Stale-While-Revalidate for external CDNs (MathJax).
+- Anki Export Tooling (`tools/export_anki.py`, `anki_decks/*.tsv`).
+- Automated Testing Framework (`tests/` running 271+ pytest suites, `tests/run_all_tests.py`, `tests/adversarial_harness.cjs`).
 
 ## Feature Inventory
 | # | Feature | Description | Milestone | Source |
 |---|---------|-------------|-----------|--------|
-| 1 | Zero-build PWA & Service Worker | Root `sw.js` offline caching for all 28 lectures, assets, MathJax | M1 | survey |
-| 2 | Web App Manifest & App Icons | `manifest.json`, theme colors, standalone display mode, SVG/PNG icons | M1 | survey |
-| 3 | Spaced Repetition (Leitner / SM-2) | LocalStorage SM-2 interval scheduling ($EF, I, n$), due queue filtering | M1 | survey |
-| 4 | Exam Simulator: Ticket Selector | Direct selection of tickets 1-25 in addition to random draw | M1 | survey |
-| 5 | Exam Simulator: 3-Min Timer | 180s countdown timer with audio gong and visual alerts | M1 | survey |
-| 6 | Exam Simulator: Blitz & Drill Modes | Rapid-fire 10-question blitz test and topic category drill modes | M1 | survey |
-| 7 | Global Keyboard Shortcuts | `[` / `]` navigation, `T` theme, `/` search, `Alt+O` spoilers with input protection | M1 | survey |
-| 8 | Code Snippet Copy Buttons | Pre-block copy buttons with visual feedback and clipboard fallback | M1 | survey |
-| 9 | Print CSS & WCAG 2.1 AA a11y | `beforeprint` auto-expand `<details>`, `:focus-visible`, ARIA tab attributes | M1 | survey |
-| 10 | 28 Lectures Academic Rigor | 8 core proofs (Backprop, ELBO, Bellman, Policy Gradient, SDPA, InfoNCE, WGAN, DDPM) | M2 | survey |
-| 11 | EdTech Q&A and Micro-Tasks | $\ge 10$ Q&A (300 total) and $\ge 6$ micro-tasks (170 total) + 28 cheat-sheets | M2 | survey |
-| 12 | LaTeX Delimiter & Syntax Fixes | Clean CutMix `$$` in L07 and unescaped `%` in L09 | M2 | survey |
-| 13 | PyTorch 2.x Modernization | Replace `.data` with `nn.init.uniform_` in L19; add `# [B, C, H, W]` shape comments | M2 | survey |
-| 14 | Anki TSV Exporter & Sync | Export 3 TSV decks (494 cards) and `js/exam_data.js` via `export_anki.py` | M3 | survey |
-| 15 | Repository & Documentation Sync | Update `README.md` test counter badges, sync `PROJECT.md`, verify `ruff` 0 errors | M3 | survey |
-| 16 | E2E Verification & Adversarial Gate | Pass 100% pytest suite (Tiers 1-4) + Tier 5 adversarial hardening | M-Final | survey |
+| 1 | R1: UI Progress Hub Export Removal | Remove `<button ...>💾 Экспорт</button>` from `#global-progress-hub` in `index.html` while preserving Reset button and tracker logic | M1 | ORIGINAL_REQUEST §R1 |
+| 2 | R2: Service Worker Network-First Strategy | Upgrade `sw.js` cache name to `ai-course-v2`, implement Network-First with cache fallback for local files, ensure clean purge of outdated caches on activate | M1 | ORIGINAL_REQUEST §R2 |
+| 3 | R3: 28 Lectures Comprehensive Audit | Thorough audit of all 28 lectures for math/LaTeX correctness, PyTorch code AST, Russian grammar/terminology, QA/task counters, and navigation links | M3 | ORIGINAL_REQUEST §R3 |
+| 4 | R4: Exam Data & Anki Deck Sync | Ensure `tools/export_anki.py` generates accurate TSVs in `anki_decks/` and `js/exam_data.js` matching all 28 lectures and 25 exam tickets | M2 | ORIGINAL_REQUEST §R4 |
+| 5 | R5: Final Audit Report & E2E Test Suite Pass | Generate exhaustive `AUDIT_REPORT.md` / `walkthrough.md` documenting all audit items, and run full test suites (`uv run pytest`) ensuring 0 failures / 0 errors | M4 | ORIGINAL_REQUEST §R5 |
 
 ## Milestones
 | # | Name | Scope | Dependencies | Status |
 |---|------|-------|-------------|--------|
-| M1 | Web Platform, PWA & EdTech UX | PWA (`sw.js`, `manifest.json`), SM-2 algorithm, ticket selector, blitz/drill, hotkeys, print/a11y | none | DONE |
-| M2 | Content Rigor & PyTorch Snippets Polish | LaTeX delimiter fixes, PyTorch `.data` modernization, tensor shape annotations | none | DONE |
-| M3 | Tooling, Anki & Documentation Sync | `export_anki.py` deck generation, `README.md` test counts, ruff lint clean | M1, M2 | DONE |
-| M-Final | E2E Test Pass & Adversarial Hardening | 100% E2E test pass (Tiers 1-4), Tier 5 adversarial stress verification | M1, M2, M3 | DONE |
-
-## Interface Contracts
-### `sw.js` ↔ Web Platform
-- Scope: `/` (repository root).
-- Strategy: Cache-First for static assets (`/`, `index.html`, `lectures/*.html`, `style.css`, `js/*.js`, `manifest.json`), Network-First / Stale-While-Revalidate for CDN assets.
-- Fallback: Offline fallback to cached `index.html`.
-
-### `js/tracker.js` / `js/simulator.js` ↔ LocalStorage
-- `ai_course_sm2_cards`: Object mapping `cardId` $\to$ `{ box: 1..5, repetitions: int, interval: int, easeFactor: float, lastReviewed: int, nextReview: int }`.
-- `ai_course_checked_qas`: Array of checked Q&A IDs.
-- `ai_course_checked_tasks`: Array of checked task IDs.
-- `ai_course_visited_lectures`: Array of visited lecture slugs.
-
-### `tools/export_anki.py` ↔ `js/exam_data.js` & `anki_decks/*.tsv`
-- `anki_decks/ai_course_exam_qas.tsv`: 4 columns (`Ticket`, `Question`, `Answer`, `Tags`).
-- `anki_decks/ai_course_microtasks.tsv`: 4 columns (`Lecture`, `Task`, `Solution`, `Type`).
-- `anki_decks/ai_course_3min_cheatsheets.tsv`: 3 columns (`Lecture`, `Title`, `CheatSheet`).
-- `js/exam_data.js`: `window.EXAM_DATA = { tickets: [...], qas: [...], tasks: [...] }`.
+| M1 | UI & PWA Modernization | R1 (index.html button removal) & R2 (sw.js Network-First & cache version bump) + UI/PWA test updates | none | COMPLETED |
+| M2 | Exam Simulator & Anki Sync | R4 (export_anki.py verification, anki_decks/*.tsv, js/exam_data.js sync) | M1 | COMPLETED |
+| M3 | 28 Lectures Forensic Audit Verification | R3 (Verification of formulas, AST, counters, nav links, Russian text across all 28 lectures) | none | COMPLETED |
+| M4 | Final Report & Master Verification | R5 (Generate AUDIT_REPORT.md, full pytest suite 296 tests, node adversarial harness) | M1, M2, M3 | COMPLETED |
 
 ## Code Layout
-- `index.html` : Main course portal, lecture grid, live search, global progress bar.
-- `lectures/00-intro-ml.html` .. `lectures/27-actor-critic.html` : 28 interactive course lectures.
-- `style.css` : Design system, dark/light themes, layout, print styles (`@media print`).
-- `js/app.js` : Portal logic, search, category filters, hotkeys dispatcher.
-- `js/lecture.js` : Lecture interaction, copy buttons, spoiler toggles, hotkeys.
-- `js/tracker.js` : Progress tracking, LocalStorage persistence, progress export/import.
-- `js/simulator.js` : Exam simulator, 3-minute timer, Leitner-SM2 flashcard engine.
-- `sw.js` : Service Worker for offline PWA caching.
-- `manifest.json` : Web App Manifest for PWA installation.
-- `tools/export_anki.py` : Parser generating TSV decks and `js/exam_data.js`.
-- `tests/` : Comprehensive pytest test suites and forensic verification scripts.
-- `.github/workflows/` : CI test workflow and GitHub Pages deployment workflow.
+- `index.html`: Portal homepage and Progress Hub. Owned by M1 Worker.
+- `sw.js`: Service Worker for PWA caching & offline support. Owned by M1 Worker.
+- `tests/test_portal_ui.py`, `tests/test_pwa_and_ux_e2e.py`, `tests/test_pwa_web_platform_m1.py`: PWA & UI tests. Owned by M1 Worker.
+- `tools/export_anki.py`, `js/exam_data.js`, `anki_decks/`: Anki tools & decks. Owned by M2 Worker.
+- `lectures/*.html`: 28 lecture files. Owned by M3 Worker.
+- `AUDIT_REPORT.md`: Comprehensive audit report. Owned by M4 Worker.
+
+## Interface Contracts
+### `index.html` ↔ `js/tracker.js`
+- `CourseTracker.resetProgress()` invoked on Reset button click.
+- Progress counters read `CourseTracker.getProgress()` and update DOM cards.
+- `CourseTracker.exportProgressJSON()` remains available programmatically for tests and exam simulator.
+
+### `sw.js` ↔ Browser / GitHub Pages
+- Cache name: `const CACHE_NAME = 'ai-course-v2';`
+- Local assets: Network-First (`fetch(req)` -> fallback `caches.match(req)`).
+- Activate handler: `caches.keys()` -> delete keys `!== CACHE_NAME` -> `self.clients.claim()`.
+
+### `lectures/*.html` ↔ `tools/export_anki.py` ↔ `js/exam_data.js`
+- 28 lectures with `<details class="qa">` and `<div class="task">` parsed by BeautifulSoup.
+- Generates 3 TSV files with exact column structure and `js/exam_data.js` with `window.EXAM_DATA`.

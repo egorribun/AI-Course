@@ -57,7 +57,6 @@ window.MathJax = {
   <div class="progress-hub-header">
     <div class="progress-hub-title">📊 Мой прогресс освоения курса</div>
     <div style="display:flex; gap:8px;">
-      <button type="button" class="btn btn-secondary" onclick="alert(CourseTracker.exportProgressJSON())" style="font-size:12px; padding:4px 10px;">💾 Экспорт</button>
       <button type="button" class="btn btn-secondary" onclick="if(confirm('Сбросить весь сохраненный прогресс?')){CourseTracker.resetProgress(); location.reload();}" style="font-size:12px; padding:4px 10px;">🔄 Сброс</button>
     </div>
   </div>

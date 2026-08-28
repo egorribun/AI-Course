@@ -78,6 +78,7 @@ class TestPwaManifestAndServiceWorker(unittest.TestCase):
             re.search(r"CACHE_NAME|CACHE_VERSION|CACHE_KEY|const\s+CACHE\s*=", sw_code, re.IGNORECASE),
             "sw.js must define a cache name or cache version constant",
         )
+        self.assertIn("ai-course-v2", sw_code, "sw.js must define CACHE_NAME as 'ai-course-v2'")
 
         # Lifecycle listeners
         self.assertIn("install", sw_code, "sw.js must handle 'install' event")
@@ -123,13 +124,14 @@ class TestPwaManifestAndServiceWorker(unittest.TestCase):
             self.assertIn(deck, sw_code, f"sw.js precache list must include Anki deck '{deck}'")
 
     def test_05_service_worker_caching_and_offline_strategies(self):
-        """Verify sw.js implements Cache-First for static assets and Network-First/SWR for CDN/MathJax."""
+        """Verify sw.js implements Network-First for local static assets and SWR for CDN/MathJax."""
         if not SW_FILE.exists():
             self.skipTest("sw.js not created yet")
         sw_code = read_file(SW_FILE)
 
-        # Cache matching
-        self.assertIn("caches.match", sw_code, "sw.js must use caches.match for cache retrieval")
+        # Cache matching and network-first
+        self.assertIn("caches.match", sw_code, "sw.js must use caches.match for cache retrieval / fallback")
+        self.assertIn("fetch(req)", sw_code, "sw.js must initiate network fetch for local assets")
 
         # Dynamic / CDN fetch handling or offline fallback
         self.assertIn("fetch", sw_code, "sw.js must intercept fetch requests")

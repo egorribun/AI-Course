@@ -1,9 +1,9 @@
 /**
  * Service Worker for Deep Learning Exam Course PWA.
- * Implements Cache-First for local static assets and SWR/Network-First for MathJax CDN.
+ * Implements Network-First with Cache Fallback for local static assets and SWR for MathJax CDN.
  */
 
-const CACHE_NAME = 'ai-course-v1';
+const CACHE_NAME = 'ai-course-v2';
 
 const STATIC_ASSETS = [
   './',
@@ -112,29 +112,36 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // 2. Local Same-Origin assets -> Cache-First with Network Fallback
+  // 2. Local Same-Origin assets -> Network-First with Cache Fallback
   event.respondWith(
-    caches.match(req).then((cachedResponse) => {
-      if (cachedResponse) {
-        return cachedResponse;
-      }
-      return fetch(req).then((networkResponse) => {
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-          return networkResponse;
-        }
-        const responseToCache = networkResponse.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(req, responseToCache).catch((err) => {
-            console.warn('Local cache.put warning:', err);
+    fetch(req)
+      .then((networkResponse) => {
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+          const responseToCache = networkResponse.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(req, responseToCache).catch((err) => {
+              console.warn('Local cache.put warning:', err);
+            });
           });
-        });
-        return networkResponse;
-      }).catch(() => {
-        // Offline fallback for HTML navigation requests
-        if (req.mode === 'navigate' || (req.headers.get('accept') && req.headers.get('accept').includes('text/html'))) {
-          return caches.match('./index.html') || caches.match('index.html');
         }
-      });
-    })
+        return networkResponse;
+      })
+      .catch(() => {
+        // Network failed or offline: fallback to cache
+        return caches.match(req).then((cachedResponse) => {
+          if (cachedResponse) {
+            return cachedResponse;
+          }
+          // Offline fallback for HTML navigation requests
+          if (req.mode === 'navigate' || (req.headers.get('accept') && req.headers.get('accept').includes('text/html'))) {
+            return caches.match('./index.html').then((indexFallback) => {
+              if (indexFallback) return indexFallback;
+              return caches.match('/index.html').then((rootFallback) => {
+                return rootFallback || caches.match('index.html');
+              });
+            });
+          }
+        });
+      })
   );
 });
