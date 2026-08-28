@@ -363,9 +363,23 @@
 
   // Auto Service Worker registration for Zero-build PWA
   if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+    let refreshing = false;
+    if (typeof navigator.serviceWorker.addEventListener === 'function') {
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (!refreshing) {
+          refreshing = true;
+          window.location.reload();
+        }
+      });
+    }
+
     window.addEventListener('load', () => {
       const swPath = window.location.pathname.includes('/lectures/') ? '../sw.js' : './sw.js';
-      navigator.serviceWorker.register(swPath).catch((err) => {
+      navigator.serviceWorker.register(swPath).then((reg) => {
+        if (reg && typeof reg.update === 'function') {
+          reg.update().catch(() => {});
+        }
+      }).catch((err) => {
         console.debug('ServiceWorker registration note:', err);
       });
     });
