@@ -9,10 +9,10 @@ document.addEventListener('DOMContentLoaded', () => {
   if (headerInner && !document.querySelector('.theme-toggle')) {
     const toggleBtn = document.createElement('button');
     toggleBtn.className = 'theme-toggle';
-    toggleBtn.type = 'button';
-    toggleBtn.innerHTML = (window.CourseTracker && window.CourseTracker.getTheme() === 'light')
-      ? '🌙 Тёмная тема'
-      : '☀️ Светлая тема';
+    const isLight = window.CourseTracker && window.CourseTracker.getTheme() === 'light';
+    toggleBtn.innerHTML = `<span class="theme-icon" aria-hidden="true">${isLight ? '🌙' : '☀️'}</span><span class="theme-text">${isLight ? 'Тёмная тема' : 'Светлая тема'}</span>`;
+    toggleBtn.setAttribute('aria-label', isLight ? 'Включить тёмную тему' : 'Включить светлую тему');
+    toggleBtn.setAttribute('title', isLight ? 'Включить тёмную тему' : 'Включить светлую тему');
     toggleBtn.addEventListener('click', () => {
       if (window.CourseTracker) window.CourseTracker.toggleTheme();
     });

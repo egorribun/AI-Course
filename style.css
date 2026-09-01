@@ -177,6 +177,10 @@ header.top .meta {
   color: var(--accent);
   transform: translateY(-1px);
 }
+.theme-toggle .theme-icon {
+  font-size: 15px;
+  line-height: 1;
+}
 
 .pill {
   display: inline-block;
@@ -951,45 +955,68 @@ hr { border: none; border-top: 1px solid var(--line); margin: 44px 0; }
     right: 0;
     background: var(--card);
     border-top: 1px solid var(--line);
-    padding: 8px 12px;
+    padding: 10px 16px;
     padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
     z-index: 1000;
-    justify-content: space-around;
+    justify-content: center;
     align-items: center;
     box-shadow: 0 -4px 16px rgba(0,0,0,0.18);
   }
   .quick-action-btn {
-    display: flex;
-    flex-direction: column;
+    display: inline-flex;
+    flex-direction: row;
     align-items: center;
     justify-content: center;
     min-width: 44px;
     min-height: 44px;
-    background: transparent;
-    border: none;
-    color: var(--text);
-    font-size: 11px;
+    width: 100%;
+    max-width: 440px;
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    font-size: 14px;
     font-weight: 600;
     cursor: pointer;
     text-decoration: none;
-    gap: 2px;
-    padding: 4px 8px;
-    border-radius: 8px;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 999px;
     transition: all 0.15s ease;
   }
   .quick-action-btn:hover, .quick-action-btn:focus {
-    background: var(--bg-soft);
-    color: var(--accent);
+    background: var(--card-hover);
+    border-color: var(--accent);
+    color: var(--text);
+  }
+  .back-to-top {
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+    right: 16px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    z-index: 1001;
   }
 }
 
 @media (max-width: 720px) {
-  body { font-size: 16px; padding-bottom: 72px; }
+  body { font-size: 16px; padding-bottom: 76px; }
   .wrap { padding: 0 16px 80px; }
-  header.top h1 { font-size: 26px; }
+  header.top { padding: 28px 16px 22px; }
+  header.top h1 { font-size: 24px; padding-right: 50px; }
   .toc ol { columns: 1; }
   h2 { font-size: 23px; }
   .timer-display { font-size: 28px; }
   .btn, .tag-chip, .sim-tab-btn { min-height: 44px; }
+  .theme-toggle {
+    padding: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    justify-content: center;
+    font-size: 18px;
+    top: 0;
+    right: 0;
+  }
+  .theme-toggle .theme-text {
+    display: none;
+  }
 }
 

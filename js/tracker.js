@@ -72,8 +72,9 @@
       const theme = this.getTheme();
       const isLight = theme === 'light';
       document.querySelectorAll('.theme-toggle').forEach(btn => {
-        btn.innerHTML = isLight ? '🌙 Тёмная тема' : '☀️ Светлая тема';
+        btn.innerHTML = `<span class="theme-icon" aria-hidden="true">${isLight ? '🌙' : '☀️'}</span><span class="theme-text">${isLight ? 'Тёмная тема' : 'Светлая тема'}</span>`;
         btn.setAttribute('aria-label', isLight ? 'Включить тёмную тему' : 'Включить светлую тему');
+        btn.setAttribute('title', isLight ? 'Включить тёмную тему' : 'Включить светлую тему');
       });
     },
 
