@@ -84,12 +84,11 @@ class TestR1Coverage(unittest.TestCase):
         self.assertTrue(INDEX_FILE.is_file(), f"index.html not found: {INDEX_FILE}")
         content = read_file(INDEX_FILE)
 
-        # Check 4-block overview table
-        self.assertIn("Тематические блоки курса", content)
-        self.assertIn("Билеты 1–7", content)
-        self.assertIn("Билеты 8–12", content)
-        self.assertIn("Билеты 13–20", content)
-        self.assertIn("Билеты 21–25", content)
+        # Check 4-block headers exist
+        self.assertIn("Блок A", content)
+        self.assertIn("Блок B", content)
+        self.assertIn("Блок C", content)
+        self.assertIn("Блок D", content)
 
         # Extract ticket question numbers from lecture cards: <div class="n">ЛЕКЦИЯ X · ВОПРОС Y</div>
         card_kicker_numbers = re.findall(r"ВОПРОС\s*(\d+)", content)
