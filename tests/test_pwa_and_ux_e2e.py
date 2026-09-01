@@ -78,7 +78,7 @@ class TestPwaManifestAndServiceWorker(unittest.TestCase):
             re.search(r"CACHE_NAME|CACHE_VERSION|CACHE_KEY|const\s+CACHE\s*=", sw_code, re.IGNORECASE),
             "sw.js must define a cache name or cache version constant",
         )
-        self.assertIn("ai-course-v2", sw_code, "sw.js must define CACHE_NAME as 'ai-course-v2'")
+        self.assertIn("ai-course-v3", sw_code, "sw.js must define CACHE_NAME as 'ai-course-v3'")
 
         # Lifecycle listeners
         self.assertIn("install", sw_code, "sw.js must handle 'install' event")
@@ -113,15 +113,6 @@ class TestPwaManifestAndServiceWorker(unittest.TestCase):
         # Verify all 28 lectures
         for lec in EXPECTED_LECTURES:
             self.assertIn(lec, sw_code, f"sw.js precache list must include lecture '{lec}'")
-
-        # Verify Anki decks
-        anki_decks = [
-            "anki_decks/ai_course_exam_qas.tsv",
-            "anki_decks/ai_course_microtasks.tsv",
-            "anki_decks/ai_course_3min_cheatsheets.tsv",
-        ]
-        for deck in anki_decks:
-            self.assertIn(deck, sw_code, f"sw.js precache list must include Anki deck '{deck}'")
 
     def test_05_service_worker_caching_and_offline_strategies(self):
         """Verify sw.js implements Network-First for local static assets and SWR for CDN/MathJax."""

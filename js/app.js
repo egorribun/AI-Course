@@ -1,5 +1,5 @@
 /**
- * App - Main portal hub: Live Search, Topic Filter Chips, and Global Progress Hub.
+ * App - Main portal hub: Live Search, 4-Block Topic Filter Chips, Quick Action Bar, and Global Progress Hub.
  */
 document.addEventListener('DOMContentLoaded', () => {
   'use strict';
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   updateProgressUI();
 
-  // 3. Live Search & Category Filtering
+  // 3. Live Search & 4-Block Category Filtering
   const searchInput = document.getElementById('lecture-search-input');
   const tagChips = document.querySelectorAll('.tag-chip');
   const lecCards = document.querySelectorAll('.grid .lec');
@@ -66,8 +66,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   let activeTag = 'all';
 
+  const BLOCK_MAP = {
+    'block-a': ['00', '01', '02', '03', '04', '05', '06', '07'],
+    'a': ['00', '01', '02', '03', '04', '05', '06', '07'],
+    'block-b': ['08', '09', '10', '11', '12', '13'],
+    'b': ['08', '09', '10', '11', '12', '13'],
+    'block-c': ['14', '15', '16', '17', '18', '19', '20', '21'],
+    'c': ['14', '15', '16', '17', '18', '19', '20', '21'],
+    'block-d': ['22', '23', '24', '25', '26', '27'],
+    'd': ['22', '23', '24', '25', '26', '27']
+  };
+
   const TAG_KEYWORDS = {
-    all: [],
     cv: ['свёрт', 'cnn', 'vision', 'детекц', 'сегмент', 'lenet', 'resnet', 'yolo', 'u-net', 'зрение'],
     nlp: ['трансформ', 'transformer', 'attention', 'вниман', 'текст', 'word2vec', 'bleu', 'bert', 'gpt', 'токен', 'языков'],
     rl: ['rl', 'reinforcement', 'беллман', 'подкреплен', 'агент', 'sarsa', 'q-learning', 'policy', 'actor-critic', 'cem', 'mdp'],
@@ -82,13 +92,20 @@ document.addEventListener('DOMContentLoaded', () => {
       const title = (card.querySelector('.t')?.textContent || '').toLowerCase();
       const desc = (card.querySelector('.d')?.textContent || '').toLowerCase();
       const num = (card.querySelector('.n')?.textContent || '').toLowerCase();
+      const href = card.getAttribute('href') || '';
+      const match = href.match(/(\d{2})-/);
+      const lecId = match ? match[1] : '';
       const combined = `${title} ${desc} ${num}`;
 
       // Tag match
       let matchesTag = true;
       if (activeTag !== 'all') {
-        const kws = TAG_KEYWORDS[activeTag] || [];
-        matchesTag = kws.some(kw => combined.includes(kw));
+        if (BLOCK_MAP[activeTag]) {
+          matchesTag = BLOCK_MAP[activeTag].includes(lecId);
+        } else if (TAG_KEYWORDS[activeTag]) {
+          const kws = TAG_KEYWORDS[activeTag] || [];
+          matchesTag = kws.some(kw => combined.includes(kw));
+        }
       }
 
       // Query match
@@ -129,12 +146,15 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // 4. Back to Top Button
-  const backToTop = document.createElement('button');
-  backToTop.className = 'back-to-top';
-  backToTop.id = 'back-to-top';
-  backToTop.innerHTML = '↑';
-  backToTop.setAttribute('aria-label', 'Наверх страницы');
-  document.body.appendChild(backToTop);
+  let backToTop = document.getElementById('back-to-top-btn') || document.getElementById('back-to-top');
+  if (!backToTop) {
+    backToTop = document.createElement('button');
+    backToTop.className = 'back-to-top';
+    backToTop.id = 'back-to-top-btn';
+    backToTop.innerHTML = '↑';
+    backToTop.setAttribute('aria-label', 'Наверх страницы');
+    document.body.appendChild(backToTop);
+  }
 
   window.addEventListener('scroll', () => {
     if (window.scrollY > 400) {
@@ -148,7 +168,33 @@ document.addEventListener('DOMContentLoaded', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
-  // 5. Global Keyboard Shortcuts
+  // 5. Mobile Quick Action Bar Buttons
+  const mobThemeBtn = document.getElementById('mob-theme-toggle');
+  const mobSearchBtn = document.getElementById('mob-search-btn');
+  const mobTopBtn = document.getElementById('mob-top-btn');
+
+  if (mobThemeBtn) {
+    mobThemeBtn.addEventListener('click', () => {
+      if (window.CourseTracker) window.CourseTracker.toggleTheme();
+    });
+  }
+
+  if (mobSearchBtn) {
+    mobSearchBtn.addEventListener('click', () => {
+      if (searchInput) {
+        searchInput.focus();
+        searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    });
+  }
+
+  if (mobTopBtn) {
+    mobTopBtn.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+
+  // 6. Global Keyboard Shortcuts
   window.addEventListener('keydown', (e) => {
     const active = document.activeElement;
     const isInput = active && (
@@ -201,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // 6. Print CSS Support - open details before print and restore after
+  // 7. Print CSS Support - open details before print and restore after
   window.addEventListener('beforeprint', () => {
     document.querySelectorAll('details').forEach(d => {
       d.dataset.wasOpen = d.open ? 'true' : 'false';

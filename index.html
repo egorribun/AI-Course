@@ -2,20 +2,20 @@
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Методы ИИ — интенсив на 3 дня</title>
-<meta name="description" content="Полный 3-дневный интенсив по глубокому обучению и методам ИИ: 28 лекций, разборы билетов ГУУ 2026, формулы, микро-задачи с решениями и вопросы преподавателя.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Методы ИИ — Полный курс подготовки к экзамену (ГУУ 2026)</title>
+<meta name="description" content="Полный интерактивный курс подготовки к устному экзамену по Deep Learning: 28 лекций, 4 тематических блока, 25 билетов ГУУ 2026, 296 вопросов с ответами, 170 микро-задач.">
 <meta name="theme-color" content="#0f1115">
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="icon.svg">
 <link rel="manifest" href="manifest.json">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Методы ИИ — интенсив на 3 дня | Курс подготовки к экзамену">
-<meta property="og:description" content="Полный курс подготовки к устному экзамену по Deep Learning: 28 лекций, 280+ вопросов с ответами, 170+ задач с пошаговыми решениями, математические выводы и PyTorch код.">
+<meta property="og:title" content="Методы ИИ — Полный курс подготовки к экзамену (ГУУ 2026)">
+<meta property="og:description" content="Полный курс подготовки к устному экзамену по Deep Learning: 28 лекций, 4 тематических блока, 296 вопросов с ответами, 170 задач с пошаговыми решениями, математические выводы и PyTorch код.">
 <meta property="og:url" content="https://egorribun.github.io/AI-Course/">
 <meta property="og:image" content="https://egorribun.github.io/AI-Course/og-preview.png">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Методы ИИ — интенсив на 3 дня">
+<meta name="twitter:title" content="Методы ИИ — Полный курс подготовки к экзамену (ГУУ 2026)">
 <meta name="twitter:description" content="Полный интерактивный курс подготовки к устному экзамену по Deep Learning (ГУУ 2026).">
 <link rel="stylesheet" href="style.css">
 <script>
@@ -38,15 +38,16 @@ window.MathJax = {
 <body>
 
 <header class="top"><div class="inner">
-  <div class="kicker">Интенсив · Подготовка к устному экзамену</div>
+  <div class="kicker">Подготовка к устному экзамену (ГУУ 2026)</div>
   <h1>Методы искусственного интеллекта</h1>
-  <p class="sub">Полный курс с нуля по всем 25 экзаменационным вопросам. Каждая лекция — готовый конспект: интуиция, схемы, формулы, вопросы препода с ответами и микро-задачи с решениями.</p>
+  <p class="sub">Полный интерактивный курс по всем 25 экзаменационным вопросам, организованный в 4 тематических блока. Каждая лекция — строгий конспект: интуиция, схемы, формулы, вопросы препода с ответами, микро-задачи и скелет устного ответа.</p>
   <div class="meta">
     <span class="pill">28 лекций</span>
-    <span class="pill gray">~36 часов</span>
-    <span class="pill gray">~170 микро-задач</span>
-    <span class="pill gray">~300 вопросов препода</span>
-    <span class="pill good">3 дня</span>
+    <span class="pill gray">4 тематических блока</span>
+    <span class="pill gray">25 экзаменационных билетов</span>
+    <span class="pill gray">170 микро-задач</span>
+    <span class="pill gray">296 вопросов препода</span>
+    <span class="pill good">Гибкий темп</span>
   </div>
 </div></header>
 
@@ -57,7 +58,8 @@ window.MathJax = {
   <div class="progress-hub-header">
     <div class="progress-hub-title">📊 Мой прогресс освоения курса</div>
     <div style="display:flex; gap:8px;">
-      <button type="button" class="btn btn-secondary" onclick="if(confirm('Сбросить весь сохраненный прогресс?')){CourseTracker.resetProgress(); location.reload();}" style="font-size:12px; padding:4px 10px;">🔄 Сброс</button>
+      <a href="exam.html" class="btn btn-primary" style="font-size:12px; padding:6px 14px; min-height:44px; text-decoration:none;">🎓 Тренажёр экзамена</a>
+      <button type="button" class="btn btn-secondary" onclick="if(confirm('Сбросить весь сохраненный прогресс?')){CourseTracker.resetProgress(); location.reload();}" style="font-size:12px; padding:6px 12px; min-height:44px;">🔄 Сброс</button>
     </div>
   </div>
   <div class="progress-bar-wrap">
@@ -90,44 +92,39 @@ window.MathJax = {
   </div>
   <div class="filter-chips">
     <span class="tag-chip active" data-tag="all">Все темы (28)</span>
-    <span class="tag-chip" data-tag="cv">👁️ Компьютерное зрение</span>
-    <span class="tag-chip" data-tag="nlp">📝 Языковые модели & Трансформеры</span>
-    <span class="tag-chip" data-tag="rl">🤖 Обучение с подкреплением</span>
-    <span class="tag-chip" data-tag="math">📐 Математика & Оптимизация</span>
+    <span class="tag-chip" data-tag="block-a">🧠 Блок A · Фундамент & CV</span>
+    <span class="tag-chip" data-tag="block-b">🎨 Блок B · Репрезентации & GenAI</span>
+    <span class="tag-chip" data-tag="block-c">📝 Блок C · NLP & Трансформеры</span>
+    <span class="tag-chip" data-tag="block-d">🤖 Блок D · Обучение с подкреплением</span>
     <span id="search-count-badge" class="pill gray" style="display:none; margin-left:auto;"></span>
   </div>
 </div>
 
-
 <div class="box idea">
-  <div class="bt">💡 Как этим пользоваться</div>
-  <p><strong>Каждая лекция построена одинаково:</strong> интуиция и зачем это нужно → схема устройства → формулы с разбором каждого символа → числовой пример → плюсы/минусы → раздел «🎯 Препод спросит» с каверзными вопросами и готовыми ответами → «📝 Микро-задачи» с пошаговыми решениями → «⚡ Ответ за 3 минуты» — скелет устного ответа по билету.</p>
+  <div class="bt">💡 Методика эффективной подготовки</div>
+  <p><strong>Каждая лекция построена одинаково:</strong> интуиция и зачем это нужно → схема устройства → формулы с разбором каждого символа → числовой пример → плюсы/минусы → раздел «🎯 Препод спросит» с каверзными вопросами и готовыми ответами → «📝 Микро-задачи» с пошаговыми решениями → «⚡ Краткий скелет ответа по билету» — опорный каркас устного ответа.</p>
   <p><strong>Метод работы (важно, не читай пассивно):</strong> прочитал раздел → закрыл → переписал схему и формулы от руки в конспект своими словами → открыл «Препод спросит», сначала ответил вслух сам, потом раскрыл ответ → решил задачи, не подглядывая. Экзамен устный: если ты не можешь произнести объяснение вслух, ты его не знаешь.</p>
-  <p><strong>Раздел «Ответ за 3 минуты»</strong> — это то, что ты говоришь у доски. Выучи скелеты всех билетов: даже при пробелах в деталях структурный ответ спасает.</p>
+  <p><strong>Раздел «⚡ Краткий скелет ответа по билету»</strong> — это то, что ты говоришь у доски. Выучи скелеты всех билетов: даже при пробелах в деталях структурный ответ спасает.</p>
 </div>
 
-<h2>План на 3 дня</h2>
+<h2>Тематические блоки курса</h2>
 
+<div class="table-scroll-wrapper">
 <table>
-<thead><tr><th>День</th><th>Блок</th><th>Лекции</th><th>Часы</th><th>Что закрываем</th></tr></thead>
+<thead><tr><th>Блок</th><th>Название раздела</th><th>Лекции</th><th>Экзаменационные билеты</th><th>Темы раздела</th></tr></thead>
 <tbody>
-<tr><td><strong>День 1</strong></td><td>A. Фундамент и зрение</td><td>0 → 7</td><td>12 ч</td><td>Вопросы 1, 2, 3, 4, 5, 6, 7</td></tr>
-<tr><td><strong>День 2</strong></td><td>B. Представления и генерация</td><td>8 → 15</td><td>12 ч</td><td>Вопросы 8, 9, 10, 11, 12, 13, 14</td></tr>
-<tr><td><strong>День 3</strong></td><td>C. Трансформеры + D. RL</td><td>16 → 27</td><td>12 ч</td><td>Вопросы 15–25</td></tr>
+<tr><td><strong>Блок A</strong></td><td>Основы машинного обучения и компьютерное зрение</td><td>00 → 07</td><td>Билеты 1–7 (+ Вводная)</td><td>ML-каркас, FCNN, Autodiff, PINN, Loss/MLE, CNN слои и архитектуры, Оптимизаторы, Аугментация</td></tr>
+<tr><td><strong>Блок B</strong></td><td>Репрезентации, генеративные модели и задачи CV</td><td>08 → 13</td><td>Билеты 8–12</td><td>Метрическое обучение, SSL/CLIP, VAE, GAN, Диффузионные модели (DDPM/Latent), Задачи CV</td></tr>
+<tr><td><strong>Блок C</strong></td><td>Обработка языка, трансформеры и LLM</td><td>14 → 21</td><td>Билеты 13–20</td><td>RNN, LSTM/GRU, Seq2Seq Attention, Transformer, Self-Attention, Word2Vec, Машинный перевод, BERT/GPT/T5</td></tr>
+<tr><td><strong>Блок D</strong></td><td>Обучение с подкреплением (RL)</td><td>22 → 27</td><td>Билеты 21–25</td><td>Введение в RL/MDP, Уравнение Беллмана, VI/PI/MC, TD(0)/SARSA/Q-Learning, Policy Gradient, Actor-Critic</td></tr>
 </tbody>
 </table>
-
-<div class="box warnbox">
-  <div class="bt">⚠️ Режим 12 часов — как не сгореть</div>
-  <p>Работай циклами <strong>50 минут работы / 10 минут отдыха</strong>, после каждых трёх циклов — 30 минут перерыв с едой и прогулкой. Это даёт примерно 9 часов чистой работы из 12 — больше выжать нельзя, дальше падает удержание материала.</p>
-  <p><strong>Последние 40 минут каждого дня</strong> — не новый материал, а повторение вслух скелетов из «Ответ за 3 минуты» по всем пройденным за день темам. Это критично: без повторения к утру останется 30%.</p>
-  <p><strong>Первые 20 минут дня 2 и 3</strong> — быстрый прогон вчерашних скелетов. Ещё +20 минут утром — окупаются втрое.</p>
 </div>
 
-<!-- ================== ДЕНЬ 1 ================== -->
-<div class="day">
-  <h2>День 1 · Блок A — Фундамент и компьютерное зрение</h2>
-  <p>Самый важный день. Лекция 1 — фундамент всего курса, лекции 4–5 закрывают весь блок CV. Если день 1 понят, остальное пойдёт втрое быстрее.</p>
+<!-- ================== БЛОК A ================== -->
+<div class="day" id="block-a-section">
+  <h2>Блок A · Основы машинного обучения и компьютерное зрение (Лекции 00–07)</h2>
+  <p>Фундаментальная математическая база курса: многослойные перцептроны, автоматическое дифференцирование и PINN, функции потерь и ММП, теория свёртки, классические и современные архитектуры CNN, методы стохастической оптимизации и настройка гиперпараметров.</p>
 </div>
 
 <div class="grid">
@@ -190,10 +187,10 @@ window.MathJax = {
 
 </div>
 
-<!-- ================== ДЕНЬ 2 ================== -->
-<div class="day">
-  <h2>День 2 · Блок B — Представления, генеративные модели, задачи CV</h2>
-  <p>Самый концептуально насыщенный день: как научить сеть хорошим представлениям без разметки и как заставить её генерировать.</p>
+<!-- ================== БЛОК B ================== -->
+<div class="day" id="block-b-section">
+  <h2>Блок B · Репрезентации, генеративные модели и задачи CV (Лекции 08–13)</h2>
+  <p>Обучение представлений без учителя и генеративный ИИ: метрические функции ошибок (Contrastive, Triplet, ArcFace), Self-Supervised Learning (SimCLR, MoCo, CLIP), вариационные автоэнкодеры (VAE), состязательные сети (GAN), диффузионные модели (DDPM, Latent Diffusion) и ключевые задачи CV (детекция, сегментация, трекинг).</p>
 </div>
 
 <div class="grid">
@@ -240,6 +237,16 @@ window.MathJax = {
   <div class="time">⏱ 2 ч · много терминов</div>
 </a>
 
+</div>
+
+<!-- ================== БЛОК C ================== -->
+<div class="day" id="block-c-section">
+  <h2>Блок C · Обработка языка, трансформеры и LLM (Лекции 14–21)</h2>
+  <p>Рекуррентные архитектуры, механизмы внимания и эпоха трансформеров: RNN, LSTM, GRU, Bahdanau/Luong attention в Seq2Seq, архитектура Transformer («Attention Is All You Need»), многоголовое самовнимание (Multi-Head Attention), токенизация и Word2Vec, метрика BLEU и семейства моделей BERT, GPT, T5.</p>
+</div>
+
+<div class="grid">
+
 <a class="lec" href="lectures/14-rnn-lstm.html">
   <div class="n">ЛЕКЦИЯ 14 · ВОПРОС 13</div>
   <div class="t">Рекуррентные сети. LSTM и biLSTM</div>
@@ -253,16 +260,6 @@ window.MathJax = {
   <div class="d">Бутылочное горлышко фиксированного вектора контекста, идея внимания, оценки Bahdanau и Luong, softmax по позициям, вектор контекста на каждом шаге декодера, интерпретируемость через матрицу выравнивания. Мостик к трансформерам.</div>
   <div class="time">⏱ 1 ч 30 мин</div>
 </a>
-
-</div>
-
-<!-- ================== ДЕНЬ 3 ================== -->
-<div class="day">
-  <h2>День 3 · Блок C — Трансформеры и тексты, Блок D — Обучение с подкреплением</h2>
-  <p>Полдня на трансформеры и NLP, полдня на RL. RL — отдельный мир со своей терминологией, не пугайся: там всё крутится вокруг одного уравнения Беллмана.</p>
-</div>
-
-<div class="grid">
 
 <a class="lec" href="lectures/16-transformers.html">
   <div class="n">ЛЕКЦИЯ 16 · ВОПРОС 15</div>
@@ -305,6 +302,16 @@ window.MathJax = {
   <div class="d">Три семейства архитектур: BERT-подобные (двунаправленные, для понимания), GPT-подобные (causal, для генерации), T5/BART (seq2seq). Чем отличаются задачи предобучения, какие маски, что для чего применять. Сводная таблица с примерами моделей.</div>
   <div class="time">⏱ 1 ч 15 мин</div>
 </a>
+
+</div>
+
+<!-- ================== БЛОК D ================== -->
+<div class="day" id="block-d-section">
+  <h2>Блок D · Обучение с подкреплением (Reinforcement Learning) (Лекции 22–27)</h2>
+  <p>Теория и практика обучения агентов во взаимодействии со средой: Марковские процессы принятия решений (MDP), уравнения Беллмана для $V(s)$ и $Q(s,a)$, алгоритмы динамического программирования (Value Iteration, Policy Iteration) и методы Монте-Карло, TD-обучение (SARSA, Q-Learning, DQN), методы градиента стратегии (REINFORCE, PPO) и гибридная парадигма Actor-Critic (A2C, SAC).</p>
+</div>
+
+<div class="grid">
 
 <a class="lec" href="lectures/22-rl-intro.html">
   <div class="n">ЛЕКЦИЯ 22 · ВОПРОС 21</div>
@@ -354,6 +361,7 @@ window.MathJax = {
 
 <h2>Соответствие лекций билетам</h2>
 
+<div class="table-scroll-wrapper">
 <table>
 <thead><tr><th>№ билета</th><th>Формулировка</th><th>Лекция</th></tr></thead>
 <tbody>
@@ -384,21 +392,46 @@ window.MathJax = {
 <tr><td>25</td><td>Value-based vs Policy-based. Actor-Critic</td><td><a href="lectures/27-actor-critic.html">Л27</a></td></tr>
 </tbody>
 </table>
+</div>
 
 <div class="box exambox">
-  <div class="bt">🎯 Если время кончается — приоритеты</div>
-  <p><strong>Обязательный минимум (без этого не сдать):</strong> лекции 1, 3, 4, 6, 14, 16, 17, 23, 25. Это ядра, на которые опираются все остальные ответы, и именно оттуда идут смежные вопросы.</p>
-  <p><strong>Высокий приоритет:</strong> 5, 10, 15, 18, 22, 24, 27 — вопросы «сравните A и B», которые преподы любят больше всего.</p>
-  <p><strong>Можно пройти быстрее:</strong> 2, 7, 8, 9, 11, 12, 13, 19, 20, 21, 26 — здесь достаточно уверенно держать структуру ответа и ключевые формулы.</p>
+  <div class="bt">🎯 Приоритеты тем при ограниченном времени</div>
+  <p><strong>Обязательный фундамент (без этого не сдать):</strong> лекции 1, 3, 4, 6, 14, 16, 17, 23, 25. Это ядра, на которые опираются все остальные ответы, и именно оттуда идут смежные вопросы преподавателя.</p>
+  <p><strong>Высокий приоритет:</strong> 5, 10, 15, 18, 22, 24, 27 — вопросы «сравните A и B», которые преподаватели задают чаще всего.</p>
+  <p><strong>Быстрый проход:</strong> 2, 7, 8, 9, 11, 12, 13, 19, 20, 21, 26 — здесь достаточно уверенно держать скелет ответа и ключевые формулы.</p>
 </div>
 
 <div class="box idea">
-  <div class="bt">💡 Сквозные связи — это то, чем добивают на экзамене</div>
+  <div class="bt">💡 Сквозные связи курса — ключевые мостики между темами</div>
   <p>Преподаватель почти наверняка спросит что-то на стыке тем. Держи эти мостики наготове: <strong>backprop — это reverse-mode автодифференцирования</strong> (Л1↔Л2); <strong>MSE и cross-entropy — это ММП при разных предположениях о шуме</strong> (Л3); <strong>skip-connection в ResNet решает ту же проблему затухания градиента, что и cell state в LSTM</strong> (Л5↔Л14); <strong>attention решает ту же проблему бутылочного горлышка, что и увеличение размерности контекста, но без потери информации</strong> (Л15↔Л16); <strong>contrastive learning и метрическое обучение — одна идея, разница только в источнике позитивных пар</strong> (Л8↔Л9); <strong>VAE, GAN и диффузия — три разных способа обойти невычислимость правдоподобия</strong> (Л10–Л12); <strong>Q-learning — это стохастическая аппроксимация уравнения оптимальности Беллмана</strong> (Л23↔Л25); <strong>policy gradient — это тот же градиентный спуск, только градиент оценивается сэмплированием</strong> (Л26).</p>
 </div>
 
-<p class="small">Курс собран под конкретный список из 25 экзаменационных вопросов. Все схемы, задачи и вопросы преподавателя — часть подготовки, а не декорация: проходи их вслух.</p>
+<p class="small">Курс собран под конкретный список из 25 экзаменационных вопросов (ГУУ 2026). Все схемы, задачи и вопросы преподавателя — часть подготовки, а не декорация: проходи их вслух.</p>
 
 </div>
+
+<!-- Mobile Quick Action Bar (<768px) -->
+<nav class="quick-action-bar" aria-label="Быстрые действия на мобильных устройствах">
+  <button type="button" class="quick-action-btn" id="mob-theme-toggle" aria-label="Переключить тему">
+    <span aria-hidden="true">🌗</span>
+    <span>Тема</span>
+  </button>
+  <a href="exam.html" class="quick-action-btn" aria-label="Тренажёр экзамена">
+    <span aria-hidden="true">🎓</span>
+    <span>Экзамен</span>
+  </a>
+  <button type="button" class="quick-action-btn" id="mob-search-btn" aria-label="Поиск по курсу">
+    <span aria-hidden="true">🔍</span>
+    <span>Поиск</span>
+  </button>
+  <button type="button" class="quick-action-btn" id="mob-top-btn" aria-label="Наверх страницы">
+    <span aria-hidden="true">⬆️</span>
+    <span>Наверх</span>
+  </button>
+</nav>
+
+<!-- Floating Back to Top Button -->
+<button type="button" class="back-to-top" id="back-to-top-btn" aria-label="Вернуться наверх" title="Наверх">↑</button>
+
 </body>
 </html>

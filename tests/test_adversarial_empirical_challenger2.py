@@ -672,9 +672,6 @@ class TestServiceWorkerPrecacheResolution(unittest.TestCase):
             COURSE_ROOT / "js" / "simulator.js",
             COURSE_ROOT / "js" / "tracker.js",
             COURSE_ROOT / "js" / "exam_data.js",
-            COURSE_ROOT / "anki_decks" / "ai_course_exam_qas.tsv",
-            COURSE_ROOT / "anki_decks" / "ai_course_microtasks.tsv",
-            COURSE_ROOT / "anki_decks" / "ai_course_3min_cheatsheets.tsv",
         ]
 
         for req in core_required:

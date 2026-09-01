@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Тренажёр экзамена — Методы ИИ (ГУУ 2026)</title>
+<meta name="description" content="Интерактивный тренажёр устного экзамена по Deep Learning: 25 билетов, 4 тематических блока, таймер 3 минуты, SM-2 карточки и блиц-опрос.">
+<meta name="theme-color" content="#0f1115">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<link rel="manifest" href="manifest.json">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Тренажёр экзамена — Методы ИИ | Интерактивный симулятор">
+<meta property="og:description" content="Интерактивный симулятор устного экзамена: 25 билетов, таймер 3 минуты, карточки SM-2, блиц-опрос.">
+<meta property="og:url" content="https://egorribun.github.io/AI-Course/exam.html">
+<meta property="og:image" content="https://egorribun.github.io/AI-Course/og-preview.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Тренажёр экзамена — Методы ИИ">
+<meta name="twitter:description" content="Интерактивный тренажёр подготовки к устному экзамену по Deep Learning.">
+<link rel="stylesheet" href="style.css">
+<script>
+window.MathJax = {
+  tex: {inlineMath: [['$','$'],['\\(','\\)']]},
+  options: {
+    ignoreHtmlClass: 'tex2jax_ignore',
+    processHtmlClass: 'tex2jax_process'
+  },
+  svg: {fontCache: 'global'}
+};
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
+<script src="js/exam_data.js"></script>
+<script src="js/tracker.js"></script>
+<script src="js/exam.js"></script>
+<script src="js/app.js"></script>
+</head>
+<body>
+
+<header class="top"><div class="inner">
+  <div class="kicker">Подготовка к устному экзамену (ГУУ 2026)</div>
+  <h1>🎓 Тренажёр устного экзамена</h1>
+  <p class="sub">Интерактивный симулятор для отработки устного ответа у доски: генератор случайных билетов, 3-минутный таймер, интервальные повторения SM-2 и блиц-проверка знаний по 4 блокам.</p>
+  <div class="meta">
+    <span class="pill">25 экзаменационных билетов</span>
+    <span class="pill gray">4 тематических блока</span>
+    <span class="pill gray">296 вопросов «Препод спросит»</span>
+    <span class="pill gray">170 микро-задач</span>
+    <span class="pill good">SM-2 Spaced Repetition</span>
+  </div>
+</div></header>
+
+<div class="wrap">
+
+<p><a href="index.html" class="backlink">← Вернуться к полному оглавлению курса</a></p>
+
+<!-- ========== Виджет прогресса обучения ========== -->
+<div class="progress-hub" id="global-progress-hub">
+  <div class="progress-hub-header">
+    <div class="progress-hub-title">📊 Мой прогресс освоения курса</div>
+    <div style="display:flex; gap:8px;">
+      <button type="button" class="btn btn-secondary" onclick="if(confirm('Сбросить весь сохраненный прогресс?')){CourseTracker.resetProgress(); location.reload();}" style="font-size:12px; padding:6px 12px; min-height:44px;">🔄 Сброс</button>
+    </div>
+  </div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="global-progress-fill"></div>
+  </div>
+  <div class="progress-stats-row">
+    <div class="stat-card">
+      <div class="val" id="stat-lecs-val">0 / 28 (0%)</div>
+      <div class="lbl">Лекции пройдены</div>
+    </div>
+    <div class="stat-card">
+      <div class="val" id="stat-qas-val">0 / 296 (0%)</div>
+      <div class="lbl">Вопросов «Препод спросит»</div>
+    </div>
+    <div class="stat-card">
+      <div class="val" id="stat-tasks-val">0 / 170 (0%)</div>
+      <div class="lbl">Микро-задач решено</div>
+    </div>
+  </div>
+</div>
+
+<!-- ========== Интерактивный симулятор экзамена ========== -->
+<div id="exam-simulator-container"></div>
+
+<div class="box idea" style="margin-top:24px;">
+  <div class="bt">💡 Методика подготовки к экзамену</div>
+  <p><strong>1. Экзаменационный билет:</strong> Вытягивайте случайный билет или выбирайте конкретную тему. Включайте таймер на 3:00 и проговаривайте устный ответ вслух, опираясь на краткий скелет ответа.</p>
+  <p><strong>2. Блиц-опрос:</strong> Проходите 10 случайных вопросов по 30 секунд каждый для тренировки скорости реакции и уверенности перед преподавателем.</p>
+  <p><strong>3. Карточки SM-2:</strong> Закрепляйте сложные теоретические нюансы с помощью алгоритма интервальных повторений, который автоматически возвращает забытые темы.</p>
+</div>
+
+</div>
+
+<!-- Floating Back to Top Button -->
+<button type="button" class="back-to-top" id="back-to-top-btn" aria-label="Вернуться наверх" title="Наверх">↑</button>
+
+</body>
+</html>

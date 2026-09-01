@@ -17,11 +17,11 @@ class TestM1ServiceWorkerEmpirical(unittest.TestCase):
         cls.tracker_text = TRACKER_FILE.read_text(encoding='utf-8')
 
     def test_01_sw_cache_version_and_naming_invariants(self):
-        """Verify CACHE_NAME is strictly bumped to 'ai-course-v2'."""
+        """Verify CACHE_NAME is strictly bumped to 'ai-course-v3'."""
         match = re.search(r"const\s+CACHE_NAME\s*=\s*['\"]([^'\"]+)['\"]", self.sw_text)
         self.assertIsNotNone(match, "CACHE_NAME constant definition not found in sw.js")
         cache_name = match.group(1)
-        self.assertEqual(cache_name, 'ai-course-v2', f"Expected 'ai-course-v2', got '{cache_name}'")
+        self.assertEqual(cache_name, 'ai-course-v3', f"Expected 'ai-course-v3', got '{cache_name}'")
 
     def test_02_sw_precache_assets_exist_and_non_empty(self):
         """Verify all static assets listed in STATIC_ASSETS exist on disk and have non-zero size."""
@@ -30,7 +30,7 @@ class TestM1ServiceWorkerEmpirical(unittest.TestCase):
         assets_raw = match.group(1)
         asset_paths = re.findall(r"['\"]([^'\"]+)['\"]", assets_raw)
 
-        self.assertGreaterEqual(len(asset_paths), 40, f"Expected >= 40 assets in STATIC_ASSETS, found {len(asset_paths)}")
+        self.assertGreaterEqual(len(asset_paths), 34, f"Expected >= 34 assets in STATIC_ASSETS, found {len(asset_paths)}")
 
         for asset in asset_paths:
             if asset in ('.', './'):

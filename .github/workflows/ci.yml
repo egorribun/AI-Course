@@ -27,8 +27,8 @@ jobs:
       - name: Run Ruff linter
         run: uv run ruff check .
 
-      - name: Generate Anki Decks
-        run: uv run python tools/export_anki.py
+      - name: Compile Exam Dataset
+        run: uv run python tools/build_exam_data.py --check
 
       - name: Run E2E Test Suite
         run: uv run pytest tests/ -v

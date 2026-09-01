@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Лекция 13. Задачи компьютерного зрения: сегментация, детекция, ключевые точки, трекинг</title>
+<title>Лекция 13. Прикладные задачи Computer Vision: Детекция, Сегментация, Ключевые точки и Трекинг</title>
 
 <script>
 window.MathJax = {
@@ -19,13 +19,14 @@ window.MathJax = {
 <body>
 
 <header class="top"><div class="inner">
-  <div class="kicker">Блок B · Компьютерное зрение · Вопрос 12</div>
-  <h1>Лекция 13. Общие задачи компьютерного зрения: сегментация, детекция, ключевые точки, трекинг</h1>
-  <p class="sub">От классификации картинки к локализации каждого пикселя и объекта. Лестница сложности и универсальный набор инструментов.</p>
+  <div class="kicker">Блок B · Представления и генеративные модели · Билет 8–12 (Приложения CV)</div>
+  <h1>Лекция 13. Задачи Computer Vision: Детекция, Сегментация, Ключевые точки и Трекинг</h1>
+  <p class="sub">От глобальной классификации к попиксельной локализации: IoU, NMS, mAP, Faster R-CNN, YOLO, U-Net, Mask R-CNN, Focal Loss, Dice Loss, Heatmaps и трекинг объектов.</p>
   <div class="meta">
-    <span class="pill">⏱ 2 ч</span>
+    <span class="pill">⏱ 2 ч 30 мин</span>
     <span class="pill gray">12 вопросов препода</span>
     <span class="pill gray">6 микро-задач</span>
+    <span class="pill warn">Прикладной фундамент CV</span>
   </div>
 </div></header>
 
@@ -34,803 +35,289 @@ window.MathJax = {
 <a class="backlink" href="../index.html">← К оглавлению курса</a>
 
 <nav class="toc">
-  <div class="bt">Содержание лекции</div>
+  <div class="bt">Содержание лекции (8-Step Architecture)</div>
   <ol>
-    <li><a href="#s1">Лестница задач компьютерного зрения</a></li>
-    <li><a href="#s2">Детекция объектов: постановка</a></li>
-    <li><a href="#s3">IoU (Intersection over Union)</a></li>
-    <li><a href="#s4">NMS (Non-Maximum Suppression)</a></li>
-    <li><a href="#s5">Метрика mAP (mean Average Precision)</a></li>
-    <li><a href="#s6">Двухстадийные детекторы: R-CNN, Fast R-CNN, Faster R-CNN</a></li>
-    <li><a href="#s7">Одностадийные детекторы: YOLO, SSD, RetinaNet</a></li>
-    <li><a href="#s8">Anchor-free детекция: FCOS, CenterNet, DETR</a></li>
-    <li><a href="#s9">Сегментация: три разновидности</a></li>
-    <li><a href="#s10">Архитектуры сегментации: FCN, U-Net, DeepLab, Mask R-CNN</a></li>
-    <li><a href="#s11">Метрики сегментации и Dice loss</a></li>
-    <li><a href="#s12">Ключевые точки: постановка и heatmap-регрессия</a></li>
-    <li><a href="#s13">Трекинг объектов: SORT, DeepSORT, ByteTrack</a></li>
-    <li><a href="#qa">Препод спросит</a></li>
-    <li><a href="#tasks">Микро-задачи</a></li>
-    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+    <li><a href="#s1">1. Интуиция и мотивация</a></li>
+    <li><a href="#s2">2. Архитектура и схема</a></li>
+    <li><a href="#s3">3. Математический аппарат</a></li>
+    <li><a href="#s4">4. Пошаговый числовой пример</a></li>
+    <li><a href="#s5">5. Преимущества, недостатки и применимость</a></li>
+    <li><a href="#qa">6. 🎯 Препод спросит</a></li>
+    <li><a href="#tasks">7. 📝 Микро-задачи с решениями</a></li>
+    <li><a href="#cheat">8. ⚡ Скелет ответа по билету</a></li>
   </ol>
 </nav>
 
 <!-- ============================================ -->
-<h2 id="s1"><span class="num">1.</span> Лестница задач компьютерного зрения</h2>
+<h2 id="s1"><span class="num">1.</span> Интуиция и мотивация</h2>
 
-<p>Задачи компьютерного зрения образуют иерархию по сложности. Каждая добавляет локализацию и дифференциацию к предыдущей.</p>
+<p>Классификация изображений (предсказание одного класса для всей картинки) недостаточна для взаимодействия искусственного интеллекта с физическим миром (автопилоты, медицинская диагностика, робототехника). Компьютерное зрение требует <strong>пространственной локализации и сегментации</strong>.</p>
 
-<div class="scheme">
-  1. КЛАССИФИКАЦИЯ
-     Вход: картинка 224×224
-     Выход: класс (1 число или вероятности)
-     Пример: "кошка"
-
-  2. ЛОКАЛИЗАЦИЯ (+ bounding box на один объект)
-     Выход: класс + x, y, w, h (или x1, y1, x2, y2)
-     Пример: "кошка в боксе (100, 50, 200, 150)"
-
-  3. ДЕТЕКЦИЯ (+ multiple bounding boxes)
-     Выход: N боксов с классами и confidence
-     Сложность: N заранее неизвестно
-     Пример: "кошка в (100,50,200,150) conf=0.95, собака в (250,100,350,200) conf=0.87"
-
-  4. СЕМАНТИЧЕСКАЯ СЕГМЕНТАЦИЯ
-     Выход: класс каждому пикселю
-     Не различает объекты одного класса
-     Пример: {пиксель → "кот"} или {пиксель → "фон"}
-
-  5. INSTANCE SEGMENTATION
-     Выход: маска для каждого объекта (объекты разных экземпляров различаются)
-     Пример: маска объекта 1 (кот), маска объекта 2 (кот — другой)
-
-  6. PANOPTIC SEGMENTATION
-     Выход: объединение семантической сегментации и instance segmentation
-     "Stuff" классы (сегментированы): небо, дорога, трава
-     "Thing" классы (instance'ы): люди, собаки, автомобили
-
-  7. KEYPOINTS (+ локализация особых точек)
-     Выход: 17 точек суставов человека (COCO) или 68 точек лица
-     Пример: (x_neck, y_neck), (x_left_shoulder, y_left_shoulder), ...
-
-  8. TRACKING (+ сохранение идентичности во времени)
-     Вход: видео (последовательность кадров)
-     Выход: trajectorories (пути) каждого объекта с ID
-     Пример: человек id=1 движется кадры [0–150], человек id=2 движется [10–80]
-<span class="cap">Иерархия задач компьютерного зрения. Каждый уровень добавляет информацию к предыдущему.</span></div>
+<h3>Иерархия («Лестница») задач Computer Vision:</h3>
+<ol>
+  <li><strong>Классификация (Classification):</strong> «Что на картинке?» $\to$ метка класса (например, «кошка»).</li>
+  <li><strong>Локализация (Classification + Localization):</strong> «Где единственный объект?» $\to$ класс + 1 Bounding Box $(x, y, w, h)$.</li>
+  <li><strong>Детекция объектов (Object Detection):</strong> «Где ВСЕ объекты и какие они?» $\to N$ Bounding Boxes с классами и уверенностью ($N$ заранее неизвестно).</li>
+  <li><strong>Семантическая сегментация (Semantic Segmentation):</strong> «К какому классу относится каждый пиксель?» $\to$ плотная маска классов без разделения отдельных экземпляров (все кошки слиты в одну маску).</li>
+  <li><strong>Инстанс-сегментация (Instance Segmentation):</strong> «Где границы каждого индивидуального объекта?» $\to$ раздельные маски для каждого экземпляра (Кошка #1, Кошка #2).</li>
+  <li><strong>Паноптическая сегментация (Panoptic Segmentation):</strong> Объединение семантической сегментации фоновых текстур («Stuff»: дорога, небо, трава) и инстанс-сегментации счетных объектов («Things»: пешеходы, машины).</li>
+  <li><strong>Оценка позы и ключевые точки (Pose Estimation / Keypoints):</strong> Локализация анатомических сочленений человека (17 точек COCO) или черт лица.</li>
+  <li><strong>Многообъектный трекинг (Multi-Object Tracking, MOT):</strong> Сохранение сквозной идентификации объектов (ID) во времени на видеопотоке.</li>
+</ol>
 
 <!-- ============================================ -->
-<h2 id="s2"><span class="num">2.</span> Детекция объектов: постановка и выход</h2>
+<h2 id="s2"><span class="num">2.</span> Архитектура и схема</h2>
 
-<p>Задача: найти все объекты на картинке, предсказать их классы и боксы.</p>
+<div class="scheme">
+  1. АРХИТЕКТУРА ДВУХСТАДИЙНОГО ДЕТЕКТОРА (FASTER R-CNN)
 
-<div class="box idea">
-  <div class="bt">💡 Главная сложность детекции</div>
-  <p>Число объектов на картинке <strong>заранее неизвестно</strong>. На одной картинке может быть 0 объектов, на другой — 100. Это отличает детекцию от классификации (выход фиксированной размерности) и локализации (один объект).</p>
+  Изображение X ──▶ [ Backbone (ResNet+FPN) ] ──▶ Карта признаков (Feature Map)
+                                                        │
+                      ┌─────────────────────────────────┴──────────────────────────────┐
+                      ▼                                                                ▼
+             [ Region Proposal Network (RPN) ]                               [ Feature Map ]
+             - Скользящее окно 3×3                                                     │
+             - Генерация k Anchor Boxes                                                │
+             - Бинарная классификация (Objectness) & Регрессия Δ                       │
+                      │                                                                │
+                      ▼ 2000 регионов-кандидатов (Proposals)                           │
+             [ RoIAlign / RoIPooling ] ◀───────────────────────────────────────────────┘
+                      │ (Точная билинейная интерполяция признаков фиксированного размера 7×7)
+                      ▼
+             [ Скрытые FC-слои / Head ]
+                      │
+             ┌────────┴────────┐
+             ▼                 ▼
+     [ Классификатор C ]  [ Регрессор боксов BBox ]
+     (Softmax на K+1)     (4 координаты на класс)
+
+
+  2. АРХИТЕКТУРА U-NET ДЛЯ СЕМАНТИЧЕСКОЙ СЕГМЕНТАЦИИ
+
+  Вход 256×256 ──▶ [ Conv + ReLU ] ────────────────( Skip 1 )────────────────▶ [ Conv + ReLU ] ──▶ Выходная маска
+                        │                                                              ▲
+                    [ MaxPool ]                                                   [ Upsample ]
+                        ▼                                                              │
+                   [ Conv + ReLU ] ──────────────( Skip 2 )───────────────▶ [ Conv + ReLU ]
+                        │                                                              ▲
+                    [ MaxPool ]                                                   [ Upsample ]
+                        ▼                                                              │
+                   [ Conv + ReLU ] ──────────────( Skip 3 )───────────────▶ [ Conv + ReLU ]
+                        │                                                              ▲
+                    [ MaxPool ]                                                   [ Upsample ]
+                        ▼                                                              │
+                   [ Bottleneck: глубокое латентное представление 32×32 ] ─────────────┘
+
+<span class="cap">Сверху: Faster R-CNN с RPN и RoIAlign. Снизу: U-Net со сквозными Skip-Connections для сохранения пространственных границ объектов.</span></div>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
+
+<h3>3.1 Метрика пересечения IoU (Intersection over Union / Jaccard Index)</h3>
+<p>Для двух ограничивающих рамок (Bounding Boxes) или пиксельных масок $A$ и $B$:</p>
+<div class="math-scroll-wrapper">
+$$\text{IoU}(A, B) = \frac{\text{Area}(A \cap B)}{\text{Area}(A \cup B)} = \frac{\text{Area}(A \cap B)}{\text{Area}(A) + \text{Area}(B) - \text{Area}(A \cap B)}$$
 </div>
-
-<h3>2.1 Формат выхода детектора</h3>
-
-<p>Для каждого обнаруженного объекта детектор предсказывает:</p>
-
-$$\text{(x, y, w, h, класс, confidence)}$$
-
-<p>или (реже)</p>
-
-$$\text{(x1, y1, x2, y2, класс, confidence)}$$
-
-<p>где:</p>
 <ul>
-  <li>$(x, y)$ — центр бокса или $(x_1, y_1)$ — верхний левый угол</li>
-  <li>$(w, h)$ — ширина и высота бокса или $(x_2, y_2)$ — нижний правый угол</li>
-  <li>класс — метка класса (0–K, где K число классов)</li>
-  <li>confidence — вероятность $P(\text{объект})$ в этом боксе, от 0 до 1</li>
+  <li>$\text{IoU} \in [0, 1]$. Порог $\text{IoU} \ge 0.5$ (или $\text{IoU} \ge 0.75$) определяет True Positive (TP) детекцию.</li>
+  <li><strong>Generalized IoU (GIoU):</strong> $\text{GIoU} = \text{IoU} - \frac{|C \setminus (A \cup B)|}{|C|}$, где $C$ — минимальный выпуклый объемлющий прямоугольник. Имеет ненулевой градиент даже при $A \cap B = \emptyset$.</li>
 </ul>
 
-<h3>2.2 Представление боксов</h3>
+<h3>3.2 Алгоритм Non-Maximum Suppression (NMS)</h3>
+<p>Устраняет избыточные перекрывающиеся рамки вокруг одного объекта:</p>
+<ol>
+  <li>Отфильтровать рамки с $\text{Confidence} < \tau_{\text{conf}}$. Отсортировать оставшиеся по убыванию $\text{Confidence}$.</li>
+  <li>Выбрать рамку $B_{\text{max}}$ с наивысшим баллом, добавить ее в финальный список $\mathcal{D}$.</li>
+  <li>Вычислить $\text{IoU}(B_{\text{max}}, B_i)$ для всех остальных рамок. Если $\text{IoU} > \tau_{\text{nms}}$ (например, $\tau_{\text{nms}} = 0.5$), удалить $B_i$.</li>
+  <li>Повторять шаги 2–3, пока список кандидатов не опустеет.</li>
+</ol>
 
-<table>
-<thead><tr><th>Представление</th><th>Параметры</th><th>Использование</th></tr></thead>
-<tbody>
-<tr><td><strong>Center format</strong></td><td>$(x_c, y_c, w, h)$</td><td>YOLO, многие регрессионные методы</td></tr>
-<tr><td><strong>Corner format</strong></td><td>$(x_1, y_1, x_2, y_2)$</td><td>Faster R-CNN, PyTorch default</td></tr>
-<tr><td><strong>Относительно рисунка</strong></td><td>Нормировать на $[0,1]$ или $[-1,1]$</td><td>DETR, многие трансформеры</td></tr>
-</tbody>
-</table>
+<h3>3.3 Метрика mAP (Mean Average Precision)</h3>
+<p>Для каждого класса $c \in \{1, \dots, C\}$ строится кривая Precision-Recall (PR-Curve) путем ранжирования детекций по убыванию уверенности:</p>
+<div class="math-scroll-wrapper">
+$$\text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}}, \qquad \text{Recall} = \frac{\text{TP}}{\text{TP} + \text{FN}}$$
+</div>
+<div class="math-scroll-wrapper">
+$$\text{AP}_c = \int_0^1 p_{\text{interp}}(r) \, dr = \sum_{k=1}^N \Big(r_k - r_{k-1}\Big) \cdot \max_{\tilde{r} \ge r_k} p(\tilde{r})$$
+</div>
+<div class="math-scroll-wrapper">
+$$\text{mAP} = \frac{1}{C} \sum_{c=1}^C \text{AP}_c, \qquad \text{mAP}@[0.5:0.95] = \frac{1}{10} \sum_{\text{IoU}=0.50}^{0.95} \text{mAP}_{\text{IoU}}$$
+</div>
+
+<h3>3.4 Одностадийная детекция и Focal Loss (Lin et al., RetinaNet)</h3>
+<p>В одностадийных детекторах (Dense Detectors) число ячеек фона достигает $10^5$, подавляя градиенты редких объектов. <strong>Focal Loss</strong> динамически масштабирует стандартную кросс-энтропию:</p>
+<div class="math-scroll-wrapper">
+$$\text{FL}(p_t) = -\alpha_t (1 - p_t)^\gamma \log(p_t)$$
+</div>
+<p>где $p_t$ — предсказанная вероятность правильного класса, $\gamma \ge 0$ — фокусирующий параметр ($\gamma=2$). Для легких примеров (фон, $p_t \approx 0.99$) множитель $(1-p_t)^2 \approx 0.0001$ подавляет лосс в 10\,000 раз, фокусируя оптимизатор на сложных объектах.</p>
+
+<h3>3.5 Функции потерь сегментации: Dice Loss и BCE</h3>
+<div class="math-scroll-wrapper">
+$$\mathcal{L}_{\text{Dice}} = 1 - \frac{2 \sum_{i=1}^N p_i g_i + \epsilon}{\sum_{i=1}^N p_i + \sum_{i=1}^N g_i + \epsilon}$$
+</div>
+<p>где $p_i \in [0, 1]$ — предсказанная вероятность пикселя, $g_i \in \{0, 1\}$ — истинная маска, $\epsilon = 10^{-5}$ — сглаживание.</p>
+
+<h3>3.6 Реализации на PyTorch</h3>
+
+<p><strong>1. Функция вычисления матричного IoU:</strong></p>
+<pre><code>import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+def box_iou(boxes1, boxes2):
+    # boxes format: [N, 4] -> (x1, y1, x2, y2)
+    area1 = (boxes1[:, 2] - boxes1[:, 0]) * (boxes1[:, 3] - boxes1[:, 1])
+    area2 = (boxes2[:, 2] - boxes2[:, 0]) * (boxes2[:, 3] - boxes2[:, 1])
+
+    lt = torch.max(boxes1[:, None, :2], boxes2[:, :2]) # [N, M, 2]
+    rb = torch.min(boxes1[:, None, 2:], boxes2[:, 2:]) # [N, M, 2]
+    wh = (rb - lt).clamp(min=0)                         # [N, M, 2]
+    inter = wh[:, :, 0] * wh[:, :, 1]                   # [N, M]
+
+    union = area1[:, None] + area2 - inter
+    return inter / union</code></pre>
+
+<p><strong>2. Алгоритм Non-Maximum Suppression (NMS):</strong></p>
+<pre><code>def non_max_suppression(boxes, scores, iou_threshold=0.5):
+    # boxes: [N, 4], scores: [N]
+    order = scores.argsort(descending=True)
+    keep = []
+    while order.numel() > 0:
+        i = order[0].item()
+        keep.append(i)
+        if order.numel() == 1:
+            break
+        ious = box_iou(boxes[i].unsqueeze(0), boxes[order[1:]]).squeeze(0)
+        remaining_indices = torch.where(ious <= iou_threshold)[0]
+        order = order[remaining_indices + 1]
+    return torch.tensor(keep, dtype=torch.long)</code></pre>
+
+<p><strong>3. Функция потерь Focal Loss:</strong></p>
+<pre><code>class FocalLoss(nn.Module):
+    def __init__(self, alpha=0.25, gamma=2.0):
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+
+    def forward(self, pred_logits, targets):
+        # pred_logits: [N, C], targets: [N]
+        ce_loss = F.cross_entropy(pred_logits, targets, reduction='none')
+        p = torch.exp(-ce_loss)
+        focal_loss = self.alpha * ((1.0 - p) ** self.gamma) * ce_loss
+        return focal_loss.mean()</code></pre>
+
+<p><strong>4. Функция потерь Dice Loss для сегментации:</strong></p>
+<pre><code>class DiceLoss(nn.Module):
+    def __init__(self, eps=1e-5):
+        super().__init__()
+        self.eps = eps
+
+    def forward(self, pred, target):
+        # pred, target: (B, 1, H, W)
+        pred = torch.sigmoid(pred).view(-1)
+        target = target.view(-1)
+        intersection = (pred * target).sum()
+        dice = (2.0 * intersection + self.eps) / (pred.sum() + target.sum() + self.eps)
+        return 1.0 - dice</code></pre>
 
 <!-- ============================================ -->
-<h2 id="s3"><span class="num">3.</span> IoU (Intersection over Union)</h2>
+<h2 id="s4"><span class="num">4.</span> Пошаговый числовой пример</h2>
 
-<p>Метрика для сравнения двух боксов: предсказанного и истинного.</p>
+<p>Рассчитаем пошагово IoU, NMS фильтрацию и Average Precision (AP) на тестовой выборке.</p>
 
-<div class="formula">
-$$ \text{IoU} = \frac{\text{Area of Intersection}}{\text{Area of Union}} = \frac{I}{U} $$
-</div>
-
-<div class="scheme">
-  Истинный бокс (зелёный)          Предсказанный бокс (красный)
-
-  ┌─────────┐                      ┌─────────┐
-  │         │                      │         │
-  │  ┌─────┼────┐                  │  ┌─────┼────┐
-  │  │  I  │    │                  │  │     │    │
-  │  ├─────┼────┤                  │  ├─────┼────┤
-  │  │     │    │                  │  │     │    │
-  └──┼─────┘    │                  └──┼─────┘    │
-     └──────────┘                     └──────────┘
-
-  I = пересечение
-  U = объединение
-
-  IoU = I / U  (значение от 0 до 1)
-<span class="cap">IoU визуально. Чем больше пересечение относительно объединения, тем выше IoU. IoU = 1 только если боксы совпадают.</span></div>
-
-<h3>3.1 Числовой пример</h3>
-
-<div class="box mathbox">
-  <div class="bt">📐 Расчёт IoU для двух боксов</div>
-  <p><strong>Истинный бокс:</strong> $(10, 10, 100, 100)$ (corner format: верхний левый (10,10), нижний правый (100,100))</p>
-  <p><strong>Предсказанный бокс:</strong> $(50, 50, 120, 110)$</p>
-  <p><strong>Пересечение:</strong> $x1 = \max(10, 50) = 50$, $y1 = \max(10, 50) = 50$, $x2 = \min(100, 120) = 100$, $y2 = \min(100, 110) = 100$.</p>
-  <p>Размеры пересечения: $w = 100 - 50 = 50$, $h = 100 - 50 = 50$.</p>
-  <p>$I = 50 \times 50 = 2500$.</p>
-  <p><strong>Площади боксов:</strong> $A_1 = (100-10)^2 = 8100$, $A_2 = (120-50) \times (110-50) = 70 \times 60 = 4200$.</p>
-  <p>$U = A_1 + A_2 - I = 8100 + 4200 - 2500 = 9800$.</p>
-  <p>$$\text{IoU} = \frac{2500}{9800} \approx 0.255$$</p>
-</div>
-
-<h3>3.2 Пороги IoU</h3>
-
-<p>На практике используют пороги для оценки качества предсказания:</p>
-<ul>
-  <li><strong>IoU &gt; 0.5:</strong> Считается <strong>положительным</strong> (TP, true positive) — обнаружили объект.</li>
-  <li><strong>IoU &le; 0.5:</strong> Считается <strong>ложным срабатыванием</strong> (FP, false positive) — неправильная локализация.</li>
-  <li>Порог 0.5 стандартен, но в COCO используют диапазон [0.5:0.95] с шагом 0.05.</li>
-</ul>
-
-<!-- ============================================ -->
-<h2 id="s4"><span class="num">4.</span> NMS (Non-Maximum Suppression)</h2>
-
-<p>Проблема: детектор часто предсказывает много боксов около одного объекта, все с высокой confidence. Нужно их отфильтровать, оставить только лучший.</p>
-
-<div class="box idea">
-  <div class="bt">💡 Идея NMS</div>
-  <p>Если два бокса сильно перекрываются (высокий IoU) и оба относятся к одному классу, оставить только бокс с выше confidence, другой выбросить.</p>
-</div>
-
-<h3>4.1 Алгоритм NMS</h3>
-
-<div class="scheme">
-  Вход: список боксов {(x, y, w, h, класс, conf_1), ..., (x, y, w, h, класс, conf_N)}
-         и порог IoU_threshold (обычно 0.5 или 0.6)
-
-  Выход: отфильтрованный список боксов
-
-  1. Сортировать боксы по conf в убывающем порядке
-  2. Инициализировать пустой список keep_boxes
-  3. Пока есть боксы:
-     a) Взять первый (с наибольшей conf), добавить в keep_boxes
-     b) Вычислить IoU между этим боксом и всеми остальными
-     c) Удалить все боксы с IoU > threshold
-  4. Вернуть keep_boxes
-<span class="cap">Алгоритм NMS по шагам. Процесс — greedy: выбираем лучший, удаляем конкурентов.</span></div>
-
-<h3>4.2 Числовой пример NMS</h3>
-
-<div class="box mathbox">
-  <div class="bt">📐 Прогон NMS вручную</div>
-  <p><strong>4 бокса одного класса (машины):</strong></p>
-  <p>Box A: $(100, 100, 200, 200)$, conf = 0.9<br>
-  Box B: $(110, 110, 210, 210)$, conf = 0.7<br>
-  Box C: $(500, 500, 600, 600)$, conf = 0.85<br>
-  Box D: $(105, 105, 205, 205)$, conf = 0.6</p>
-
-  <p><strong>Шаг 1:</strong> Сортировать по conf: A (0.9) &gt; C (0.85) &gt; B (0.7) &gt; D (0.6)</p>
-
-  <p><strong>Шаг 2:</strong> Взять A, добавить в keep. Вычислить IoU(A, остальные):</p>
+<div class="box exambox">
+  <div class="bt">🔢 Дано:</div>
   <ul>
-    <li>IoU(A, B): пересечение $[110,110,200,200]$ площадь = $90 \times 90 = 8100$; объединение $100 \times 100 \times 2 - 8100 = 11900$. IoU $\approx 0.68 > 0.5$ → удалить B.</li>
-    <li>IoU(A, C): боксы не пересекаются (расстояние ~300). IoU = 0 &lt; 0.5 → оставить C.</li>
-    <li>IoU(A, D): похоже на A, IoU &approx; 0.8 &gt; 0.5 → удалить D.</li>
+    <li>Истинный бокс объекта (Ground Truth): $GT = [20, 30, 120, 130]$ ($x_1, y_1, x_2, y_2$)</li>
+    <li>Предсказания детектора:
+      <ul>
+        <li>Бокс A: $[30, 35, 110, 125]$, $\text{Confidence} = 0.90$</li>
+        <li>Бокс B: $[25, 30, 115, 130]$, $\text{Confidence} = 0.75$</li>
+        <li>Бокс C: $[200, 200, 250, 250]$, $\text{Confidence} = 0.85$ (ложное срабатывание, фон)</li>
+      </ul>
+    </li>
   </ul>
-
-  <p><strong>Шаг 3:</strong> Остались A, C. Взять C (следующая по conf), добавить в keep.</p>
-
-  <p><strong>Результат NMS:</strong> keep = [A, C]. Боксы B и D отфильтрованы.</p>
 </div>
 
-<h3>4.3 Soft-NMS</h3>
+<h4>Шаг 1. Расчет IoU между боксами A и GT</h4>
+<p>Площадь $GT$: $(120 - 20) \times (130 - 30) = 100 \times 100 = 10\,000$.</p>
+<p>Площадь A: $(110 - 30) \times (125 - 35) = 80 \times 90 = 7\,200$.</p>
+<p>Пересечение: $x_1^{\cap} = \max(20, 30) = 30$, $y_1^{\cap} = \max(30, 35) = 35$, $x_2^{\cap} = \min(120, 110) = 110$, $y_2^{\cap} = \min(130, 125) = 125$.</p>
+<p>Площадь пересечения: $(110 - 30) \times (125 - 35) = 80 \times 90 = 7\,200$.</p>
+<div class="math-scroll-wrapper">
+$$\text{IoU}(A, GT) = \frac{7\,200}{10\,000 + 7\,200 - 7\,200} = \frac{7\,200}{10\,000} = 0.72$$
+</div>
 
-<p>Классический NMS жёсткий: либо удаляем, либо нет. <strong>Soft-NMS</strong> вместо удаления <em>снижает confidence</em> перекрывающихся боксов:</p>
+<h4>Шаг 2. NMS подавление между A и B</h4>
+<p>Бокс A имеет наивысший $\text{conf}=0.90$, берем его в итоговый список. Вычисляем $\text{IoU}(A, B) \approx 0.85 > 0.5 \implies$ бокс B подавляется.</p>
 
-$$\text{conf}_i \leftarrow \text{conf}_i \cdot (1 - \text{IoU}(i, j))$$
-
-<p>Это помогает, когда два объекта действительно близко (не ошибка), но их боксы перекрываются.</p>
+<h4>Шаг 3. Расчет Precision и Recall</h4>
+<p>Имеем: 1 истинный объект ($GT$). Бокс A: $\text{IoU}=0.72 \ge 0.5 \implies \text{True Positive (TP)}$.</p>
+<p>Бокс C: $\text{IoU}(C, GT) = 0 \implies \text{False Positive (FP)}$.</p>
+<div class="math-scroll-wrapper">
+$$\text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}} = \frac{1}{1 + 1} = 0.50, \qquad \text{Recall} = \frac{\text{TP}}{\text{TP} + \text{FN}} = \frac{1}{1 + 0} = 1.00$$
+</div>
 
 <!-- ============================================ -->
-<h2 id="s5"><span class="num">5.</span> Метрика mAP (mean Average Precision)</h2>
+<h2 id="s5"><span class="num">5.</span> Преимущества, недостатки и применимость</h2>
 
-<p>Главная метрика детекции. Объединяет precision, recall и IoU.</p>
-
-<h3>5.1 Precision и Recall</h3>
-
-<div class="formula">
-$$ \text{Precision} = \frac{TP}{TP + FP}, \qquad \text{Recall} = \frac{TP}{TP + FN} $$
-</div>
-
-<p>где:</p>
-<ul>
-  <li>$TP$ — правильные предсказания (IoU &gt; порог)</li>
-  <li>$FP$ — неправильные предсказания (IoU &le; порог или дублирование)</li>
-  <li>$FN$ — пропущенные объекты (есть в ground truth, нет в предсказаниях)</li>
-</ul>
-
-<h3>5.2 Precision-Recall кривая и AP</h3>
-
-<p>Меняя порог confidence детектора от 1 до 0, получаем различные комбинации precision и recall. Строим кривую P(R).</p>
-
-<div class="scheme">
-  Precision
-  1.0  ┤●─────────╮
-       │          ╰─╮
-  0.8  ┤             ╰─╮
-       │                ╰──╮
-  0.6  ┤                   ╰──╮
-       │                       ╰────╮
-  0.4  ┤                            ╰─────╮
-       │                                  ╰─────╮
-  0.2  ┤                                       ╰────●
-       ├────┴────┴────┴────┴────┴────┴────┴────┴───
-       0.0  0.2  0.4  0.6  0.8  1.0
-                    Recall
-
-  AP = площадь под кривой
-<span class="cap">Precision-Recall кривая. AP (Average Precision) = площадь под кривой, интегрируется от Recall=0 до 1.</span></div>
-
-<h3>5.3 Вычисление AP численно</h3>
-
-<div class="box mathbox">
-  <div class="bt">📐 Расчёт AP по табличке</div>
-  <p><strong>Данные:</strong> 10 истинных объектов на картинке. Детектор выдал 5 предсказаний.</p>
-  <table style="margin: 10px 0; font-size: 85%;">
-    <thead><tr><th>#</th><th>conf</th><th>IoU</th><th>TP?</th><th>Cum TP</th><th>Cum FP</th><th>Precision</th><th>Recall</th></tr></thead>
-    <tbody>
-      <tr><td>1</td><td>0.95</td><td>0.8</td><td>✓</td><td>1</td><td>0</td><td>1/1=1.0</td><td>1/10=0.10</td></tr>
-      <tr><td>2</td><td>0.85</td><td>0.3</td><td>✗</td><td>1</td><td>1</td><td>1/2=0.5</td><td>1/10=0.10</td></tr>
-      <tr><td>3</td><td>0.80</td><td>0.7</td><td>✓</td><td>2</td><td>1</td><td>2/3=0.67</td><td>2/10=0.20</td></tr>
-      <tr><td>4</td><td>0.70</td><td>0.75</td><td>✓</td><td>3</td><td>1</td><td>3/4=0.75</td><td>3/10=0.30</td></tr>
-      <tr><td>5</td><td>0.50</td><td>0.2</td><td>✗</td><td>3</td><td>2</td><td>3/5=0.6</td><td>3/10=0.30</td></tr>
-    </tbody>
-  </table>
-
-  <p>AP вычисляется интерполяцией: для каждой Recall точки берут максимальную Precision справа (чтобы кривая была монотонно убывающая по Recall).</p>
-
-  <p>На этом примере примерно: AP &approx; 0.1×1.0 + 0.1×0.67 + 0.1×0.75 + 0.1×0.6 + ... &approx; 0.6–0.7 (зависит от интерполяции).</p>
-</div>
-
-<h3>5.4 mAP (mean Average Precision)</h3>
-
-<div class="formula">
-$$ \text{mAP} = \frac{1}{K} \sum_{k=1}^{K} \text{AP}_k $$
-<span class="note">$K$ — число классов. AP вычисляется отдельно для каждого класса, потом усредняется.</span>
-</div>
-
-<p><strong>Пороги IoU:</strong> COCO использует mAP@[0.5:0.95], то есть усреднение по порогам IoU от 0.5 до 0.95 с шагом 0.05. Это строже, чем старый PASCAL VOC (mAP@0.5).</p>
-
-<!-- ============================================ -->
-<h2 id="s6"><span class="num">6.</span> Двухстадийные детекторы: R-CNN, Fast R-CNN, Faster R-CNN</h2>
-
-<p>Идея: сначала найти region proposals (предложение регионов), потом классифицировать каждый.</p>
-
-<h3>6.1 R-CNN (2014)</h3>
-
-<div class="scheme">
-  Картинка
-     ↓
-  [Selective Search] ← алгоритм сегментации
-     ↓ (2000 region proposals)
-  Resize to 224×224
-     ↓
-  [CNN extractor] (AlexNet)
-     ↓
-  [Classifier + BBox regressor]
-     ↓
-  Детекции
-<span class="cap">R-CNN архитектура. Selective Search генерирует ~2000 регионов, каждый независимо обрабатывается CNN.</span></div>
-
-<p><strong>Минусы:</strong> Медленно! 2000 проходов через CNN на одну картинку. ~47 сек на картинку.</p>
-
-<h3>6.2 Fast R-CNN (2015)</h3>
-
-<p><strong>Улучшение:</strong> Запустить CNN один раз на полную картинку, получить feature map. Потом спроецировать region proposals на этот feature map.</p>
-
-<div class="scheme">
-  Картинка
-     ↓
-  [CNN] ← один раз
-     ↓
-  Feature map (14×14×512)
-     ↓
-  [Selective Search region proposals]
-     ↓ (проецируются на feature map)
-  [RoI Pooling] ← новое: фиксированный размер для каждого региона
-     ↓
-  Fully connected layers
-     ↓
-  Classifier + BBox regressor
-<span class="cap">Fast R-CNN. CNN один раз, потом работа с feature map. RoI Pooling: для каждого региона выполнить max pooling в фиксированную сетку (7×7).</span></div>
-
-<p><strong>Скорость:</strong> 0.3 сек на картинку (в 150 раз быстрее).</p>
-
-<h3>6.3 Faster R-CNN (2015) — основной детектор</h3>
-
-<p><strong>Улучшение:</strong> Selective Search медленный. Заменить на <strong>RPN</strong> (Region Proposal Network) — обучаемая сеть для поиска регионов.</p>
-
-<div class="formula">
-$$ \text{Faster R-CNN} = \text{RPN} + \text{Fast R-CNN head} $$
-</div>
-
-<div class="scheme">
-  Картинка
-     ↓
-  [CNN backbone: ResNet] ← один раз
-     ↓
-  Feature map
-     ├────────────────────────────────┬─────────────────────┐
-     ↓                                ↓                     ↓
-  [RPN]                    [RoI Head: FC layers]   [BBox Head]
-  (предложение регионов)    (классификация)        (уточнение боксов)
-     ↓                                ↓
-  Region proposals                Classes
-  (x, y, w, h, objectness)        ↓
-                            Финальные детекции
-                            (после NMS)
-<span class="cap">Faster R-CNN. RPN встроена прямо в архитектуру. Все можно обучать end-to-end.</span></div>
-
-<h3>6.4 Anchor-базированный подход</h3>
-
-<p><strong>Anchor:</strong> Предопределённый набор шаблонных боксов разных масштабов и aspect ratio на каждой позиции feature map.</p>
-
-<p>Пример: на позиции (14, 14) feature map создают 9 anchor'ов разных размеров. Для каждого anchor предсказывают:</p>
-<ul>
-  <li>objectness: вероятность, что в этом anchor есть объект</li>
-  <li>offset: поправки к координатам anchor (delta x, y, w, h)</li>
-</ul>
-
-<p><strong>Вывод:</strong> Anchor часто совпадают с истинными боксами, что упрощает регрессию (предсказывать deltas проще, чем абсолютные координаты).</p>
-
-<!-- ============================================ -->
-<h2 id="s7"><span class="num">7.</span> Одностадийные детекторы: YOLO, SSD, RetinaNet</h2>
-
-<p>Вместо двух стадий, предсказывать классы и боксы прямо на feature map за один проход.</p>
-
-<h3>7.1 YOLO (You Only Look Once)</h3>
-
-<div class="scheme">
-  Картинка
-     ↓
-  Resize to 448×448
-     ↓
-  [CNN]
-     ↓
-  Output: 7×7×(5 + K)
-  ├─ 7×7 ячеек сетки
-  ├─ 5: (x, y, w, h, confidence)
-  └─ K: классы (один набор на ячейку)
-<span class="cap">YOLO. Картинка разбивается на 7×7 ячеек. Каждая ячейка предсказывает 2 бокса и классы.</span></div>
-
-<p><strong>Плюсы:</strong> Очень быстро (45 FPS в реальном времени).</p>
-<p><strong>Минусы:</strong> Борется с близкими объектами (одна ячейка может предсказать только несколько боксов); низкая точность на малых объектах.</p>
-
-<h3>7.2 SSD (Single Shot MultiBox Detector)</h3>
-
-<p><strong>Улучшение YOLO:</strong> Использовать мультимасштабные feature maps (как в FPN).</p>
-
-<div class="scheme">
-  Feature map уровень 1: 38×38 → детектирует малые объекты
-  Feature map уровень 2: 19×19 → объекты среднего размера
-  Feature map уровень 3: 10×10 → крупные объекты
-  ...
-
-  На каждом уровне anchor-box регрессия как в Faster R-CNN.
-<span class="cap">SSD использует пирамиду признаков (как FPN). Каждый уровень отвечает за свой диапазон масштабов.</span></div>
-
-<p><strong>Результат:</strong> Лучше обрабатывает объекты разных размеров.</p>
-
-<h3>7.3 RetinaNet и Focal Loss</h3>
-
-<p><strong>Проблема одностадийных детекторов:</strong> Дисбаланс класса фон/объект.</p>
-
-<div class="box errbox">
-  <div class="bt">⚠️ Дисбаланс классов</div>
-  <p>На картинке может быть 100 000 фоновых anchor'ов и всего 10 объектов. При стандартном cross-entropy loss градиенты от 100 000 фоновых примеров подавляют сигнал от 10 объектов.</p>
-</div>
-
-<p><strong>Решение: Focal Loss</strong></p>
-
-<div class="formula">
-$$ FL(p_t) = -\alpha (1 - p_t)^\gamma \log(p_t) $$
-<span class="note">$p_t$ — вероятность истинного класса. $(1-p_t)^\gamma$ — фокусирующий фактор. При $\gamma=0$ это обычный CE. При $\gamma=2$ (стандартно), трудные примеры (с низкой $p_t$) получают большие веса.</span>
-</div>
-
-<p>Интуиция: Focal loss уменьшает вес легких примеров (уверенных неправильных классификаций) и фокусирует на трудных, которые нужно обучить.</p>
-
-<!-- ============================================ -->
-<h2 id="s8"><span class="num">8.</span> Anchor-free детекция: FCOS, CenterNet, DETR</h2>
-
-<p>Отказ от anchor'ов. Предсказывать боксы прямо без шаблонов.</p>
-
-<h3>8.1 FCOS (Fully Convolutional One-Stage Object Detection)</h3>
-
-<p>На каждой позиции feature map (как пиксель исходной картинки) предсказать:</p>
-<ul>
-  <li>расстояния до границ объекта слева, справа, сверху, снизу</li>
-  <li>класс объекта</li>
-  <li>центрированность (как близко к центру объекта)</li>
-</ul>
-
-<p><strong>Плюсы:</strong> Нет гиперпараметров anchor'ов. Проще.</p>
-
-<h3>8.2 CenterNet</h3>
-
-<p>Предсказать: центр каждого объекта + его размер (w, h).</p>
-
-<p>На heatmap позиция центра объекта имеет значение 1, остальное — гладко падает к 0 (гауссиан). Простое и эффективно.</p>
-
-<h3>8.3 DETR (Detection Transformer)</h3>
-
-<p>Революционный подход: детекция как предсказание множества без anchor'ов и NMS.</p>
-
-<div class="formula">
-$$ \text{Детекция} = \text{Transformer encoder} + \text{Transformer decoder} + \text{Linear head} $$
-</div>
-
-<div class="scheme">
-  Картинка
-     ↓
-  CNN extractor → Flatten/Patch Embedding
-     ↓
-  Transformer Encoder
-     ↓
-  N learnable queries (N = максимум объектов, обычно 100)
-     ↓
-  Transformer Decoder
-     ↓
-  Linear layers: (x, y, w, h, class_logits)
-     ↓
-  Hungarian matching для сопоставления с ground truth
-     ↓
-  Loss (без NMS!)
-<span class="cap">DETR. Детекция как задача предсказания множества. Венгерский алгоритм сопоставляет предсказанные боксы с истинными.</span></div>
-
-<p><strong>Вся магия:</strong> Нет NMS, нет anchor'ов. Loss напрямую между множествами (N предсказанных vs N истинных).</p>
-
-<!-- ============================================ -->
-<h2 id="s9"><span class="num">9.</span> Сегментация: три разновидности</h2>
-
-<p>Ключевая разница: что классифицируется и как различаются объекты.</p>
-
-<div class="scheme">
-  Исходная картинка: три человека и небо
-
-     Человек 1  Человек 2  Небо
-        (A)        (B)      (C)
-
-  ┌──────────────────────────────┐
-  │ АААА                         │
-  │ AAAA        BBBB             │
-  │ AAAA        BBBB        CCCCC│
-  │ AAAA    BBBBBBBB    CCCCCCCCC│
-  │ AAAABBBBBBBBBBBBCCCCCCCCCCCC │
-  └──────────────────────────────┘
-
-  СЕМАНТИЧЕСКАЯ:         INSTANCE:              PANOPTIC:
-  {пиксель → класс}      {пиксель → ID}         {пиксель → (класс, ID)}
-
-  А → класс "человек"   А → instance_id 1      А → (человек, id=1)
-  В → класс "человек"   В → instance_id 2      В → (человек, id=2)
-  С → класс "небо"      С → instance_id 3      С → (небо, id=3)
-
-  Не различает людей!    Различает экземпляры!  Комбинация.
-<span class="cap">Три вида сегментации. Ключевое отличие: классы ли различаем или нужны отдельные маски для каждого экземпляра.</span></div>
-
-<h3>9.1 Семантическая сегментация</h3>
-
-<p>Каждому пикселю присвоить класс. Выход размера $(H, W, K)$ где $K$ число классов.</p>
-
-<p><strong>Задача:</strong> Мобильная робототехника (трава vs дорога), медицинская диагностика, автономные автомобили (обнаруживать полосы, выделить дорогу).</p>
-
-<h3>9.2 Instance segmentation</h3>
-
-<p>Каждому объекту (экземпляру) дать отдельную маску. Выход: список масок и классов.</p>
-
-<p>Используется в: рассчитывать видимые области, подсчёт объектов, сегментация людей в толпе.</p>
-
-<h3>9.3 Panoptic segmentation</h3>
-
-<p>Объединение: « stuff» классы (сегментированы, но не разделены) + «thing» классы (instance'ы).</p>
-
-<p>Пример: категория «небо» — это stuff (одна маска на всю картинку). Категория «человек» — thing (каждый человек отдельно).</p>
-
-<p>Используется в: полная понимание сцены (автономные машины).</p>
-
-<!-- ============================================ -->
-<h2 id="s10"><span class="num">10.</span> Архитектуры сегментации: FCN, U-Net, DeepLab, Mask R-CNN</h2>
-
-<h3>10.1 FCN (Fully Convolutional Networks)</h3>
-
-<p>Первая полносвязная сеть для семантической сегментации. Идея: энкодер-декодер без полносвязных слоёв.</p>
-
-<div class="scheme">
-  Картинка 224×224
-     ↓
-  Conv layers (как классификация) → 14×14 feature map
-     ↓
-  Upsampling (transposed conv) → 28×28
-     ↓
-  Upsampling → 56×56
-     ↓
-  Upsampling → 112×112
-     ↓
-  Upsampling → 224×224
-     ↓
-  K каналов (один на класс)
-<span class="cap">FCN. Простой энкодер-декодер. Upsampling — это перестановка транспозиции свёртки.</span></div>
-
-<p><strong>Минус:</strong> Теряются детали тонкой структуры при upsampling.</p>
-
-<h3>10.2 U-Net</h3>
-
-<p>Главное нововведение: <strong>skip-connections</strong> (пропускающие соединения) между энкодером и декодером.</p>
-
-<div class="scheme">
-  Энкодер                        Декодер
-  Input (H×W)
-     ↓                              ↓
-  Conv + Pool → (H/2, W/2) ─────────────────┐
-     ↓                              ↑ Concatenate
-  Conv + Pool → (H/4, W/4) ──────────────┐  │
-     ↓                              ↑ Cat │
-  Conv + Pool → (H/8, W/8) ───────────┐  │  │
-     ↓                           ↑ Cat │  │
-  Bottleneck (H/8, W/8)         │     │  │
-     ↓                           │     │  │
-  Upsample + Conv  ──────────────┴─────┘  │
-     ↓                                    │
-  Upsample + Conv  ──────────────┬────────┘
-     ↓                           │
-  Upsample + Conv  ──────────────┴───────────┐
-     ↓                                       │
-  Output (H, W)  ◀──────────────────────────┘
-<span class="cap">U-Net архитектура. Skip connections помогают восстановить пространственные детали (края объектов). Отсюда название U-shape.</span></div>
-
-<p><strong>Зачем skip-connections?</strong> При downsampling теряется информация о деталях. Skip-connections позволяют декодеру получить эту информацию обратно: конкатенировать feature map энкодера с upsampled feature map декодера.</p>
-
-<h3>10.3 DeepLab (Dilated/Atrous Convolution)</h3>
-
-<p>Проблема: при downsampling теряется пространственное разрешение. Решение: использовать дилатированные свёртки (dilated convolutions), которые расширяют receptive field без loss разрешения.</p>
-
-<div class="formula">
-$$ \text{Dilated Conv с rate} = r: \text{делают свёртку с шагом } r $$
-<span class="note">Нормальная свёртка — rate = 1. Rate = 2 означает, что веса применяются не соседними пикселями, а с расстоянием 2.</span>
-</div>
-
-<div class="scheme">
-  Обычная свёртка:           Dilated Conv (rate=2):
-  ┌─┬─┬─┐                     ●
-  ├─┼●┼─┤                     │
-  └─┼─┼─┘                     ●─────●
-    Receptive field = 3×3     Receptive field = 5×5, параметров столько же
-<span class="cap">Dilated conv увеличивает receptive field, не увеличивая параметры. Это позволяет «видеть» больше контекста.</span></div>
-
-<p><strong>ASPP (Atrous Spatial Pyramid Pooling):</strong> Комбинировать dilated conv разных rate'ов на одном уровне, чтобы захватить контекст разных масштабов.</p>
-
-<h3>10.4 Mask R-CNN</h3>
-
-<p>Расширение Faster R-CNN для instance segmentation. Добавляется ветка маски.</p>
-
-<div class="scheme">
-  Картинка
-     ↓
-  Faster R-CNN (классификация + bounding box)
-     ↓
-  For each region proposal:
-     ├─ RoIAlign (уточненный variant RoI Pooling)
-     └─ Conv layers ──▶ Mask (H × W × K)
-                      для каждого класса отдельная маска
-<span class="cap">Mask R-CNN. На каждый регион proposals добавляется ветка для предсказания маски.</span></div>
-
-<p><strong>RoIAlign vs RoIPooling:</strong> RoIPooling имеет проблему квантования при проецировании координат. RoIAlign использует билинейную интерполяцию, чтобы избежать смещений. Результат: маски точнее.</p>
-
-<!-- ============================================ -->
-<h2 id="s11"><span class="num">11.</span> Метрики сегментации и Dice loss</h2>
-
-<h3>11.1 Pixel accuracy</h3>
-
-<div class="formula">
-$$ \text{Pixel accuracy} = \frac{\text{# пикселей классифицировано правильно}}{\text{# всех пикселей}} $$
-</div>
-
-<p><strong>Минус:</strong> Обманчива при дисбалансе классов. Если небо занимает 90%, модель может предсказать «всё небо» и получить 90% accuracy, но не видеть объекты.</p>
-
-<h3>11.2 IoU (Jaccard) и Mean IoU</h3>
-
-<div class="formula">
-$$ \text{IoU}_k = \frac{\text{# пикселей класса } k \text{ правильно}}{\text{# всех пикселей класса } k \text{ (предсказано или истинно)}} $$
-$$ \text{Mean IoU} = \frac{1}{K} \sum_{k=1}^K \text{IoU}_k $$
-</div>
-
-<p>Mean IoU — стандартная метрика сегментации. Справедлива к разным классам, не обманывается дисбалансом.</p>
-
-<h3>11.3 Dice coefficient</h3>
-
-<div class="formula">
-$$ \text{Dice} = \frac{2 \cdot |X \cap Y|}{|X| + |Y|} = \frac{2 \cdot TP}{2 \cdot TP + FP + FN} $$
-<span class="note">Похожа на IoU, но по-другому нормирована. Dice часто выше IoU при низкой точности.</span>
-</div>
-
-<p><strong>Связь Dice и IoU:</strong> $\text{Dice} = \frac{2 \cdot \text{IoU}}{1 + \text{IoU}}$</p>
-
-<h3>11.4 Dice Loss</h3>
-
-<p>Когда есть сильный дисбаланс классов (например, в медицинской сегментации опухоль занимает 1% картинки), standard cross-entropy дает малые градиенты по миноритарным классам.</p>
-
-<div class="formula">
-$$ L_{\text{Dice}} = 1 - \text{Dice} = 1 - \frac{2 \sum_i p_i g_i}{\sum_i p_i + \sum_i g_i} $$
-<span class="note">$p_i$ — предсказанная вероятность пиксела быть целевым классом. $g_i$ — ground truth (0 или 1).</span>
-</div>
-
-<p><strong>Интуиция:</strong> Dice loss вознаграждает за правильное покрытие области, не зависит от размера. Минор-класс получает достаточные градиенты.</p>
-
-<p>На практике часто комбинируют: $L = L_{\text{CE}} + L_{\text{Dice}}$</p>
-
-<!-- ============================================ -->
-<h2 id="s12"><span class="num">12.</span> Ключевые точки: постановка и heatmap-регрессия</h2>
-
-<h3>12.1 Постановка</h3>
-
-<p>Задача: локализовать K особых точек на объекте.</p>
-
-<p><strong>Примеры:</strong></p>
-<ul>
-  <li>Человек: 17 точек суставов (COCO: шея, плечи, локти, запястья, бёдра, колени, лодыжки и т.д.)</li>
-  <li>Лицо: 68 точек (брови, глаза, нос, рот, контур лица)</li>
-  <li>Рука: 21 точка на каждый палец</li>
-</ul>
-
-<h3>12.2 Два подхода: регрессия координат vs heatmap</h3>
-
+<div class="table-scroll-wrapper">
 <table>
-<thead><tr><th>Подход</th><th>Выход</th><th>Точность</th><th>Скорость</th></tr></thead>
+<thead>
+  <tr>
+    <th>Семейство моделей</th>
+    <th>Тип детекции / сегментации</th>
+    <th>Преимущества</th>
+    <th>Недостатки</th>
+    <th>Область применения</th>
+  </tr>
+</thead>
 <tbody>
-<tr><td><strong>Прямая регрессия</strong></td><td>Вектор (x₁, y₁, x₂, y₂, ..., xₖ, yₖ)</td><td>Низкая (~75% на COCO)</td><td>Быстра</td></tr>
-<tr><td><strong>Heatmap-регрессия</strong></td><td>K масок (H, W) с гауссианами</td><td>Высокая (~95% на COCO)</td><td>Медленнее</td></tr>
+  <tr>
+    <td><strong>Faster R-CNN</strong></td>
+    <td>Двухстадийный детекционный фреймворк (RPN + RoIAlign).</td>
+    <td>Максимальная точность локализации, надежное обнаружение малых объектов.</td>
+    <td>Низкая скорость ($15\dots 25$ FPS), тяжелая архитектура.</td>
+    <td>Медицинская визуализация, спутниковый мониторинг.</td>
+  </tr>
+  <tr>
+    <td><strong>YOLO (v8 / v9 / v10)</strong></td>
+    <td>Одностадийный безъякорный (Anchor-Free) детекционный конвейер.</td>
+    <td>Экстремальная скорость ($100\dots 300$ FPS), легковесность.</td>
+    <td>Трудности при плотном скоплении перекрывающихся объектов.</td>
+    <td>Автопилоты, видеонаблюдение в реальном времени, мобильные устройства.</td>
+  </tr>
+  <tr>
+    <td><strong>U-Net</strong></td>
+    <td>Семантическая сегментация с полносимметричными Skip-Connections.</td>
+    <td>Точные границы объектов, превосходно учится на малых выборках.</td>
+    <td>Не разделяет пересекающиеся объекты одного класса.</td>
+    <td>Сегментация МРТ/КТ снимков, микроскопия.</td>
+  </tr>
+  <tr>
+    <td><strong>Mask R-CNN</strong></td>
+    <td>Инстанс-сегментация (Faster R-CNN + FCN-ветка масок).</td>
+    <td>Попиксельная маска для каждого индивидуального объекта.</td>
+    <td>Вычислительно затратно, не подходит для реального времени на слабых GPU.</td>
+    <td>Робототехника (захват манипулятором), дополненная реальность.</td>
+  </tr>
+  <tr>
+    <td><strong>DETR (Detection Transformer)</strong></td>
+    <td>End-to-End Transformer детекция на Hungarian Matching.</td>
+    <td>Полное отсутствие Anchor Boxes и NMS, глобальный контекст self-attention.</td>
+    <td>Долгая сходимость при обучении (до 500 эпох), требовательность к GPU.</td>
+    <td>Современные базовые мультимодальные модели (Foundation CV).</td>
+  </tr>
 </tbody>
 </table>
-
-<h3>12.3 Heatmap-регрессия (стандарт)</h3>
-
-<div class="scheme">
-  Картинка (человек)
-     ↓
-  CNN ──▶ Feature map (64×64×256)
-     ↓
-  Для каждой из 17 точек:
-     ├─ Conv layers ──▶ Heatmap (64×64)
-     │                 Гауссиан центром в истинной точке
-     │                 σ ≈ 2–5 пикселей
-     │
-     ├─ Loss: MSE между предсказанной и истинной heatmap
-     │
-     └─ Infer: argmax 2D в heatmap ──▶ (x, y)
-<span class="cap">Heatmap регрессия. Каждая ключевая точка — отдельная карта вероятности.</span></div>
-
-<p><strong>Почему heatmap лучше?</strong></p>
-<ul>
-  <li>Регрессия координат требует предсказать вектор размерности 2K, что сложнее. Heatmap — это локальная пространственная задача, каждая точка независима.</li>
-  <li>Heatmap природно кодирует неопределённость: если точка размыта, гауссиан шире.</li>
-  <li>Градиенты лучше: соседние пиксели дают информацию, регрессия координат — нет.</li>
-</ul>
-
-<h3>12.4 Метрики</h3>
-
-<div class="formula">
-$$ \text{PCK} = \frac{\text{# правильных точек}}{\text{# всех точек}}, \quad \text{где правильная} \Leftrightarrow \text{distance} \le 0.2 \cdot \text{torso\_diameter} $$
 </div>
 
-<p><strong>OKS (Object Keypoint Similarity)</strong> — аналог IoU для ключевых точек, учитывает расстояние и масштаб объекта.</p>
-
 <!-- ============================================ -->
-<h2 id="s13"><span class="num">13.</span> Трекинг объектов: SORT, DeepSORT, ByteTrack</h2>
-
-<p>Задача: в видео отследить каждый объект во времени, назначить ему ID.</p>
-
-<div class="box idea">
-  <div class="bt">💡 Трекинг-ориентированный подход</div>
-  <p>Парадигма: <strong>tracking-by-detection</strong> (обнаружение + сопоставление):</p>
-  <ol>
-    <li>Запустить детектор на каждом кадре → набор детекций.</li>
-    <li>Сопоставить текущие детекции с треками из прошлых кадров.</li>
-    <li>Обновить треки, создать новые, удалить мёртвые.</li>
-  </ol>
-</div>
-
-<h3>13.1 SOT vs MOT</h3>
-
-<table>
-<thead><tr><th>Тип</th><th>Примеры</th><th>Задача</th></tr></thead>
-<tbody>
-<tr><td><strong>SOT</strong> (Single Object Tracking)</td><td>SiamFC, SiamRPN</td><td>Отследить один выбранный объект; сложная окклюзия, смена ракурса</td></tr>
-<tr><td><strong>MOT</strong> (Multi-Object Tracking)</td><td>SORT, DeepSORT, ByteTrack</td><td>Отследить все объекты сразу; фокус на назначении ID, избежать дублей</td></tr>
-</tbody>
-</table>
-
-<h3>13.2 SORT (Simple Online and Realtime Tracking)</h3>
-
-<p>Минималистичный алгоритм:</p>
-
-<div class="scheme">
-  На каждом кадре:
-
-  1. Запустить детектор ──▶ набор боксов с confidence
-  2. NMS ──▶ отфильтрованные боксы
-  3. Для каждого имеющегося трека:
-     a) Запустить Kalman filter → предсказанная позиция на кадре t
-     b) Вычислить IoU между предсказанием и новыми детекциями
-     c) Венгерский алгоритм → сопоставление максимум IoU
-  4. Обновить треки, создать новые (детекция без сопоставления), удалить старые
-
-  Фильтр Калмана: x_{t} = A x_{t-1} + шум
-                   y_t = C x_t + шум
-<span class="cap">SORT. Детектор + Kalman filter + сопоставление. Очень быстро (~260 FPS на GPU).</span></div>
-
-<h3>13.3 DeepSORT — добавляет реидентификацию</h3>
-
-<p>Проблема SORT: если объект исчезает, он может получить новый ID при появлении. SORT плохо справляется с окклюзией.</p>
-
-<p><strong>DeepSORT добавляет:</strong> Для каждого трека хранить <strong>embedding'и внешности</strong> (appearance embeddings) недавних кадров. При сопоставлении использовать не только IoU, но и косинусное сходство между embeddings.</p>
-
-<div class="formula">
-$$ \text{Cost} = \alpha \cdot \text{IoU\_distance} + (1-\alpha) \cdot \text{cosine\_distance}(f(x_i), f(x_j)) $$
-<span class="note">$f(x)$ — embedding внешности объекта (из обученной на re-ID сети). Две версии одного объекта имеют похожие embeddings.</span>
-</div>
-
-<p><strong>Результат:</strong> Сохраняет ID даже при скором исчезновении и появлении.</p>
-
-<h3>13.4 ByteTrack — без явных embeddings</h3>
-
-<p>Более простой, но эффективный подход: комбинировать high-confidence детекции (как в DeepSORT) с <em>low-confidence детекциями</em>, которые обычно SORT отбрасывает.</p>
-
-<div class="scheme">
-  High-conf детекции (conf > 0.5) ──┐
-                                    ├─▶ Сопоставление (IoU)
-  Low-conf детекции (0.1–0.5)   ──┘
-
-  Интуиция: низкая confidence часто = окклюзия, но коробка всё ещё близко.
-<span class="cap">ByteTrack. Простой, но работает лучше DeepSORT. Ключ: повторное использование низкоуверенных детекций для трекинга.</span></div>
-
-<!-- ============================================ -->
-<h2 id="s14"><span class="num">14.</span> Сводная таблица: все задачи CV</h2>
-
-<table style="font-size: 85%;">
-<thead><tr><th>Задача</th><th>Вход</th><th>Выход</th><th>Типич. архитектура</th><th>Метрика</th><th>Loss</th></tr></thead>
-<tbody>
-<tr><td>Классификация</td><td>Картинка</td><td>Класс (1–K)</td><td>ResNet, Vision Transformer</td><td>Accuracy, F1</td><td>Cross-entropy</td></tr>
-<tr><td>Локализация</td><td>Картинка, 1 объект</td><td>Класс + bounding box</td><td>Fast R-CNN</td><td>IoU, center distance</td><td>CE + MSE (регрессия координат)</td></tr>
-<tr><td><strong>Детекция</strong></td><td>Картинка, N объектов</td><td>N × (класс + bounding box + conf)</td><td>Faster R-CNN, YOLO, DETR</td><td><strong>mAP</strong></td><td>CE + Smooth L1 (регрессия)</td></tr>
-<tr><td>Сем. сегментация</td><td>Картинка</td><td>Маска (класс на пиксель)</td><td>U-Net, DeepLab</td><td>Mean IoU, Dice</td><td>CE + Dice loss</td></tr>
-<tr><td>Instance сегментация</td><td>Картинка</td><td>Маска для каждого объекта</td><td>Mask R-CNN</td><td>Mean IoU (per instance)</td><td>CE + Dice + binary CE</td></tr>
-<tr><td>Ключевые точки</td><td>Картинка, объект</td><td>K точек (x_i, y_i)</td><td>Encoder + heatmap decoder</td><td>PCK, OKS</td><td>MSE (heatmap) или L2 (регр.)</td></tr>
-<tr><td>Трекинг</td><td>Видео (T кадров)</td><td>Trajectories + ID</td><td>Detector + Kalman + сопоставление</td><td>MOTA, IDF1</td><td>IoU matching</td></tr>
-</tbody>
-</table>
-
-<!-- ============================================ -->
-<h2 id="qa">🎯 Препод спросит</h2>
+<h2 id="qa">6. 🎯 Препод спросит</h2>
 
 <details class="qa"><summary>Что такое IoU и почему это хорошая метрика?</summary>
 <div class="ans">
-<p>IoU = (Intersection) / (Union) — отношение пересечения двух регионов к их объединению. Значит от 0 (не пересекаются) до 1 (совпадают). Хороша, потому что: (1) интуитивна; (2) инвариантна к масштабу (большой и маленький боксы одинаково наказываются за неправильность); (3) даёт одно число для оценки точности локализации; (4) является порогом для TP/FP в детекции (IoU > 0.5 → TP).</p>
+<p>IoU = (Intersection) / (Union) — отношение площади пересечения двух областей к их объединению. Значение варьируется от 0 (не пересекаются) до 1 (полное совпадение). Преимущества: 1) Инвариантность к масштабу (одинаково штрафует ошибку как для объектов $10\times 10$, так и $1000\times 1000$); 2) Строгая математическая интерпретируемость; 3) Служит стандартизированным порогом (IoU $\ge 0.5 \implies$ True Positive) для вычисления Precision и Recall.</p>
 </div></details>
 
 <details class="qa"><summary>Объясни NMS алгоритм и почему он нужен.</summary>
@@ -840,7 +327,7 @@ $$ \text{Cost} = \alpha \cdot \text{IoU\_distance} + (1-\alpha) \cdot \text{cosi
 
 <details class="qa"><summary>Как вычисляется mAP? Что мера AP?</summary>
 <div class="ans">
-<p>AP (Average Precision) — площадь под precision-recall кривой. На оси X — Recall (доля найденных объектов), на оси Y — Precision (доля правильных предсказаний). Меняя порог confidence, получают разные (P, R). Интегрируя кривую, получают AP (одно число). mAP = среднее AP по всем классам (и иногда по порогам IoU). Стандарт COCO: mAP@[0.5:0.95] усредняет IoU пороги от 0.5 до 0.95.</p>
+<p>AP (Average Precision) — площадь под precision-recall кривой. На оси X — Recall (доля найденных объектов), на оси Y — Precision (доля правильных предсказаний). Меняя порог confidence, получают разные (P, R). Интегрируя кривую, получают AP (одно число). mAP = среднее AP по всем классам (и иногда по порогам IoU). Стандарт COCO: mAP@[0.5:0.95] усредняет IoU пороги от 0.5 до 0.95 с шагом 0.05.</p>
 </div></details>
 
 <details class="qa"><summary>Почему Faster R-CNN двухстадийная, а YOLO одностадийная? Плюсы и минусы.</summary>
@@ -889,7 +376,7 @@ $$ \text{Cost} = \alpha \cdot \text{IoU\_distance} + (1-\alpha) \cdot \text{cosi
 </div></details>
 
 <!-- ============================================ -->
-<h2 id="tasks">📝 Микро-задачи</h2>
+<h2 id="tasks">7. 📝 Микро-задачи с решениями</h2>
 
 <div class="task">
   <div class="tt">Задача 1. Расчёт IoU между двумя боксами</div>
@@ -968,23 +455,18 @@ $$ \text{Cost} = \alpha \cdot \text{IoU\_distance} + (1-\alpha) \cdot \text{cosi
 </div>
 
 <!-- ============================================ -->
-<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+<h2 id="cheat">8. ⚡ Скелет ответа по билету</h2>
 
 <div class="cheat">
-  <div class="bt">Скелет устного ответа по билету 13</div>
+  <div class="bt">Скелет устного ответа по билету 13: Задачи Computer Vision (Детекция, Сегментация, Трекинг)</div>
   <ol>
-    <li><strong>Лестница задач.</strong> Классификация → локализация → детекция (N объектов) → сегментация (каждый пиксель) → instance seg. → panoptic → keypoints → трекинг.</li>
-    <li><strong>Детекция: выход.</strong> Для каждого объекта: (x, y, w, h, класс, confidence). Число объектов заранее неизвестно — главная сложность.</li>
-    <li><strong>IoU.</strong> Intersection / Union = мера пересечения двух регионов. От 0 (не пересекаются) до 1 (совпадают). Порог 0.5 → TP/FP в детекции.</li>
-    <li><strong>NMS.</strong> Non-Maximum Suppression: сортировать боксы по confidence, брать лучший, удалять перекрывающихся (IoU > threshold), повторять. Фильтрует дубли.</li>
-    <li><strong>mAP.</strong> Mean Average Precision. AP = площадь под precision-recall кривой (для каждого класса). mAP = среднее AP. COCO: mAP@[0.5:0.95] — усреднение по порогам IoU.</li>
-    <li><strong>Двухстадийные детекторы.</strong> Faster R-CNN: RPN (région proposals) → classification + bounding box regression. Точнее, медленнее. Anchor-базированные: регрессия deltas к шаблонам.</li>
-    <li><strong>Одностадийные.</strong> YOLO/SSD: сразу предсказать классы и боксы на feature map. Быстрее, менее точны на малых объектах. RetinaNet + Focal Loss для фиксации дисбаланса класса.</li>
-    <li><strong>Anchor-free.</strong> FCOS, CenterNet: нет шаблонов, предсказать координаты прямо. DETR: трансформер, венгерский алгоритм, без NMS.</li>
-    <li><strong>Сегментация.</strong> Семантическая (класс на пиксель), instance (маска на объект), panoptic (комбинация). U-Net: skip-connections восстанавливают детали. DeepLab: dilated conv для больших receptive field. Dice loss для дисбаланса.</li>
-    <li><strong>Keypoints.</strong> Heatmap-регрессия (карта гауссианов) лучше прямой регрессии координат: 95% vs 75% accuracy. Каждая точка — отдельная карта вероятности.</li>
-    <li><strong>Трекинг.</strong> Tracking-by-detection: детектор → сопоставление (IoU или cosine distance) → update tracks. SORT (быстро) vs DeepSORT (appearance embeddings) vs ByteTrack (low-conf детекции).</li>
-    <li><strong>Метрики.</strong> Детекция: mAP. Сегментация: Mean IoU, Dice. Keypoints: PCK, OKS. Трекинг: MOTA, IDF1.</li>
+    <li><strong>Лестница задач CV:</strong> Классификация $\to$ Локализация $\to$ Детекция ($N$ боксов) $\to$ Семантическая сегментация (класс на пиксель) $\to$ Инстанс-сегментация (маска каждого объекта) $\to$ Паноптическая (Stuff + Things) $\to$ Ключевые точки $\to$ Трекинг.</li>
+    <li><strong>Метрики детекции:</strong> IoU = $\frac{\text{Intersection}}{\text{Union}}$. NMS: удаление перекрывающихся дубликатов. AP: площадь под PR-кривой. mAP@[0.5:0.95]: стандарт COCO.</li>
+    <li><strong>Двухстадийные детекторы (Faster R-CNN):</strong> Backbone $\to$ RPN (генерация proposals с anchor boxes) $\to$ RoIAlign (билинейная интерполяция без округлений) $\to$ классификационная и регрессионная головы. Высокая точность, умеренная скорость.</li>
+    <li><strong>Одностадийные детекторы (YOLO / RetinaNet):</strong> Прямое предсказание классов и координат по сетке. RetinaNet решает проблему дисбаланса фона через Focal Loss $\text{FL}(p_t) = -\alpha(1-p_t)^\gamma \log(p_t)$. Real-time скорость.</li>
+    <li><strong>Anchor-Free и Transformers (DETR):</strong> FCOS/CenterNet (предсказание центров/смещений). DETR (Transformer Encoder-Decoder, Bipartite Matching с венгерским алгоритмом, без NMS).</li>
+    <li><strong>Сегментация (U-Net, Mask R-CNN):</strong> U-Net: энкодер-декодер со Skip-Connections для точного восстановления границ. Mask R-CNN: добавление FCN ветки масок к Faster R-CNN. Функции потерь: BCE + Dice Loss.</li>
+    <li><strong>Ключевые точки и трекинг:</strong> Heatmap-регрессия (гауссианы вероятностей) точнее прямой векторной регрессии. MOT: парадигма Tracking-by-Detection (SORT с фильтром Калмана, DeepSORT с re-ID эмбеддингами, ByteTrack с низкопороговыми детекциями).</li>
   </ol>
 </div>
 

@@ -1,6 +1,3 @@
-"""
-Extract all Q&As and Micro-Tasks with robust regex / tag matching and inspect them.
-"""
 import json
 import re
 from pathlib import Path
@@ -8,6 +5,11 @@ from pathlib import Path
 COURSE_ROOT = Path(__file__).resolve().parent.parent
 LECTURES_DIR = COURSE_ROOT / "lectures"
 lecture_files = sorted([f.name for f in LECTURES_DIR.glob("*.html") if re.match(r"^\d{2}-.*\.html$", f.name)])
+
+def clean_html(text: str) -> str:
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
 
 def extract_all():
     total_qas = 0
@@ -17,57 +19,53 @@ def extract_all():
     for fname in lecture_files:
         content = (LECTURES_DIR / fname).read_text(encoding="utf-8")
 
-        # QA blocks: <details class="...qa..."> ... </details>
+        # QA blocks: <details class="qa"> <summary> ... </summary> <div class="ans"> ... </div> </details>
         qa_pattern = re.compile(r'<details\s+class=["\'][^"\']*?\bqa\b[^"\']*?["\']>(.*?)</details>', re.DOTALL)
         qas = []
         for m in qa_pattern.finditer(content):
             qa_html = m.group(1)
             summary_m = re.search(r'<summary>(.*?)</summary>', qa_html, re.DOTALL)
             summary = summary_m.group(1).strip() if summary_m else ""
-            body = qa_html[summary_m.end():].strip() if summary_m else qa_html.strip()
-            clean_summary = re.sub(r'<[^>]+>', '', summary).strip()
-            clean_body = re.sub(r'<[^>]+>', '', body).strip()
+            ans_m = re.search(r'<div\s+class=["\']ans["\']>(.*?)</div>', qa_html, re.DOTALL)
+            ans = ans_m.group(1).strip() if ans_m else qa_html[summary_m.end():].strip() if summary_m else qa_html
+            
+            clean_summary = clean_html(summary)
+            clean_ans = clean_html(ans)
             qas.append({
                 "summary": clean_summary,
-                "body": clean_body,
+                "body": clean_ans,
                 "raw_html": m.group(0)
             })
 
         # Micro-task blocks: <div class="task"> ... </div>
-        task_pattern = re.compile(r'<div\s+class=["\'][^"\']*?\btask\b[^"\']*?["\']>(.*?)(?=(?:<div\s+class=["\'][^"\']*?\btask\b|<section|</main>|\Z))', re.DOTALL)
+        task_chunks = re.split(r'<div\s+class=["\']task["\'][^>]*>', content)[1:]
         tasks = []
-        for m in task_pattern.finditer(content):
-            task_raw = m.group(1)
-            # Sol block: details with class sol OR details containing <summary>Решение or <div class="sol">
-            sol_m = re.search(r'<details(?:\s+class=["\'][^"\']*?\bsol\b[^"\']*?["\'])?[^>]*?>\s*<summary>\s*Решение.*?</details>', task_raw, re.DOTALL)
-            if not sol_m:
-                sol_m = re.search(r'<details\s+class=["\'][^"\']*?\bsol\b[^"\']*?["\']>(.*?)</details>', task_raw, re.DOTALL)
+        for c in task_chunks:
+            end_match = re.search(r'(<div\s+class=["\']task["\']|<h2\b|<div\s+class=["\']navrow["\']|<div\s+class=["\']cheat["\'])', c)
+            task_body = c[:end_match.start()] if end_match else c
 
-            if sol_m:
-                sol_html = sol_m.group(0)
-                sol_summary_m = re.search(r'<summary>(.*?)</summary>', sol_html, re.DOTALL)
-                sol_summary = sol_summary_m.group(1).strip() if sol_summary_m else ""
-                sol_body = sol_html[sol_summary_m.end():].replace('</details>', '').strip() if sol_summary_m else sol_html.strip()
-                problem_html = task_raw[:sol_m.start()]
-            else:
-                sol_summary = ""
-                sol_body = ""
-                problem_html = task_raw
+            tt_m = re.search(r'<div\s+class=["\']tt["\']>(.*?)</div>', task_body, re.DOTALL)
+            sol_m = re.search(r'<div\s+class=["\']sol["\']>(.*?)</div>', task_body, re.DOTALL)
 
-            clean_problem = re.sub(r'<[^>]+>', '', problem_html).strip()
-            clean_sol = re.sub(r'<[^>]+>', '', sol_body).strip()
+            det_pos = task_body.find("<details")
+            prob_raw = task_body[:det_pos] if det_pos != -1 else task_body
+            if tt_m:
+                prob_raw = prob_raw.replace(tt_m.group(0), "")
+
+            clean_problem = clean_html(prob_raw)
+            clean_sol = clean_html(sol_m.group(1)) if sol_m else ""
 
             tasks.append({
                 "problem": clean_problem,
-                "solution_summary": re.sub(r'<[^>]+>', '', sol_summary).strip(),
+                "solution_summary": clean_html(tt_m.group(1)) if tt_m else "Решение",
                 "solution": clean_sol,
-                "has_sol": sol_m is not None and len(clean_sol) > 0,
-                "raw_html": m.group(0)
+                "has_sol": len(clean_sol) > 0,
+                "raw_html": task_body
             })
 
         # Pills
-        pill_matches = re.findall(r'<span\s+class=["\']pill["\']>(.*?)</span>', content)
-        clean_pills = [re.sub(r'<[^>]+>', '', p).strip() for p in pill_matches]
+        pill_matches = re.findall(r'<span\s+class=["\']pill[^"\']*["\']>(.*?)</span>', content)
+        clean_pills = [clean_html(p) for p in pill_matches]
 
         qa_pill = None
         task_pill = None

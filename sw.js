@@ -3,7 +3,7 @@
  * Implements Network-First with Cache Fallback for local static assets and SWR for MathJax CDN.
  */
 
-const CACHE_NAME = 'ai-course-v2';
+const CACHE_NAME = 'ai-course-v3';
 
 const STATIC_ASSETS = [
   './',
@@ -43,10 +43,7 @@ const STATIC_ASSETS = [
   './lectures/24-vi-pi-mc.html',
   './lectures/25-td-qlearning.html',
   './lectures/26-policy-gradient.html',
-  './lectures/27-actor-critic.html',
-  './anki_decks/ai_course_exam_qas.tsv',
-  './anki_decks/ai_course_microtasks.tsv',
-  './anki_decks/ai_course_3min_cheatsheets.tsv'
+  './lectures/27-actor-critic.html'
 ];
 
 // Install: pre-cache all core static assets

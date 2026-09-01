@@ -12,7 +12,9 @@ const ROOT = path.resolve(__dirname, '..');
 const SW_PATH = path.join(ROOT, 'sw.js');
 const INDEX_PATH = path.join(ROOT, 'index.html');
 const TRACKER_PATH = path.join(ROOT, 'js', 'tracker.js');
-const EXAM_DATA_PATH = path.join(ROOT, 'js', 'exam_data.js');
+const swCodeTop = fs.readFileSync(SW_PATH, 'utf-8');
+const cacheMatchTop = swCodeTop.match(/const\s+CACHE_NAME\s*=\s*['"]([^'"]+)['"]/);
+const CACHE_NAME = cacheMatchTop ? cacheMatchTop[1] : 'ai-course-v3';
 
 let passCount = 0;
 let failCount = 0;
@@ -197,6 +199,9 @@ function createSwSandbox(mockFetch) {
 // -------------------------------------------------------------
 async function runAllChallengerTests() {
   console.log('=== Starting Challenger M1 Adversarial Verification Suite ===\n');
+  const swCodeGlobal = fs.readFileSync(SW_PATH, 'utf-8');
+  const cacheMatchGlobal = swCodeGlobal.match(/const\s+CACHE_NAME\s*=\s*['"]([^'"]+)['"]/);
+  const CACHE_NAME = cacheMatchGlobal ? cacheMatchGlobal[1] : 'ai-course-v3';
 
   console.log('--- Test Suite 1: STATIC_ASSETS Inventory & Filesystem Integrity ---');
   test('All STATIC_ASSETS in sw.js exist on the filesystem', () => {
@@ -217,6 +222,10 @@ async function runAllChallengerTests() {
       assert(found, `Lecture ${pad} missing from STATIC_ASSETS`);
     }
 
+    // Extract CACHE_NAME dynamically
+    const cacheMatch = swCode.match(/const\s+CACHE_NAME\s*=\s*['"]([^'"]+)['"]/);
+    const CACHE_NAME = cacheMatch ? cacheMatch[1] : 'ai-course-v3';
+
     // Verify all files exist
     for (const item of items) {
       let relPath = item.replace(/^\.\//, '');
@@ -227,7 +236,11 @@ async function runAllChallengerTests() {
   });
 
   console.log('\n--- Test Suite 2: Service Worker Lifecycle (Install & Activate) ---');
-  await asyncTest('Install event pre-caches all static assets into ai-course-v2 and calls skipWaiting', async () => {
+  await asyncTest('Install event pre-caches all static assets and calls skipWaiting', async () => {
+    const swCode = fs.readFileSync(SW_PATH, 'utf-8');
+    const cacheMatch = swCode.match(/const\s+CACHE_NAME\s*=\s*['"]([^'"]+)['"]/);
+    const CACHE_NAME = cacheMatch ? cacheMatch[1] : 'ai-course-v3';
+
     const { eventListeners, cacheStorage, getSkipWaitingCalled } = createSwSandbox();
     assert(eventListeners.install, 'Install listener must be registered');
 
@@ -239,13 +252,17 @@ async function runAllChallengerTests() {
     });
     await waitPromise;
 
-    const cache = await cacheStorage.open('ai-course-v2');
+    const cache = await cacheStorage.open(CACHE_NAME);
     const keys = Array.from(cache.store.keys());
-    assert(keys.length >= 35, `Expected >= 35 cached assets in ai-course-v2, found ${keys.length}`);
+    assert(keys.length >= 34, `Expected >= 34 cached assets in ${CACHE_NAME}, found ${keys.length}`);
     assert(getSkipWaitingCalled(), 'skipWaiting() must be called on install');
   });
 
   await asyncTest('Activate event purges old caches (v1, legacy, unknown) and calls clients.claim()', async () => {
+    const swCode = fs.readFileSync(SW_PATH, 'utf-8');
+    const cacheMatch = swCode.match(/const\s+CACHE_NAME\s*=\s*['"]([^'"]+)['"]/);
+    const CACHE_NAME = cacheMatch ? cacheMatch[1] : 'ai-course-v3';
+
     const { eventListeners, cacheStorage, getClaimCalled } = createSwSandbox();
     assert(eventListeners.activate, 'Activate listener must be registered');
 
@@ -253,7 +270,7 @@ async function runAllChallengerTests() {
     await cacheStorage.open('ai-course-v1');
     await cacheStorage.open('ai-course-v0');
     await cacheStorage.open('legacy-cache-xyz');
-    await cacheStorage.open('ai-course-v2');
+    await cacheStorage.open(CACHE_NAME);
 
     let waitPromise = null;
     eventListeners.activate({
@@ -264,7 +281,7 @@ async function runAllChallengerTests() {
     await waitPromise;
 
     const remainingKeys = await cacheStorage.keys();
-    assert.deepStrictEqual(remainingKeys, ['ai-course-v2'], `Old caches must be deleted! Remaining: ${JSON.stringify(remainingKeys)}`);
+    assert.deepStrictEqual(remainingKeys, [CACHE_NAME], `Old caches must be deleted! Remaining: ${JSON.stringify(remainingKeys)}`);
     assert(getClaimCalled(), 'clients.claim() must be called on activate');
   });
 
@@ -292,7 +309,7 @@ async function runAllChallengerTests() {
     assert.strictEqual(res.body, 'fresh network html content', 'Must return fresh network response');
 
     // Verify cache updated
-    const cache = await cacheStorage.open('ai-course-v2');
+    const cache = await cacheStorage.open(CACHE_NAME);
     const cached = await cache.match(req);
     assert(cached, 'Cache must be updated with network response');
     assert.strictEqual(cached.body, 'fresh network html content');
@@ -316,7 +333,7 @@ async function runAllChallengerTests() {
     const res = await respondedPromise;
     assert.strictEqual(res.status, 404);
 
-    const cache = await cacheStorage.open('ai-course-v2');
+    const cache = await cacheStorage.open(CACHE_NAME);
     const cached = await cache.match(req);
     assert.strictEqual(cached, undefined, '404 responses must not be cached');
   });
@@ -327,7 +344,7 @@ async function runAllChallengerTests() {
     };
 
     const { eventListeners, cacheStorage } = createSwSandbox(mockFetch);
-    const cache = await cacheStorage.open('ai-course-v2');
+    const cache = await cacheStorage.open(CACHE_NAME);
     const req = new MockRequest('https://example.com/lectures/01-fcnn.html');
     await cache.put(req, new MockResponse('cached lecture 01', { status: 200, type: 'basic' }));
 
@@ -350,7 +367,7 @@ async function runAllChallengerTests() {
     };
 
     const { eventListeners, cacheStorage } = createSwSandbox(mockFetch);
-    const cache = await cacheStorage.open('ai-course-v2');
+    const cache = await cacheStorage.open(CACHE_NAME);
     // Put index.html in cache under './index.html'
     await cache.put('./index.html', new MockResponse('fallback index.html content', { status: 200, type: 'basic' }));
 
@@ -404,7 +421,7 @@ async function runAllChallengerTests() {
     };
 
     const { eventListeners, cacheStorage } = createSwSandbox(mockFetch);
-    const cache = await cacheStorage.open('ai-course-v2');
+    const cache = await cacheStorage.open(CACHE_NAME);
     const req = new MockRequest('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/MathJax.js');
     await cache.put(req, new MockResponse('stale cdn mathjax', { status: 200 }));
 

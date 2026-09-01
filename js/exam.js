@@ -1,6 +1,7 @@
 /**
- * ExamSimulator - Interactive Exam Hub, 3-minute Timer, SM-2 Spaced Repetition Flashcards,
- * 4-Block Modular Drill, and Blitz Exam Mode.
+ * ExamSimulator & Exam Hub (Vanilla ES6)
+ * Interactive oral exam simulator, 3-minute timer, Leitner / SM-2 spaced repetition flashcards,
+ * 4-Block modular drill, and Blitz exam mode.
  */
 (function() {
   'use strict';

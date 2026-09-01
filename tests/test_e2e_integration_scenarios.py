@@ -6,12 +6,11 @@ Simulates real-world user journeys across the Deep Learning course platform:
 - Spaced Repetition (SM-2 / Leitner) Multi-Day Study & Due Queue Lifecycle
 - Blitz Exam Rapid-Fire Examination & Analytics
 - Offline PWA Precache & PDF Print Preparation Workflow
-- Anki Decks & Exam Data Cross-Module Synchronization
+- Data Builder & 4-Block Exam Dataset Cross-Module Synchronization
 """
 
 from __future__ import annotations
 
-import csv
 import json
 import unittest
 from pathlib import Path
@@ -28,7 +27,6 @@ JS_LECTURE_FILE = COURSE_ROOT / "js" / "lecture.js"
 JS_SIM_FILE = COURSE_ROOT / "js" / "simulator.js"
 JS_TRACKER_FILE = COURSE_ROOT / "js" / "tracker.js"
 JS_EXAM_DATA_FILE = COURSE_ROOT / "js" / "exam_data.js"
-ANKI_DIR = COURSE_ROOT / "anki_decks"
 
 from tests.common import EXPECTED_LECTURES, read_file
 from tests.test_sm2_and_simulator_e2e import reference_sm2_update
@@ -243,47 +241,31 @@ class TestE2EIntegrationScenarios(unittest.TestCase):
             "Platform must support print preparation / styling",
         )
 
-    def test_06_e2e_anki_decks_and_exam_data_synchronization(self):
-        """Scenario 6: Cross-validation of Anki TSV decks with EXAM_DATA and lecture files."""
-        tsv_qa_path = ANKI_DIR / "ai_course_exam_qas.tsv"
-        tsv_tasks_path = ANKI_DIR / "ai_course_microtasks.tsv"
-        tsv_cheat_path = ANKI_DIR / "ai_course_3min_cheatsheets.tsv"
+    def test_06_e2e_exam_data_and_4block_synchronization(self):
+        """Scenario 6: Cross-validation of compiled EXAM_DATA with 4-block structure and lecture files."""
+        self.assertTrue(JS_EXAM_DATA_FILE.exists(), f"Missing {JS_EXAM_DATA_FILE}")
 
-        self.assertTrue(tsv_qa_path.exists(), f"Missing {tsv_qa_path}")
-        self.assertTrue(tsv_tasks_path.exists(), f"Missing {tsv_tasks_path}")
-        self.assertTrue(tsv_cheat_path.exists(), f"Missing {tsv_cheat_path}")
+        # Check that EXAM_DATA matches live lecture extraction
+        from tools.build_exam_data import compile_exam_dataset
+        live_dataset = compile_exam_dataset(LECTURES_DIR)
+        self.assertEqual(len(live_dataset), 28)
 
-        # Read TSV Q&As
-        with open(tsv_qa_path, "r", encoding="utf-8") as f:
-            reader = csv.reader(f, delimiter="\t")
-            qa_rows = [r for r in reader if r and not (r[0].startswith("Ticket") or r[0].startswith("Exam Ticket"))]
+        # Check block distribution
+        blocks = {l["module"] for l in live_dataset}
+        self.assertEqual(blocks, {"A", "B", "C", "D"})
 
-        self.assertGreaterEqual(len(qa_rows), 280, f"Expected >= 280 Q&A cards in Anki TSV, found {len(qa_rows)}")
-        for r in qa_rows:
-            self.assertEqual(len(r), 4, "Anki Q&A TSV must have exactly 4 columns (Ticket, Question, Answer, Tags)")
-            self.assertTrue(r[0].strip(), "Ticket column cannot be empty")
-            self.assertTrue(r[1].strip(), "Question column cannot be empty")
-            self.assertTrue(r[2].strip(), "Answer column cannot be empty")
+        total_qas = sum(len(l["qas"]) for l in live_dataset)
+        total_tasks = sum(len(l["tasks"]) for l in live_dataset)
+        self.assertEqual(total_qas, 296)
+        self.assertEqual(total_tasks, 170)
 
-        # Read TSV Micro-tasks
-        with open(tsv_tasks_path, "r", encoding="utf-8") as f:
-            reader = csv.reader(f, delimiter="\t")
-            task_rows = [r for r in reader if r and not (r[0].startswith("Lecture") or r[0].startswith("Exam"))]
-
-        self.assertGreaterEqual(
-            len(task_rows), 160, f"Expected >= 160 task cards in Anki TSV, found {len(task_rows)}"
-        )
-        for r in task_rows:
-            self.assertEqual(len(r), 4, "Anki Task TSV must have exactly 4 columns (Lecture, Task, Solution, Type)")
-
-        # Read TSV Cheatsheets (skip header if present)
-        with open(tsv_cheat_path, "r", encoding="utf-8") as f:
-            reader = csv.reader(f, delimiter="\t")
-            cheat_rows = [r for r in reader if r and not (r[0].startswith("Exam Ticket") or r[0].startswith("Ticket"))]
-
-        self.assertEqual(
-            len(cheat_rows), 28, f"Expected exactly 28 cheatsheet cards in Anki TSV, found {len(cheat_rows)}"
-        )
+        # Verify all 28 lectures are accounted for in self.exam_data
+        self.assertEqual(len(self.exam_data), 28)
+        for live_lec, cached_lec in zip(live_dataset, self.exam_data):
+            self.assertEqual(live_lec["id"], cached_lec["id"])
+            self.assertEqual(live_lec["module"], cached_lec["module"])
+            self.assertEqual(len(live_lec["qas"]), len(cached_lec["qas"]))
+            self.assertEqual(len(live_lec["tasks"]), len(cached_lec["tasks"]))
 
 
 if __name__ == "__main__":

@@ -19,11 +19,11 @@ window.MathJax = {
 <body>
 
 <header class="top"><div class="inner">
-  <div class="kicker">Блок C · Вопрос 20 · Семейство Трансформеров</div>
+  <div class="kicker">Блок C · Языковые модели и Трансформеры · Вопрос 20</div>
   <h1>Лекция 21. Архитектуры: Энкодер (BERT), Декодер (GPT), Энкодер-Декодер (T5)</h1>
-  <p class="sub">Три фундаментальные ветви развития архитектуры Transformer: устройство, маски внимания, цели предобучения (MLM, NSP, CLM, Span Corruption), сферы применения и методы эффективной адаптации (LoRA, PEFT).</p>
+  <p class="sub">Три фундаментальные ветви развития архитектуры Transformer: сравнительная анатомия блоков, маски внимания, цели предобучения (MLM, NSP, CLM, Span Corruption), механизмы KV-кэша, FlashAttention и параметрически эффективная донастройка (LoRA/PEFT).</p>
   <div class="meta">
-    <span class="pill">⏱ 2 ч</span>
+    <span class="pill">⏱ 2 ч 00 мин</span>
     <span class="pill gray">10 вопросов препода</span>
     <span class="pill gray">6 микро-задач</span>
     <span class="pill good">Билет 20</span>
@@ -37,23 +37,32 @@ window.MathJax = {
 <nav class="toc">
   <div class="bt">Содержание лекции</div>
   <ol>
-    <li><a href="#s1">Три ветви эволюции трансформеров</a></li>
-    <li><a href="#s2">Encoder-Only: Архитектура BERT и задачи MLM / NSP</a></li>
-    <li><a href="#s3">Decoder-Only: Семейство GPT / LLaMA и авторегрессионный CLM</a></li>
-    <li><a href="#s4">Encoder-Decoder: Модели T5 и BART (Span Corruption)</a></li>
-    <li><a href="#s5">Сводная сравнительная матрица: BERT vs GPT vs T5</a></li>
-    <li><a href="#s6">Парадигма Pre-training + Fine-tuning и LoRA (PEFT)</a></li>
-    <li><a href="#s7">Практическая реализация на Hugging Face Transformers</a></li>
-    <li><a href="#qa">Препод спросит</a></li>
-    <li><a href="#tasks">Микро-задачи</a></li>
-    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+    <li><a href="#s1">Интуиция и мотивация</a></li>
+    <li><a href="#s2">Архитектура и схема</a></li>
+    <li><a href="#s3">Математический аппарат</a></li>
+    <li><a href="#s4">Пошаговый числовой пример</a></li>
+    <li><a href="#s5">Преимущества, недостатки и применимость</a></li>
+    <li><a href="#qa">🎯 Препод спросит</a></li>
+    <li><a href="#tasks">📝 Микро-задачи</a></li>
+    <li><a href="#cheat">⚡ Краткий скелет ответа по билету</a></li>
   </ol>
 </nav>
 
 <!-- ============================================ -->
-<h2 id="s1"><span class="num">1.</span> Три ветви эволюции трансформеров</h2>
+<h2 id="s1"><span class="num">1.</span> Интуиция и мотивация</h2>
 
-<p>Оригинальный Transformer (Vaswani et al., 2017) создавался для машинного перевода и содержал как Энкодер, так и Декодер. В дальнейшем исследователи разделили архитектуру на <strong>три специализированных класса</strong> в зависимости от решаемых задач:</p>
+<p>Оригинальная архитектура Transformer (Vaswani et al., 2017) была создана для задачи машинного перевода и объединяла два блока: Энкодер (для сжатия текста оригинала) и Декодер (для авторегрессионной генерации перевода). В дальнейшем индустрия разделила исходную архитектуру на <strong>три специализированных класса</strong> в зависимости от характера решаемых задач:</p>
+
+<ol>
+  <li><strong>Encoder-Only (BERT, RoBERTa, DeBERTa):</strong> Полный двунаправленный контекст. Идеально подходит для <em>понимания текста</em>, классификации, извлечения сущностей (NER) и построения семантических эмбеддингов.</li>
+  <li><strong>Decoder-Only (GPT, LLaMA, Mistral, Gemma, Claude):</strong> Строго причинная авторегрессионная генерация слева направо. Является фундаментом всех современных Больших Языковых Моделей (LLM) благодаря феномену <em>In-Context Learning</em> и универсальности промптинга.</li>
+  <li><strong>Encoder-Decoder (T5, BART, mT5):</strong> Универсальное отображение «текст в текст» (Text-to-Text). Идеально для машинного перевода, абстрактивной суммаризации и структурированного извлечения данных.</li>
+</ol>
+
+<!-- ============================================ -->
+<h2 id="s2"><span class="num">2.</span> Архитектура и схема</h2>
+
+<p>Сравнение топологии внимания и потока информации трех семейств:</p>
 
 <div class="scheme">
                             ORIGINAL TRANSFORMER (2017)
@@ -62,149 +71,158 @@ window.MathJax = {
         ▼                              ▼                              ▼
   ENCODER-ONLY (BERT, 2018)     DECODER-ONLY (GPT, 2018)    ENCODER-DECODER (T5, 2019)
   Двунаправленное внимание       Причинное внимание           Двунаправленный энкодер +
-  (Bidirectional Self-Attn)     (Causal Masked Self-Attn)    Авторегрессионный декодер
+  (Unmasked Self-Attention)     (Causal Masked Self-Attn)    Авторегрессионный декодер
   ─────────────────────────     ─────────────────────────    ─────────────────────────
   Понимание, классификация,     Генерация текста, код,       Перевод, суммаризация,
   извлечение сущностей, эмбед.  диалоги (LLM, GPT-4, LLaMA)  преобразование Text-to-Text
 
-<span class="cap">Генеалогическое древо моделей Transformer: три архитектурные парадигмы.</span></div>
+<span class="cap">Генеалогическое древо трансформеров: три фундаментальные архитектурные парадигмы.</span></div>
 
 <!-- ============================================ -->
-<h2 id="s2"><span class="num">2.</span> Encoder-Only: Архитектура BERT и задачи MLM / NSP</h2>
+<h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
 
-<p><strong>BERT (Bidirectional Encoder Representations from Transformers, Devlin et al., Google, 2018)</strong> использует стек слоев Энкодера. В нем <strong>нет причинных масок</strong>: каждый токен имеет прямой двунаправленный доступ ко всем словам слева и справа.</p>
+<h3>1. Предобучение Encoder-Only: Masked Language Modeling (MLM в BERT)</h3>
+<p>Случайно маскируется $15\%$ токенов последовательности $X$. Кросс-энтропия минимизируется только по маскированным позициям $M$:</p>
 
-<div class="scheme">
-  ДВУНАПРАВЛЕННОЕ САМОВНИМАНИЕ В BERT:
-  [CLS] ⟷ Кот ⟷ [MASK] ⟷ на ⟷ окне ⟷ [SEP]   (Все токены смотрят друг на друга)
+<div class="math-scroll-wrapper">
+$$ \mathcal{L}_{\text{MLM}}(\theta) = -\sum_{i \in M} \log P_\theta(x_i \mid \tilde{X}) $$
+</div>
+<p>где $80\%$ выбранных токенов заменяются на `[MASK]`, $10\%$ — на случайное слово, $10\%$ — остаются неизменными (схема 80/10/10).</p>
 
-<span class="cap">Двунаправленное внимание позволяет строить глубоко контекстуализированные семантические представления.</span></div>
+<h3>2. Предобучение Decoder-Only: Causal Language Modeling (CLM в GPT)</h3>
+<div class="math-scroll-wrapper">
+$$ \mathcal{L}_{\text{CLM}}(\theta) = -\sum_{t=1}^T \log P_\theta(w_t \mid w_1, w_2, \dots, w_{t-1}) $$
+</div>
+<p>с применением каузальной маски $M_{ij} = -\infty$ при $j > i$.</p>
 
-<h3>Задачи предобучения BERT (Self-Supervised Pre-training):</h3>
-<ol>
-  <li><strong>Masked Language Modeling (MLM):</strong>
+<h3>3. Предобучение Encoder-Decoder: Span Corruption (T5)</h3>
+<div class="math-scroll-wrapper">
+$$ \mathcal{L}_{\text{Span}}(\theta) = -\sum_{k=1}^K \log P_\theta(\text{Span}_k \mid X_{\text{corrupted}}) $$
+</div>
+<p>где вырезанные спаны заменяются уникальными маркерами-стражами `&lt;extra_id_0&gt;`, `&lt;extra_id_1&gt;`.</p>
+
+<h3>4. Низкоранговая адаптация (LoRA / PEFT)</h3>
+<p>Заморозка исходных весов $W_0 \in \mathbb{R}^{d \times k}$ и оптимизация факторизованной низкоранговой добавки $A \in \mathbb{R}^{d \times r}, B \in \mathbb{R}^{r \times k}$ ($r \ll d$):</p>
+
+<div class="math-scroll-wrapper">
+$$ W = W_0 + \Delta W = W_0 + \frac{\alpha}{r} (A \cdot B) $$
+</div>
+
+<!-- ============================================ -->
+<h2 id="s4"><span class="num">4.</span> Пошаговый числовой пример</h2>
+
+<p>Рассчитаем экономию видеопамяти при дообучении линейного слоя модели LLaMA ($d=4096, k=4096$) методом LoRA ранга $r=8$ (коэффициент $\alpha=16$).</p>
+
+<p><strong>1. Расчет числа параметров:</strong></p>
+<ul>
+  <li>Базовый слой $W_0$: $4096 \times 4096 = \mathbf{16\,777\,216 \text{ параметров}}$ ($16.78$ млн).</li>
+  <li>Матрицы LoRA:
     <ul>
-      <li>Случайно выбираются $15\%$ токенов последовательности.</li>
-      <li>Из них: $80\%$ заменяются специальным токеном `[MASK]`, $10\%$ — случайным словом словаря, $10\%$ остаются без изменений.</li>
-      <li>Модель учится предсказывать исходные скрытые слова по окружающему контексту через Cross-Entropy.</li>
+      <li>$A \in \mathbb{R}^{4096 \times 8}$: $4096 \times 8 = 32\,768$ параметров.</li>
+      <li>$B \in \mathbb{R}^{8 \times 4096}$: $8 \times 4096 = 32\,768$ параметров.</li>
+      <li>Сумма LoRA: $32\,768 + 32\,768 = \mathbf{65\,536 \text{ параметров}}$ ($0.065$ млн).</li>
     </ul>
   </li>
-  <li><strong>Next Sentence Prediction (NSP):</strong>
-    <ul>
-      <li>На вход подается пара предложений `[CLS] A [SEP] B [SEP]`. В 50% случаев B — реальное следующее предложение (`IsNext`), в 50% — случайная фраза из корпуса (`NotNext`).</li>
-      <li>Вектор токена `[CLS]` на выходе подается в бинарный классификатор.</li>
-    </ul>
+  <li>Коэффициент сжатия параметров:
+    <div class="math-scroll-wrapper">
+    $$ \text{Сжатие} = \frac{16\,777\,216}{65\,536} = \mathbf{256 \text{ раз}} \quad (\text{сокращение на } 99.61\%) $$
+    </div>
   </li>
-</ol>
+</ul>
 
-<div class="box okbox">
-  <div class="bt">🌟 Развитие семейства Encoder-only</div>
-  <ul>
-    <li><strong>RoBERTa (Liu et al., 2019):</strong> Удалили бесполезный NSP, добавили динамическое маскирование (Dynamic Masking) и обучили на в 10 раз большем корпусе данных.</li>
-    <li><strong>DeBERTa (He et al., 2021):</strong> Распутанное внимание (Disentangled Attention: контент и относительные позиции считаются отдельно) + Enhanced Mask Decoder.</li>
-  </ul>
+<p><strong>2. Расчет памяти состояний оптимизатора Adam (float32, 8 байт на параметр):</strong></p>
+<ul>
+  <li>При полном Fine-tuning слоя: $16\,777\,216 \times 8 \text{ байт} = \mathbf{134.2 \text{ МБ}}$.</li>
+  <li>При LoRA: $65\,536 \times 8 \text{ байт} = \mathbf{0.52 \text{ МБ}}$.</li>
+</ul>
+
+<p><strong>3. Слияние весов перед продакшн-инференсом:</strong></p>
+<div class="math-scroll-wrapper">
+$$ W_{\text{merged}} = W_0 + \frac{16}{8} (A \cdot B) = W_0 + 2.0 \cdot (A \cdot B) \in \mathbb{R}^{4096 \times 4096} $$
 </div>
+<p><em>Итог:</em> После сложения матриц размерность слоя строго равна исходной ($4096 \times 4096$), и инференс выполняется с нулевой дополнительной задержкой (0% latency overhead).</p>
 
-<!-- ============================================ -->
-<h2 id="s3"><span class="num">3.</span> Decoder-Only: Семейство GPT / LLaMA и авторегрессионный CLM</h2>
+<h3>Практическая реализация слоя LoRA на PyTorch</h3>
+<pre><code>import math
+import torch
+import torch.nn as nn
 
-<p><strong>GPT (Generative Pre-trained Transformer, Radford et al., OpenAI, 2018–2024)</strong> и современные LLM (LLaMA, Mistral, Gemma, Claude) состоят исключительно из блоков Декодера.</p>
+class LoRALinear(nn.Module):
+    def __init__(self, in_features: int, out_features: int, r: int = 8, lora_alpha: float = 16.0):
+        super().__init__()
+        # Базовая замороженная матрица весов W_0
+        self.linear = nn.Linear(in_features, out_features, bias=False)
+        self.linear.weight.requires_grad = False
+        
+        # Низкоранговые матрицы A и B
+        self.r = r
+        self.scaling = lora_alpha / r
+        self.lora_A = nn.Linear(in_features, r, bias=False)
+        self.lora_B = nn.Linear(r, out_features, bias=False)
+        
+        # Инициализация (Kaiming для A, нули для B)
+        nn.init.kaiming_uniform_(self.lora_A.weight, a=math.sqrt(5))
+        nn.init.zeros_(self.lora_B.weight)
 
-<p>Благодаря <strong>причинной маске (Causal Mask)</strong> токен на позиции $t$ может обращать внимание только на позиции $\le t$.</p>
-
-<h3>Задача предобучения: Causal Language Modeling (CLM)</h3>
-<div class="formula">
-$$ L_{\text{CLM}}(\theta) = -\sum_{t=1}^T \log P_\theta(w_t \mid w_1, w_2, \dots, w_{t-1}) $$
-<span class="note">Максимизация правдоподобия следующего токена (Next Token Prediction) на триллионах токенов интернет-текстов.</span>
-</div>
-
-<div class="box idea">
-  <div class="bt">💡 Почему Decoder-Only захватил мир? (In-Context Learning)</div>
-  <p>Оказалось, что при масштабировании авторегрессионных декодеров до миллиардов параметров (GPT-3 175B) модель приобретает способность решать <strong>любые задачи без изменения весов</strong> — через промптинг (Zero-shot / Few-shot Learning):</p>
-  <pre><code>Вход: "Переведи на французский: Кот -> Chat. Собака -> "
-Модель авторегрессионно дополняет: "Chien"</code></pre>
-</div>
-
-<!-- ============================================ -->
-<h2 id="s4"><span class="num">4.</span> Encoder-Decoder: Модели T5 и BART (Span Corruption)</h2>
-
-<p>Модели <strong>T5 (Text-to-Text Transfer Transformer, Raffel et al., 2020)</strong> и <strong>BART (Lewis et al., 2019)</strong> сохраняют обе части классического Трансформера.</p>
-
-<div class="box mathbox">
-  <div class="bt">📐 Предобучение T5: Span Corruption (Порча спанов)</div>
-  <p>Входной текст портится: случайные цепочки слов заменяются уникальными токенами-стражами (Sentinel Tokens `&lt;extra_id_0&gt;`, `&lt;extra_id_1&gt;`):</p>
-  <pre><code>Вход в Энкодер:  "Спасибо за &lt;extra_id_0&gt; день в &lt;extra_id_1&gt; парке"
-Цель Декодера:   "&lt;extra_id_0&gt; прекрасный &lt;extra_id_1&gt; центральном &lt;extra_id_2&gt;"</code></pre>
-  <p>Декодер генерирует <em>только удаленный текст</em>, экономя вычисления.</p>
-</div>
-
-<!-- ============================================ -->
-<h2 id="s5"><span class="num">5.</span> Сводная сравнительная матрица: BERT vs GPT vs T5</h2>
-
-<table>
-<thead><tr><th>Характеристика</th><th>Encoder-Only (BERT)</th><th>Decoder-Only (GPT / LLaMA)</th><th>Encoder-Decoder (T5 / BART)</th></tr></thead>
-<tbody>
-<tr><td><strong>Тип внимания</strong></td><td>Двунаправленное (Unmasked)</td><td>Причинное (Causal Masked)</td><td>Двунаправленный Энкодер + Причинный Декодер + Cross-Attn</td></tr>
-<tr><td><strong>Предобучение</strong></td><td>MLM (Masked LM) + NSP</td><td>CLM (Next Token Prediction)</td><td>Span Corruption / Denoising</td></tr>
-<tr><td><strong>Главная сила</strong></td><td>Глубокое понимание контекста всего текста целиком.</td><td>Связная авторегрессионная генерация, Few-shot prompting.</td><td>Преобразование длинного входа в произвольный выход.</td></tr>
-<tr><td><strong>Основные задачи</strong></td><td>Классификация, тональность, NER, эмбеддинги для поиска (RAG).</td><td>Чат-боты, написание кода, рассуждения (Reasoning), агентские системы.</td><td>Машинный перевод, суммаризация, грамматика.</td></tr>
-<tr><td><strong>Флагманы</strong></td><td>BERT, RoBERTa, DeBERTa</td><td>GPT-4, LLaMA-3, Mistral, Claude</td><td>T5, mT5, BART, NLLB</td></tr>
-</tbody>
-</table>
-
-<!-- ============================================ -->
-<h2 id="s6"><span class="num">6.</span> Парадигма Pre-training + Fine-tuning и LoRA (PEFT)</h2>
-
-<p>Обучение современных моделей состоит из двух этапов:</p>
-<ol>
-  <li><strong>Pre-training (Предобучение):</strong> Обучение на гигантском неразмеченном корпусе (терабайты текста, миллионы долларов на GPU).</li>
-  <li><strong>Fine-tuning (Тонкая донастройка):</strong> Адаптация весов под конкретную прикладную задачу на небольшой размеченной выборке.</li>
-</ol>
-
-<div class="box okbox">
-  <div class="bt">⚡ LoRA (Low-Rank Adaptation, Hu et al., 2021)</div>
-  <p>Полный Fine-tuning модели на 70B параметров требует терабайты памяти под градиенты оптимайзера. <strong>LoRA замораживает базовую матрицу весов $W_0 \in \mathbb{R}^{d \times k}$</strong> и обучает рядом две низкоранговые матрицы $A \in \mathbb{R}^{d \times r}$ и $B \in \mathbb{R}^{r \times k}$ ($r \ll d$, например $r=8$):</p>
-  $$ W = W_0 + \frac{\alpha}{r} (A \cdot B) $$
-  <p>Это сокращает число обучаемых параметров на <strong>99.9%</strong>, позволяя дообучать LLM на одной потребительской видеокарте!</p>
-</div>
-
-<!-- ============================================ -->
-<h2 id="s7"><span class="num">7.</span> Практическая реализация на Hugging Face Transformers</h2>
-
-<pre><code><span class="kw">from</span> transformers <span class="kw">import</span> AutoTokenizer, AutoModelForSequenceClassification, AutoModelForCausalLM
-<span class="kw">import</span> torch
-
-<span class="cmt"># 1. Загрузка Encoder-only модели для классификации (BERT/RoBERTa)</span>
-tokenizer_bert = AutoTokenizer.from_pretrained(<span class="str">"bert-base-uncased"</span>)
-model_bert = AutoModelForSequenceClassification.from_pretrained(<span class="str">"bert-base-uncased"</span>, num_labels=<span class="num2">2</span>)
-
-inputs = tokenizer_bert(<span class="str">"This course is fantastic!"</span>, return_tensors=<span class="str">"pt"</span>)
-logits = model_bert(**inputs).logits
-pred_class = torch.argmax(logits, dim=-<span class="num2">1</span>).item()
-
-<span class="cmt"># 2. Загрузка Decoder-only модели для генерации (GPT-2 / LLaMA)</span>
-tokenizer_gpt = AutoTokenizer.from_pretrained(<span class="str">"gpt2"</span>)
-model_gpt = AutoModelForCausalLM.from_pretrained(<span class="str">"gpt2"</span>)
-
-prompt = tokenizer_gpt(<span class="str">"Deep learning is"</span>, return_tensors=<span class="str">"pt"</span>)
-generated_tokens = model_gpt.generate(**prompt, max_new_tokens=<span class="num2">20</span>, do_sample=<span class="kw">True</span>, top_p=<span class="num2">0.9</span>)
-text = tokenizer_gpt.decode(generated_tokens[<span class="num2">0</span>], skip_special_tokens=<span class="kw">True</span>)
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # W_0 * x + (alpha/r) * (B * A * x)
+        return self.linear(x) + self.scaling * self.lora_B(self.lora_A(x))
 </code></pre>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> Преимущества, недостатки и применимость</h2>
+
+<div class="table-scroll-wrapper">
+<table>
+  <thead>
+    <tr>
+      <th>Архитектура</th>
+      <th>Тип внимания</th>
+      <th>Преимущества</th>
+      <th>Недостатки</th>
+      <th>Флагманские модели</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Encoder-Only</strong></td>
+      <td>Двунаправленное (Unmasked)</td>
+      <td>Глубокое понимание семантики всего предложения, компактные эмбеддинги.</td>
+      <td>Не способна генерировать связный длинный текст.</td>
+      <td>BERT, RoBERTa, DeBERTa, Nomic-Embed.</td>
+    </tr>
+    <tr>
+      <td><strong>Decoder-Only</strong></td>
+      <td>Причинное (Causal Masked)</td>
+      <td><strong>Универсальность:</strong> In-Context Learning, Few-shot промптинг, связная авторегрессия.</td>
+      <td>Квадратичный KV-кэш, уязвимость к галлюцинациям.</td>
+      <td>GPT-4, LLaMA-3, Mistral, Claude, Gemma.</td>
+    </tr>
+    <tr>
+      <td><strong>Encoder-Decoder</strong></td>
+      <td>Двунаправленный Энкодер + Причинный Декодер</td>
+      <td>Гибкость отображения произвольного входа в произвольный выход.</td>
+      <td>Избыточная сложность при простых задачах генерации диалога.</td>
+      <td>T5, mT5, BART, NLLB, Whisper.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
 
 <!-- ============================================ -->
 <h2 id="qa">🎯 Препод спросит</h2>
 
-<details class="qa"><summary>Почему BERT плохо подходит для генерации длинных связных текстов?</summary>
+<details class="qa"><summary>Почему BERT плохо приспособлен для авторегрессионной генерации текста?</summary>
 <div class="ans">
-<p>BERT обучался в двунаправленном режиме на задаче MLM, где он восстанавливает отдельные маскированные слова в окружении известного контекста. У него нет причинной маски и механизма пошаговой авторегрессионной генерации слева направо. При попытке генерировать текст токен за токеном BERT сталкивается с не встречавшимся на обучении распределением и быстро деградирует.</p>
+<p>BERT обучался в двунаправленном режиме на задаче MLM, где он восстанавливает отдельные маскированные слова в окружении известного левого и правого контекста. У него нет причинной маски и механизма пошаговой авторегрессионной генерации слева направо. При попытке пошаговой генерации токенов BERT сталкивается с не встречавшимся на обучении распределением и быстро деградирует.</p>
 </div></details>
 
-<details class="qa"><summary>Зачем в BERT токен `[CLS]` и как он используется?</summary>
+<details class="qa"><summary>Зачем в BERT используется токен `[CLS]` и как формируется вектор классификации?</summary>
 <div class="ans">
-<p>Токен `[CLS]` (Classification) ставится в самое начало каждой входной последовательности. Так как внимание в BERT двунаправленное, вектор представления токена `[CLS]` на выходе последнего слоя агрегирует семантическую информацию обо всем предложении. Именно он подается на вход полносвязного слоя для классификации всего текста или определения логической связи пар предложений.</p>
+<p>Токен `[CLS]` (Classification) ставится в начало входной последовательности. Так как внимание в BERT двунаправленное, представление токена `[CLS]` на последнем слое агрегирует семантическую информацию обо всем тексте. Именно этот вектор подается на вход полносвязного слоя-классификатора для определения категории текста или тональности.</p>
 </div></details>
 
-<details class="qa"><summary>В чем суть парадигмы Text-to-Text в модели T5?</summary>
+<details class="qa"><summary>В чем суть парадигмы Text-to-Text в архитектуре T5?</summary>
 <div class="ans">
 <p>В T5 абсолютно <strong>любая задача NLP формулируется как преобразование текста в текст</strong>. Для перевода на вход подается: <em>«translate English to German: That is good»</em> $\to$ <em>«Das ist gut»</em>. Для классификации тональности: <em>«sst2 sentence: I loved this film»</em> $\to$ <em>«positive»</em>. Это позволяет обучать единую модель на десятках разных датасетов с одинаковым Cross-Entropy лоссом.</p>
 </div></details>
@@ -214,60 +232,35 @@ text = tokenizer_gpt.decode(generated_tokens[<span class="num2">0</span>], skip_
 <p>Если бы 100% целевых слов заменялись на токен `[MASK]`, модель привыкла бы опираться только на наличие спецсимвола `[MASK]`. Во время Fine-tuning на реальных задачах токен `[MASK]` отсутствует, что создало бы сильный сдвиг распределения (Mismatch). Оставление 10% слов неизменными и замена 10% на случайные заставляет сеть поддерживать качественные контекстные представления для всех реальных слов текста.</p>
 </div></details>
 
-<details class="qa"><summary>Как метод LoRA позволяет сократить память при дообучении?</summary>
+<details class="qa"><summary>Как метод LoRA (Low-Rank Adaptation) позволяет сократить видеопамять при дообучении?</summary>
 <div class="ans">
-<p>LoRA фиксирует веса $W_0$ ($d \times k$) и оптимизирует только факторизованную добавку $\Delta W = A \cdot B$, где $A \in \mathbb{R}^{d \times r}, B \in \mathbb{R}^{r \times k}$ при $r \ll d$ (например, $r=8$ при $d=4096$). Это уменьшает количество обучаемых параметров в 1000 раз. Не нужно хранить состояния оптимизатора (моменты Adam) для 99.9% весов базовой модели.</p>
+<p>LoRA фиксирует веса базовой модели $W_0$ ($d \times k$) и оптимизирует только факторизованную добавку $\Delta W = A \cdot B$, где $A \in \mathbb{R}^{d \times r}, B \in \mathbb{R}^{r \times k}$ при $r \ll d$ (например, $r=8$ при $d=4096$). Это уменьшает количество обучаемых параметров в сотни раз. Не требуется хранить градиенты и состояния оптимизатора (моменты Adam) для 99.9% весов модели.</p>
 </div></details>
 
-<details class="qa"><summary>Чем RoBERTa превзошла оригинальный BERT?</summary>
+<details class="qa"><summary>Чем архитектура RoBERTa превзошла оригинальный BERT?</summary>
 <div class="ans">
-<p>Авторы RoBERTa показали, что BERT был сильно недообучен. Они: 1) Удалили задачу NSP (она лишь ухудшала метрики); 2) Ввели динамическое маскирование (на каждой эпохе маскируются разные токены); 3) Увеличили размер батча и объем обучающего корпуса до 160 ГБ текста; 4) Использовали BPE токенизатор на 50k байт.</p>
+<p>Авторы RoBERTa показали, что BERT был сильно недообучен. Они: 1) Удалили задачу NSP (Next Sentence Prediction), показав ее бесполезность; 2) Ввели динамическое маскирование (на каждой эпохе маскируются разные токены); 3) Увеличили размер батча и объем обучающего корпуса до 160 ГБ текста; 4) Использовали Byte-level BPE токенизатор на 50k токенов.</p>
 </div></details>
 
 <details class="qa"><summary>Как математически формулируется задача Masked Language Modeling (MLM) в BERT и какова роль стратегии порчи 80/10/10?</summary>
 <div class="ans">
-<p>В задаче MLM случайно выбирается $15\%$ всех токенов входной последовательности $X$. Пусть $M$ — множество индексов выбранных позиций. Функция потерь вычисляет кросс-энтропию только на этих позициях:</p>
-$$ \mathcal{L}_{\text{MLM}}(\theta) = -\sum_{i \in M} \log P_\theta(x_i \mid \tilde{X}) $$
-<p>где $\tilde{X}$ — модифицированная последовательность, полученная по вероятностной схеме 80/10/10:</p>
-<ul>
-  <li><strong>80% случаев ($12\%$ от всех токенов):</strong> заменяются на специальный токен <code>[MASK]</code>, заставляя энкодер предсказывать скрытое слово по окружающему контексту.</li>
-  <li><strong>10% случаев ($1.5\%$ от всех токенов):</strong> заменяются на случайное слово из словаря, что заставляет сеть выявлять и исправлять контекстуальные шумы.</li>
-  <li><strong>10% случаев ($1.5\%$ от всех токенов):</strong> остаются без изменений, чтобы модель сохраняла адекватное векторное представление для реально наблюдаемых слов.</li>
-</ul>
-<p>Такая схема решает проблему несоответствия между предобучением и дообучением (pre-train / fine-tune mismatch), поскольку во время Fine-tuning токен <code>[MASK]</code> никогда не поступает на вход.</p>
+<p>В задаче MLM случайно выбирается $15\%$ всех токенов входной последовательности $X$. Пусть $M$ — множество индексов выбранных позиций. Функция потерь вычисляет кросс-энтропию только на этих позициях: $\mathcal{L}_{\text{MLM}}(\theta) = -\sum_{i \in M} \log P_\theta(x_i \mid \tilde{X})$. Схема 80/10/10 (80% `[MASK]`, 10% случайное слово, 10% без изменений) гарантирует, что на этапе тонкой настройки сеть сохраняет репрезентативность векторов реальных слов при отсутствии токена `[MASK]`.</p>
 </div></details>
 
 <details class="qa"><summary>Как устроена причинная маска (Causal Mask) в декодерах (GPT) и почему она необходима при параллельном обучении?</summary>
 <div class="ans">
-<p>Авторегрессионные языковые модели факторизуют совместную вероятность текста по цепному правилу: $P(x_1, \dots, x_T) = \prod_{t=1}^T P(x_t \mid x_{< t})$.</p>
-<p>Во время обучения вся обучающая строка длины $T$ подается в сеть параллельно. Чтобы предотвратить утечку информации из будущих токенов $j > i$ к текущему токену $i$, матрица скалярных произведений внимания модифицируется аддитивной причинной маской $M \in \mathbb{R}^{T \times T}$:</p>
-$$ M_{ij} = \begin{cases} 0, & \text{если } j \le i \\ -\infty, & \text{если } j > i \end{cases} $$
-$$ \text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}} + M\right) V $$
-<p>Поскольку $\exp(-\infty) = 0$, веса внимания для всех будущих позиций строго равны 0. Это позволяет вычислять функцию потерь для всех $T$ позиций параллельно на GPU за один прямой проход.</p>
+<p>Во время обучения вся целевая последовательность длины $T$ подается в сеть параллельно. Чтобы предотвратить утечку информации из будущих токенов $j > i$ к текущему токену $i$, логиты внимания модифицируются аддитивной верхнетреугольной причинной маской: $M_{ij} = 0$ при $j \le i$ и $M_{ij} = -\infty$ при $j > i$. Поскольку $\exp(-\infty) = 0$, веса внимания к будущим позициям после Softmax строго равны 0, обеспечивая корректное авторегрессионное обучение за один параллельный проход GPU.</p>
 </div></details>
 
 <details class="qa"><summary>В чем заключается предобучение через Span Corruption и архитектура Prefix-LM в модели T5?</summary>
 <div class="ans">
-<p>В модели T5 (Raffel et al., 2020) вместо независимого маскирования отдельных токенов применяется <strong>Span Corruption</strong>:</p>
-<ul>
-  <li>Случайные непрерывные спаны текста со средней длиной 3 токена (суммарно $15\%$ текста) заменяются уникальными маркерами (Sentinel tokens): <code>&lt;extra_id_0&gt;</code>, <code>&lt;extra_id_1&gt;</code> и т.д.</li>
-  <li><strong>Вход энкодера:</strong> исходный текст с маркерами-заполнителями.</li>
-  <li><strong>Целевая последовательность декодера:</strong> только удаленные фрагменты, разделенные теми же сентинелами: <code>&lt;extra_id_0&gt; target span 1 &lt;extra_id_1&gt; target span 2 &lt;extra_id_2&gt;</code>.</li>
-</ul>
-<p><strong>Prefix-LM:</strong> В отличие от классического чисто причинного декодера, на токенах входного префикса (промпта) используется двунаправленное внимание (Fully-Visible Mask), а на генерируемом ответе — причинная треугольная маска, что обеспечивает эффективное понимание промпта без усечения контекста.</p>
+<p>Вместо маскирования отдельных токенов T5 вырезает целые спаны текста (средней длиной 3 токена) и заменяет их маркерами-стражами `&lt;extra_id_0&gt;`, `&lt;extra_id_1&gt;`. Декодер обучается генерировать исключительно удаленные спаны. В Prefix-LM на токенах входного префикса используется полное двунаправленное внимание, а на сгенерированном ответе — причинная каузальная маска.</p>
 </div></details>
 
 <details class="qa"><summary>Как математически устроены вращательные позиционные эмбеддинги (RoPE, Rotary Position Embedding)?</summary>
 <div class="ans">
-<p>RoPE (Su et al., 2021) кодирует позиционную информацию путем ортогонального вращения векторов запроса $Q$ и ключа $K$ в двумерных подпространствах комплексной плоскости.</p>
-<p>Для двумерного среза вектора $x = (x^{(1)}, x^{(2)})^\top$ на позиции $m$ преобразование задается матрицей вращения $R_{\theta, m}$:</p>
-$$ R_{\theta, m} x = \begin{pmatrix} \cos(m\theta) & -\sin(m\theta) \\ \sin(m\theta) & \cos(m\theta) \end{pmatrix} \begin{pmatrix} x^{(1)} \\ x^{(2)} \end{pmatrix} $$
-<p>Для $d$-мерного вектора вычисляется блочно-диагональное вращение с частотами $\theta_i = 10000^{-2(i-1)/d}$ для $i \in \{1, \dots, d/2\}$.</p>
-<p><strong>Свойство сохранения относительного расстояния:</strong></p>
-$$ \langle R_m q, R_n k \rangle = (R_m q)^\top (R_n k) = q^\top R_m^\top R_n k = q^\top R_{n-m} k $$
-<p>Поскольку $R_m^\top R_n = R_{n-m}$, результат скалярного произведения зависит <strong>исключительно от относительного сдвига $(n - m)$</strong>, что дает превосходное качество интерполяции и экстраполяции на длинные контексты.</p>
+<p>RoPE поворачивает 2D-подпространства векторов $Q$ и $K$ на угол, пропорциональный позиции токена $m$: $\tilde{q}_m = R_{\Theta, m} q_m$, $\tilde{k}_n = R_{\Theta, n} k_n$. Скалярное произведение $\langle \tilde{q}_m, \tilde{k}_n \rangle = q_m^\top R_{\Theta, m}^\top R_{\Theta, n} k_n = q_m^\top R_{\Theta, n - m} k_n$ зависит строго от <em>относительного расстояния</em> $(n - m)$, обеспечивая естественное затухание внимания с ростом дистанции и масштабируемость контекста.</p>
 </div></details>
-
 
 <!-- ============================================ -->
 <h2 id="tasks">📝 Микро-задачи</h2>
@@ -278,8 +271,10 @@ $$ \langle R_m q, R_n k \rangle = (R_m q)^\top (R_n k) = q^\top R_m^\top R_n k =
   <details><summary>Решение</summary><div class="sol">
     <p>1. Полный слой $W_0$: $4096 \times 4096 = 16\,777\,216$ параметров.</p>
     <p>2. LoRA адаптер: $A \in \mathbb{R}^{4096 \times 8}$ ($32\,768$), $B \in \mathbb{R}^{8 \times 4096}$ ($32\,768$).</p>
-    <p>$$ \text{Параметры LoRA} = 32\,768 + 32\,768 = 65\,536 $$</p>
-    <p>Коэффициент сжатия: $\frac{16\,777\,216}{65\,536} = 256$ раз (сокращение на <strong>99.61%</strong>!).</p>
+    <div class="math-scroll-wrapper">
+    $$ \text{Параметры LoRA} = 32\,768 + 32\,768 = \mathbf{65\,536} $$
+    </div>
+    <p>Коэффициент сжатия: $\frac{16\,777\,216}{65\,536} = \mathbf{256 \text{ раз}}$ (сокращение на <strong>99.61%</strong>).</p>
   </div></details>
 </div>
 
@@ -287,70 +282,72 @@ $$ \langle R_m q, R_n k \rangle = (R_m q)^\top (R_n k) = q^\top R_m^\top R_n k =
   <div class="tt">Задача 2. Расчет маскирования токенов в BERT (MLM)</div>
   <p>Предложение содержит 100 токенов. Сколько токенов будет выбрано для MLM? Сколько из них станут `[MASK]`, сколько заменятся на случайное слово и сколько останутся без изменений?</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>1. Всего для MLM: $15\% \times 100 = 15$ токенов.</p>
-    <p>2. Распределение:</p>
+    <p>1. Всего для MLM: $15\% \times 100 = \mathbf{15 \text{ токенов}}$.</p>
+    <p>2. Распределение по схеме 80/10/10:</p>
     <ul>
-      <li>$80\%$ заменятся на `[MASK]`: $0.8 \times 15 = 12$ токенов.</li>
-      <li>$10\%$ заменятся случайным словом: $0.1 \times 15 = 1.5 \to 1–2$ токена.</li>
-      <li>$10\%$ останутся без изменений: $0.1 \times 15 = 1.5 \to 1–2$ токена.</li>
+      <li>$80\%$ заменятся на `[MASK]`: $0.8 \times 15 = \mathbf{12 \text{ токенов}}$.</li>
+      <li>$10\%$ заменятся случайным словом: $0.1 \times 15 = \mathbf{1.5 \approx 1\text{--}2 \text{ токена}}$.</li>
+      <li>$10\%$ останутся без изменений: $0.1 \times 15 = \mathbf{1.5 \approx 1\text{--}2 \text{ токена}}$.</li>
     </ul>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 3. Память состояний оптимизатора Adam при полном FT vs LoRA</div>
-  <p>Модель 7B параметров (float16, 14 ГБ весов). Оптимизатор Adam хранит 2 состояния на каждый параметр (float32, 8 байт). Сколько памяти займет Adam при полном Fine-tuning и при LoRA ($0.1\%$ параметров)?</p>
+  <p>Модель имеет 7B параметров (float16, 14 ГБ весов). Оптимизатор Adam хранит 2 состояния на каждый обучаемый параметр (float32, 8 байт). Сколько памяти займет Adam при полном Fine-tuning и при LoRA ($0.1\%$ параметров)?</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>1. Полный Fine-tuning:</p>
-    <p>$7 \times 10^9 \times 8 \text{ байт} = 56 \text{ ГБ}$ VRAM только под оптимизатор!</p>
-    <p>2. При LoRA (0.1% параметров = 7M параметров):</p>
-    <p>$7 \times 10^6 \times 8 \text{ байт} = 56 \text{ МБ}$ VRAM.</p>
-    <p><em>LoRA снижает требования к видеопамяти под градиенты и оптимизатор в 1000 раз.</em></p>
+    <p>1. Полный Fine-tuning: $7 \times 10^9 \times 8 \text{ байт} = \mathbf{56 \text{ ГБ VRAM}}$.</p>
+    <p>2. LoRA ($0.1\%$ параметров = 7M параметров): $7 \times 10^6 \times 8 \text{ байт} = \mathbf{56 \text{ МБ VRAM}}$.</p>
+    <p><em>LoRA снижает требования к видеопамяти под оптимизатор в 1000 раз.</em></p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 4. Определение типа маски внимания по архитектуре</div>
-  <p>У нас есть три модели: BERT, GPT-3 и Энкодер модели T5. Какие из них используют причинную маску $M_{ij} = -\infty$ при $j > i$ в слое Self-Attention?</p>
+  <p>Даны три модели: BERT, GPT-3 и Энкодер модели T5. Какие из них используют причинную каузальную маску $M_{ij} = -\infty$ при $j > i$ в слое Self-Attention?</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>Причинную маску использует <strong>только GPT-3</strong> (Decoder-only).</p>
-    <p>BERT и Энкодер T5 используют двунаправленное самовнимание без маскирования будущих позиций.</p>
+    <p>Причинную каузальную маску использует <strong>исключительно GPT-3</strong> (Decoder-only).</p>
+    <p>BERT и Энкодер T5 используют полное двунаправленное самовнимание без маскирования будущих позиций.</p>
   </div></details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 5. Подсчет вычислений Span Corruption в T5</div>
-  <p>Входная последовательность $T=1000$ токенов. Мы замаскировали 15% токенов средними спанами по 3 слова (всего 50 спанов по 3 слова = 150 слов). Сколько токенов должен сгенерировать декодер T5 при предобучении?</p>
+  <div class="tt">Задача 5. Подсчет длины генерации Span Corruption в T5</div>
+  <p>Входной текст содержит $T=1000$ токенов. Вырезано 50 спанов по 3 слова (всего 150 слов). Сколько токенов должен сгенерировать декодер T5 при предобучении?</p>
   <details><summary>Решение</summary><div class="sol">
     <p>Декодер генерирует токен-страж перед каждым спаном плюс сами скрытые слова:</p>
-    <p>$$ \text{Длина выхода} = 50 \text{ токенов-стражей} + 150 \text{ восстановленных слов} = 200 \text{ токенов} $$</p>
-    <p>Вместо генерации всех 1000 токенов декодер генерирует только 200, что ускоряет предобучение в 5 раз.</p>
+    <div class="math-scroll-wrapper">
+    $$ \text{Длина выхода} = 50 \text{ токенов-стражей} + 150 \text{ слов} = \mathbf{200 \text{ токенов}} $$
+    </div>
+    <p>Генерация 200 токенов вместо 1000 ускоряет предобучение декодера в 5 раз.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 6. Объединение весов LoRA с базовой моделью для инференса</div>
-  <p>Пусть базовая матрица $W_0 \in \mathbb{R}^{4 \times 4}$, матрицы LoRA $A \in \mathbb{R}^{4 \times 1}, B \in \mathbb{R}^{1 \times 4}$, коэффициент масштабирования $\frac{\alpha}{r} = 1.0$. Как получить единую матрицу весов $W_{\text{merged}}$, чтобы инференс работал с нулевой дополнительной задержкой?</p>
+  <p>Пусть базовая матрица $W_0 \in \mathbb{R}^{4 \times 4}$, матрицы LoRA $A \in \mathbb{R}^{4 \times 1}, B \in \mathbb{R}^{1 \times 4}$, коэффициент масштабирования $\frac{\alpha}{r} = 1.0$. Как получить единую матрицу весов $W_{\text{merged}}$?</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>Перед развертыванием в продакшн вычисляется прямое матричное произведение $\Delta W = A \cdot B \in \mathbb{R}^{4 \times 4}$ и прибавляется к весам базовой модели:</p>
+    <p>Вычисляется прямое матричное произведение добавки $\Delta W = A \cdot B \in \mathbb{R}^{4 \times 4}$ и прибавляется к базовым весам:</p>
+    <div class="math-scroll-wrapper">
     $$ W_{\text{merged}} = W_0 + (A \cdot B) $$
-    <p>Полученная матрица $W_{\text{merged}}$ имеет точно такой же размер $4 \times 4$, как оригинальный слой. Во время инференса нет никаких накладных расходов на вычисление адаптеров!</p>
+    </div>
+    <p>Итоговая матрица имеет форму $4 \times 4$, обеспечивая нулевые накладные расходы по времени при инференсе.</p>
   </div></details>
 </div>
 
 <!-- ============================================ -->
-<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+<h2 id="cheat">⚡ Краткий скелет ответа по билету</h2>
 
 <div class="cheat">
   <div class="bt">Скелет устного ответа по билету 20 (Архитектуры Transformer: BERT, GPT, T5)</div>
   <ol>
-    <li><strong>Три ветви.</strong> Encoder-only (понимание, двунаправленный), Decoder-only (генерация, причинный), Encoder-Decoder (преобразование текста в текст).</li>
-    <li><strong>BERT (Encoder-only, 2018).</strong> Двунаправленное внимание. Предобучение: MLM (15% масок) + NSP (связь предложений). Вектор `[CLS]` для классификации.</li>
-    <li><strong>Развитие BERT.</strong> RoBERTa (убрали NSP, динамические маски), DeBERTa (распутанное внимание). Задачи: классификация, NER, RAG-эмбеддинги.</li>
-    <li><strong>GPT (Decoder-only, 2018–2026).</strong> Причинная маска (Causal Mask). Предобучение: CLM (Next token prediction). Основа всех современных LLM (GPT-4, LLaMA, Claude).</li>
-    <li><strong>In-Context Learning.</strong> Декодеры масштабируются и решают любые задачи через промптинг (Zero-shot / Few-shot) без смены весов.</li>
-    <li><strong>T5 / BART (Encoder-Decoder).</strong> Двунаправленный энкодер + причинный декодер с Cross-Attention. Предобучение: Span Corruption (восстановление испорченных фрагментов). Применение: перевод, суммаризация.</li>
-    <li><strong>LoRA (PEFT).</strong> Заморозка $W_0$ и обучение низкоранговой добавки $A \cdot B$ ($r \ll d$). Сокращает параметры на 99.9%, позволяя дообучать 70B модели на одной видеокарте.</li>
+    <li><strong>Три ветви развития:</strong> Encoder-only (понимание, двунаправленный), Decoder-only (генерация, причинный), Encoder-Decoder (преобразование текста в текст).</li>
+    <li><strong>BERT (Encoder-only, 2018):</strong> Двунаправленное внимание. Предобучение: MLM (15% масок по схеме 80/10/10) + NSP. Вектор `[CLS]` для классификации текста.</li>
+    <li><strong>Развитие BERT:</strong> RoBERTa (динамическое маскирование, удаление NSP), DeBERTa (распутанное внимание). Задачи: NER, классификация, эмбеддинги для поиска (RAG).</li>
+    <li><strong>GPT / LLaMA (Decoder-only):</strong> Причинная маска (Causal Mask). Предобучение: CLM (Next Token Prediction). Основа всех современных LLM (GPT-4, LLaMA-3, Claude).</li>
+    <li><strong>In-Context Learning:</strong> Масштабирование декодеров позволяет решать любые задачи через промптинг (Zero-shot / Few-shot) без обновления весов.</li>
+    <li><strong>T5 / BART (Encoder-Decoder):</strong> Двунаправленный энкодер + причинный декодер с Cross-Attention. Предобучение: Span Corruption. Применение: перевод, суммаризация.</li>
+    <li><strong>LoRA (PEFT):</strong> Заморозка $W_0$ и оптимизация низкоранговой добавки $A \cdot B$ ($r \ll d$). Сокращение параметров на 99.9%, позволяющее дообучать 70B модели на одной видеокарте.</li>
   </ol>
 </div>
 

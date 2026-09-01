@@ -65,7 +65,7 @@ class TestMilestone1PwaWebPlatform(unittest.TestCase):
         """Verify sw.js defines static asset precaching, install, activate, and Network-First fetch handlers."""
         self.assertTrue(SW_FILE.exists(), "sw.js must exist in root")
         self.assertIn("CACHE_NAME", self.sw_text)
-        self.assertIn("ai-course-v2", self.sw_text, "CACHE_NAME must be 'ai-course-v2'")
+        self.assertIn("ai-course-v3", self.sw_text, "CACHE_NAME must be 'ai-course-v3'")
         self.assertIn("STATIC_ASSETS", self.sw_text)
 
         # Ensure all 28 lectures are in STATIC_ASSETS
@@ -73,16 +73,13 @@ class TestMilestone1PwaWebPlatform(unittest.TestCase):
             lec_pattern = f"{i:02d}-"
             self.assertIn(lec_pattern, self.sw_text, f"Lecture {i:02d} missing from sw.js STATIC_ASSETS")
 
-        # Ensure core static resources and Anki decks are precached
+        # Ensure core static resources are precached
         self.assertIn("style.css", self.sw_text)
         self.assertIn("manifest.json", self.sw_text)
         self.assertIn("app.js", self.sw_text)
         self.assertIn("tracker.js", self.sw_text)
         self.assertIn("simulator.js", self.sw_text)
         self.assertIn("exam_data.js", self.sw_text)
-        self.assertIn("ai_course_exam_qas.tsv", self.sw_text)
-        self.assertIn("ai_course_microtasks.tsv", self.sw_text)
-        self.assertIn("ai_course_3min_cheatsheets.tsv", self.sw_text)
 
         # Lifecycle events
         self.assertIn("self.addEventListener('install'", self.sw_text)

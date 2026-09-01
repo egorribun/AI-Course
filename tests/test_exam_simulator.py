@@ -25,13 +25,13 @@ class TestExamSimulator(unittest.TestCase):
         cls.exam_data_js = read_file(COURSE_ROOT / "js" / "exam_data.js")
 
     def test_01_simulator_has_required_modules(self):
-        """Verify simulator.js contains timer, randomizer, flashcards, and anki tabs."""
+        """Verify simulator.js contains timer, randomizer, flashcards, and blitz tabs."""
         self.assertIn("renderRandomTicket", self.sim_js)
         self.assertIn("toggleTimer", self.sim_js)
         self.assertIn("renderFlashcard", self.sim_js)
         self.assertIn("tab-ticket", self.sim_js)
         self.assertIn("tab-flashcards", self.sim_js)
-        self.assertIn("tab-anki", self.sim_js)
+        self.assertIn("tab-blitz", self.sim_js)
 
     def test_02_app_js_implements_live_search_and_progress_hub(self):
         """Verify app.js handles live search, category chips, and global progress updates."""

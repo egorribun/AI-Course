@@ -19,11 +19,11 @@ window.MathJax = {
 <body>
 
 <header class="top"><div class="inner">
-  <div class="kicker">Блок C · Вопрос 16 · Трансформеры</div>
+  <div class="kicker">Блок C · Языковые модели и Трансформеры · Вопрос 16</div>
   <h1>Лекция 17. Самовнимание: Q, K, V, Scaled Dot-Product, маски и Multi-Head</h1>
-  <p class="sub">Глубокий разбор механизма Self-Attention: аналогия поиска по словарю, вывод масштабного коэффициента $\sqrt{d_k}$, многоголовость (Multi-Head Attention), маски (Causal, Padding), квадратичная сложность $O(T^2)$ и ручной расчет на числах.</p>
+  <p class="sub">Глубокий математический разбор механизма Self-Attention: концепция Query-Key-Value, строгий вывод масштабного множителя $\sqrt{d_k}$, многоголовость (Multi-Head), каузальные и паддинг-маски, оптимизация FlashAttention и ручной матричный расчет.</p>
   <div class="meta">
-    <span class="pill">⏱ 2 ч</span>
+    <span class="pill">⏱ 2 ч 00 мин</span>
     <span class="pill gray">10 вопросов препода</span>
     <span class="pill gray">6 микро-задач</span>
     <span class="pill good">Билет 16</span>
@@ -37,65 +37,48 @@ window.MathJax = {
 <nav class="toc">
   <div class="bt">Содержание лекции</div>
   <ol>
-    <li><a href="#s1">Интуиция: аналогия с поисковой системой (Query, Key, Value)</a></li>
-    <li><a href="#s2">Линейные проекции: откуда берутся Q, K, V</a></li>
-    <li><a href="#s3">Scaled Dot-Product Attention: математический вывод и деление на $\sqrt{d_k}$</a></li>
-    <li><a href="#s4">Многоголовое внимание (Multi-Head Attention)</a></li>
-    <li><a href="#s5">Виды масок: Padding Mask, Causal Mask и Cross Mask</a></li>
-    <li><a href="#s6">Квадратичная сложность $O(T^2)$ и современные оптимизации (FlashAttention)</a></li>
-    <li><a href="#s7">Пошаговый расчет Self-Attention вручную на матрицах</a></li>
-    <li><a href="#s8">Практическая реализация на PyTorch</a></li>
-    <li><a href="#qa">Препод спросит</a></li>
-    <li><a href="#tasks">Микро-задачи</a></li>
-    <li><a href="#cheat">Ответ за 3 минуты</a></li>
+    <li><a href="#s1">Интуиция и мотивация</a></li>
+    <li><a href="#s2">Архитектура и схема</a></li>
+    <li><a href="#s3">Математический аппарат</a></li>
+    <li><a href="#s4">Пошаговый числовой пример</a></li>
+    <li><a href="#s5">Преимущества, недостатки и применимость</a></li>
+    <li><a href="#qa">🎯 Препод спросит</a></li>
+    <li><a href="#tasks">📝 Микро-задачи</a></li>
+    <li><a href="#cheat">⚡ Краткий скелет ответа по билету</a></li>
   </ol>
 </nav>
 
 <!-- ============================================ -->
-<h2 id="s1"><span class="num">1.</span> Интуиция: аналогия с поисковой системой (Query, Key, Value)</h2>
+<h2 id="s1"><span class="num">1.</span> Интуиция и мотивация</h2>
 
-<p>Самое понятное объяснение концепции <strong>Query, Key, Value</strong> — это аналогия с поиском видео на YouTube или книги в библиотеке:</p>
+<p>В естественном языке значение любого слова определяется его контекстуальным окружением: местоимение <em>«оно»</em> может обозначать животное, предмет или абстрактное понятие; многозначное слово <em>«ключ»</em> означает либо родник, либо инструмент, либо шифр. Механизм <strong>самовнимания (Self-Attention)</strong> позволяет каждому слову динамически извлекать контекст из всех остальных слов текста.</p>
 
+<p>Фундаментальная интуиция механизма строится на аналогии с <strong>дифференцируемой поисковой системой</strong> (Query, Key, Value):</p>
 <ul>
-  <li><strong>Query (Запрос, $Q$):</strong> Строка поиска, которую вы вводите в поисковик (например, <em>«как работает трансформер»</em>). Это то, какую информацию ищет текущий токен.</li>
-  <li><strong>Key (Ключ, $K$):</strong> Название и теги каждого видео на сервере. Это дескриптор того, какую информацию готов предоставить каждый токен.</li>
-  <li><strong>Value (Значение, $V$):</strong> Само видео (его смысловое содержимое). Это фактическое информационное наполнение токена.</li>
+  <li><strong>Query (Запрос, $Q$):</strong> Что текущий токен ищет в окружающем контексте (например, подлежащее ищет свое сказуемое).</li>
+  <li><strong>Key (Ключ, $K$):</strong> Поисковый дескриптор токена — то, какую информацию он готов предоставить другим токенам.</li>
+  <li><strong>Value (Значение, $V$):</strong> Фактическое информационное наполнение токена, которое передается в выходной вектор.</li>
 </ul>
 
 <div class="box idea">
-  <div class="bt">💡 Внимание как дифференцируемый поиск по словарю</div>
-  <p>Мы сравниваем Запрос ($Q$) со всеми доступными Ключами ($K$) через скалярное произведение ($Q K^T$), получаем оценки релевантности, нормализуем их через $\text{Softmax}$ и извлекаем взвешенную сумму Значений ($V$).</p>
+  <div class="bt">💡 Принцип дифференцируемого поиска по словарю</div>
+  <p>Мы вычисляем скалярное произведение Запроса ($Q$) со всеми Ключами ($K$), получаем матрицу релевантности $QK^\top$, нормализуем ее через Softmax и извлекаем взвешенную сумму Значений ($V$). Так как все операции непрерывны, сквозь поиск свободно протекают градиенты Backpropagation.</p>
 </div>
 
 <!-- ============================================ -->
-<h2 id="s2"><span class="num">2.</span> Линейные проекции: откуда берутся Q, K, V</h2>
+<h2 id="s2"><span class="num">2.</span> Архитектура и схема</h2>
 
-<p>Пусть на вход слоя внимания поступает матрица представлений токенов $X \in \mathbb{R}^{T \times d_{\text{model}}}$, где $T$ — длина последовательности, $d_{\text{model}}$ — размерность скрытого вектора (например, $T=512, d_{\text{model}}=512$).</p>
-
-<p>Для каждого токена создаются три различных представления с помощью обучаемых матриц весов $W^Q, W^K, W^V \in \mathbb{R}^{d_{\text{model}} \times d_k}$:</p>
-
-<div class="formula">
-$$ Q = X W^Q, \quad K = X W^K, \quad V = X W^V $$
-<span class="note">Тензоры $Q, K, V \in \mathbb{R}^{T \times d_k}$. Благодаря отдельным матрицам $W^Q$ и $W^K$ токен может «искать» одну семантику, а «предлагать» другую.</span>
-</div>
-
-<!-- ============================================ -->
-<h2 id="s3"><span class="num">3.</span> Scaled Dot-Product Attention: математический вывод и деление на $\sqrt{d_k}$</h2>
-
-<div class="formula">
-$$ \text{Attention}(Q, K, V) = \text{softmax}\left( \frac{Q K^T}{\sqrt{d_k}} \right) V $$
-<span class="note">Главная формула современного Deep Learning (Vaswani et al., 2017).</span>
-</div>
+<p>Операция Scaled Dot-Product Attention преобразует матрицы $Q, K, V$ через последовательность тензорных операций:</p>
 
 <div class="scheme">
        Q            K
        │            │
        └─────┬──────┘
              ▼
-      [ MatMul: Q·K^T ]  (Матрица парных оценок T × T)
+      [ MatMul: Q·K^T ]  (Матрица парных скалярных оценок T × T)
              │
              ▼
-      [ Scale: / √d_k ]  (Защита от насыщения Softmax)
+      [ Scale: / √d_k ]  (Защита от насыщения Softmax при больших d_k)
              │
              ▼
       [ Mask (opt.) ]    (Зануление будущих/padding токенов через -∞)
@@ -111,196 +94,237 @@ $$ \text{Attention}(Q, K, V) = \text{softmax}\left( \frac{Q K^T}{\sqrt{d_k}} \ri
              ▼
       Выходной контекстный тензор (T × d_v)
 
-<span class="cap">Схема Scaled Dot-Product Attention: пошаговый поток матричных преобразований.</span></div>
+<span class="cap">Схема Scaled Dot-Product Attention: поток матричных умножений, масштабирования и взвешивания.</span></div>
+
+<!-- ============================================ -->
+<h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
+
+<h3>1. Линейные проекции</h3>
+<p>Для входной матрицы эмбеддингов $X \in \mathbb{R}^{T \times d_{\text{model}}}$ матрицы $Q, K, V$ вычисляются с помощью обучаемых параметров $W^Q, W^K, W^V \in \mathbb{R}^{d_{\text{model}} \times d_k}$:</p>
+
+<div class="math-scroll-wrapper">
+$$ Q = X W^Q, \quad K = X W^K, \quad V = X W^V $$
+</div>
+
+<h3>2. Формула Scaled Dot-Product Attention</h3>
+<div class="math-scroll-wrapper">
+$$ \text{Attention}(Q, K, V) = \text{softmax}\left( \frac{Q K^\top}{\sqrt{d_k}} \right) V $$
+</div>
 
 <div class="box mathbox">
-  <div class="bt">📐 Зачем делить на $\sqrt{d_k}$? (Любимый вопрос преподавателя!)</div>
-  <p>Пусть компоненты векторов $q$ и $k$ являются независимыми случайными величинами с нулевым средним и единичной дисперсией: $\mathbb{E}[q_i] = 0, \text{Var}(q_i) = 1$ и $\mathbb{E}[k_i] = 0, \text{Var}(k_i) = 1$.</p>
+  <div class="bt">📐 Строгое математическое доказательство нормировки на $\sqrt{d_k}$</div>
+  <p>Пусть компоненты векторов $q, k \in \mathbb{R}^{d_k}$ являются независимыми случайными величинами с нулевым средним и единичной дисперсией: $\mathbb{E}[q_i] = \mathbb{E}[k_i] = 0, \, \text{Var}(q_i) = \text{Var}(k_i) = 1$.</p>
   <p>Скалярное произведение есть сумма $d_k$ независимых слагаемых: $z = q \cdot k = \sum_{i=1}^{d_k} q_i k_i$.</p>
-  <p>Математическое ожидание: $\mathbb{E}[z] = \sum \mathbb{E}[q_i]\mathbb{E}[k_i] = 0$.</p>
-  <p>Дисперсия суммы независимых величин:</p>
-  $$ \text{Var}(z) = \sum_{i=1}^{d_k} \text{Var}(q_i k_i) = \sum_{i=1}^{d_k} \left( \mathbb{E}[q_i^2]\mathbb{E}[k_i^2] - (\mathbb{E}[q_i]\mathbb{E}[k_i])^2 \right) = \sum_{i=1}^{d_k} (1 \cdot 1 - 0) = d_k $$
-  <p>Стандартное отклонение $\sigma = \sqrt{d_k}$. При больших $d_k$ (например, $d_k=64$) скалярные произведения достигают значений $\pm 20 \dots 30$.</p>
-  <p>Функция $\text{Softmax}(z)_i = \frac{e^{z_i}}{\sum e^{z_j}}$ при больших разбросах входов стремится к one-hot вектору ($[0, \dots, 1, \dots, 0]$), попадая в область <strong>крайнего насыщения</strong>, где ее градиенты практически равны <strong>нулю</strong> ($\text{Softmax}' \approx 0$). Обучение полностью останавливается из-за затухания градиентов!</p>
-  <p><strong>Деление на $\sqrt{d_k}$ нормализует дисперсию обратно к $\text{Var}\left(\frac{q \cdot k}{\sqrt{d_k}}\right) = \frac{d_k}{(\sqrt{d_k})^2} = 1$, удерживая Softmax в чувствительной градиентной зоне!</strong></p>
+  <ol>
+    <li>Математическое ожидание: $\mathbb{E}[z] = \sum_{i=1}^{d_k} \mathbb{E}[q_i] \mathbb{E}[k_i] = 0$.</li>
+    <li>Дисперсия одного слагаемого: $\text{Var}(q_i k_i) = \mathbb{E}[(q_i k_i)^2] - (\mathbb{E}[q_i k_i])^2 = \mathbb{E}[q_i^2]\mathbb{E}[k_i^2] - 0 = 1 \cdot 1 = 1$.</li>
+    <li>Дисперсия суммы $d_k$ независимых величин:
+      <div class="math-scroll-wrapper">
+      $$ \text{Var}(q \cdot k) = \sum_{i=1}^{d_k} \text{Var}(q_i k_i) = \sum_{i=1}^{d_k} 1 = d_k $$
+      </div>
+    </li>
+  </ol>
+  <p>Стандартное отклонение равно $\sigma = \sqrt{d_k}$. При $d_k = 64$ разброс значений $q \cdot k$ достигает $\pm 20 \dots 30$. Функция $\text{Softmax}$ при таких аргументах уходит в насыщение (one-hot вектор), где ее производные экспоненциально малы ($\text{Softmax}' \to 0$), что вызывает <strong>полное затухание градиентов</strong>.</p>
+  <p><strong>Деление на $\sqrt{d_k}$ нормализует дисперсию:</strong></p>
+  <div class="math-scroll-wrapper">
+  $$ \text{Var}\left( \frac{q \cdot k}{\sqrt{d_k}} \right) = \frac{\text{Var}(q \cdot k)}{(\sqrt{d_k})^2} = \frac{d_k}{d_k} = 1 $$
+  </div>
+  <p>Это сохраняет градиентный поток активным на протяжении всего обучения.</p>
+</div>
+
+<h3>3. Многоголовое внимание (Multi-Head Attention)</h3>
+<div class="math-scroll-wrapper">
+$$ \text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, \dots, \text{head}_h) W^O $$
+</div>
+<div class="math-scroll-wrapper">
+$$ \text{head}_i = \text{Attention}(Q W_i^Q, \, K W_i^K, \, V W_i^V), \quad d_k = d_{\text{model}} / h $$
+</div>
+
+<h3>4. Маскирование (Masked Attention)</h3>
+<p>В декодере применяется <strong>каузальная маска (Causal Mask)</strong> $M \in \mathbb{R}^{T \times T}$:</p>
+<div class="math-scroll-wrapper">
+$$ \text{MaskedAttention}(Q, K, V) = \text{softmax}\left( \frac{Q K^\top}{\sqrt{d_k}} + M \right) V, \quad M_{i, j} = \begin{cases} 0, & j \le i \\ -\infty, & j > i \end{cases} $$
 </div>
 
 <!-- ============================================ -->
-<h2 id="s4"><span class="num">4.</span> Многоголовое внимание (Multi-Head Attention)</h2>
+<h2 id="s4"><span class="num">4.</span> Пошаговый числовой пример</h2>
 
-<p>Вместо выполнения одного внимания с размерностью $d_{\text{model}}$, мы проецируем $Q, K, V$ в $h$ параллельных подпространств меньшей размерности $d_k = d_{\text{model}} / h$:</p>
+<p>Рассчитаем вручную матрицу внимания для $T=2$ токенов с размерностью $d_k = 2$.</p>
 
-<div class="formula">
-$$ \text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, \text{head}_2, \dots, \text{head}_h) W^O $$
-$$ \text{head}_i = \text{Attention}\left( Q W_i^Q, \, K W_i^K, \, V W_i^V \right) $$
-<span class="note">Параметры: $W_i^Q, W_i^K \in \mathbb{R}^{d_{\text{model}} \times d_k}$, $W_i^V \in \mathbb{R}^{d_{\text{model}} \times d_v}$, $W^O \in \mathbb{R}^{h d_v \times d_{\text{model}}}$.</span>
+<p><strong>Исходные матрицы:</strong></p>
+<div class="math-scroll-wrapper">
+$$ Q = \begin{pmatrix} 1.0 & 0.0 \\ 0.0 & 2.0 \end{pmatrix}, \quad K = \begin{pmatrix} 1.0 & 1.0 \\ 0.0 & 2.0 \end{pmatrix}, \quad V = \begin{pmatrix} 10.0 & 0.0 \\ 0.0 & 20.0 \end{pmatrix} $$
 </div>
 
-<div class="box okbox">
-  <div class="bt">🎯 Зачем нужно несколько голов?</div>
-  <ul>
-    <li><strong>Разные типы отношений:</strong> Одна голова отслеживает грамматику (подлежащее $\leftrightarrow$ сказуемое), вторая — местоимения (кореференцию: <em>«он»</em> $\to$ <em>«человек»</em>), третья — устойчивые словосочетания, четвертая — временной контекст.</li>
-    <li><strong>Вычислительная бесплатность:</strong> При $h=8$ и $d_k = 512/8 = 64$ суммарные затраты на 8 голов ровно такие же, как на одну большую голову размерности 512!</li>
-  </ul>
-</div>
-
-<!-- ============================================ -->
-<h2 id="s5"><span class="num">5.</span> Виды масок: Padding Mask, Causal Mask и Cross Mask</h2>
-
-<table>
-<thead><tr><th>Тип маски</th><th>Где применяется</th><th>Назначение</th><th>Математическая форма</th></tr></thead>
-<tbody>
-<tr><td><strong>Padding Mask</strong></td><td>Везде (Encoder, Decoder)</td><td>Игнорировать искусственные нулевые токены дополнения батча (pad tokens).</td><td>$M_{i, j} = -\infty$, если $j$-й токен является `[PAD]`.</td></tr>
-<tr><td><strong>Causal Mask (Look-ahead)</strong></td><td>Только в Decoder Self-Attention</td><td>Запретить токену $t$ смотреть на будущие токены $t+1, \dots, T$ при авторегрессии.</td><td>Верхнетреугольная матрица: $M_{i, j} = -\infty$ при $j > i$.</td></tr>
-<tr><td><strong>Cross-Attention Mask</strong></td><td>В Decoder Cross-Attention</td><td>Игнорировать pad-токены из энкодера при опросе его памяти декодером.</td><td>$M_{t, i} = -\infty$, если $i$-й токен входа — `[PAD]`.</td></tr>
-</tbody>
-</table>
-
-<!-- ============================================ -->
-<h2 id="s6"><span class="num">6.</span> Квадратичная сложность $O(T^2)$ и современные оптимизации (FlashAttention)</h2>
-
-<p>Матрица $Q K^T$ имеет размерность $T \times T$. Это приводит к фундаментальным ограничениям классического внимания:</p>
-
-<ul>
-  <li><strong>Вычислительная сложность:</strong> $O(T^2 \cdot d)$ операций с плавающей точкой (FLOPs).</li>
-  <li><strong>Память под активации:</strong> $O(B \cdot h \cdot T^2)$ байт памяти. При контексте $T = 32\,768$ токенов одна матрица внимания на батч требует гигабайты медленной памяти GPU (HBM).</li>
-</ul>
-
-<div class="box idea">
-  <div class="bt">⚡ Революция FlashAttention (Tri Dao et al., 2022–2023)</div>
-  <p>FlashAttention оптимизирует не математику, а <strong>память (IO-Awareness)</strong>: вычисление Softmax и умножение на $V$ разбивается на плитки (Tiling) и выполняется целиком в сверхбыстрой кэш-памяти процессора GPU (SRAM), <strong>вообще не сохраняя гигантскую матрицу $T \times T$ в память HBM</strong>. Это ускорило инференс и обучение LLM в 3–5 раз и сделало контексты в 100k+ токенов реальностью.</p>
-</div>
-
-<!-- ============================================ -->
-<h2 id="s7"><span class="num">7.</span> Пошаговый расчет Self-Attention вручную на матрицах</h2>
-
-<p>Разберем игрушечный пример: последовательность из $T=2$ токенов с размерностью $d_k=2$.</p>
-
-<p>Пусть матрицы Запросов, Ключей и Значений равны:</p>
-$$ Q = \begin{pmatrix} 1 & 0 \\ 0 & 2 \end{pmatrix}, \quad K = \begin{pmatrix} 1 & 1 \\ 0 & 2 \end{pmatrix}, \quad V = \begin{pmatrix} 10 & 0 \\ 0 & 20 \end{pmatrix} $$
-
+<p><strong>Пошаговый расчет:</strong></p>
 <ol>
-  <li><strong>Матричное произведение $Q K^T$:</strong>
-    $$ Q K^T = \begin{pmatrix} 1 & 0 \\ 0 & 2 \end{pmatrix} \begin{pmatrix} 1 & 0 \\ 1 & 2 \end{pmatrix} = \begin{pmatrix} 1\cdot 1 + 0\cdot 1 & 1\cdot 0 + 0\cdot 2 \\ 0\cdot 1 + 2\cdot 1 & 0\cdot 0 + 2\cdot 2 \end{pmatrix} = \begin{pmatrix} 1 & 0 \\ 2 & 4 \end{pmatrix} $$
+  <li><strong>Матричное произведение $Q K^\top$:</strong>
+    <div class="math-scroll-wrapper">
+    $$ Q K^\top = \begin{pmatrix} 1 & 0 \\ 0 & 2 \end{pmatrix} \begin{pmatrix} 1 & 0 \\ 1 & 2 \end{pmatrix} = \begin{pmatrix} 1\cdot 1 + 0\cdot 1 & 1\cdot 0 + 0\cdot 2 \\ 0\cdot 1 + 2\cdot 1 & 0\cdot 0 + 2\cdot 2 \end{pmatrix} = \begin{pmatrix} 1.0 & 0.0 \\ 2.0 & 4.0 \end{pmatrix} $$
+    </div>
   </li>
-  <li><strong>Масштабирование на $\sqrt{d_k} = \sqrt{2} \approx 1.414$:</strong>
-    $$ \frac{Q K^T}{\sqrt{2}} = \begin{pmatrix} 1/1.414 & 0 \\ 2/1.414 & 4/1.414 \end{pmatrix} \approx \begin{pmatrix} 0.707 & 0 \\ 1.414 & 2.828 \end{pmatrix} $$
+  <li><strong>Масштабирование на $\sqrt{d_k} = \sqrt{2} \approx 1.4142$:</strong>
+    <div class="math-scroll-wrapper">
+    $$ S = \frac{Q K^\top}{\sqrt{2}} = \begin{pmatrix} 1.0 / 1.4142 & 0.0 / 1.4142 \\ 2.0 / 1.4142 & 4.0 / 1.4142 \end{pmatrix} \approx \begin{pmatrix} 0.7071 & 0.0 \\ 1.4142 & 2.8284 \end{pmatrix} $$
+    </div>
   </li>
   <li><strong>Построчный Softmax:</strong>
     <ul>
-      <li>Строка 1: $e^{0.707} \approx 2.028, e^0 = 1.0 \implies \text{Sum} = 3.028$. $\alpha_{1,1} = \frac{2.028}{3.028} \approx 0.67$, $\alpha_{1,2} = \frac{1.0}{3.028} \approx 0.33$.</li>
-      <li>Строка 2: $e^{1.414} \approx 4.112, e^{2.828} \approx 16.912 \implies \text{Sum} = 21.024$. $\alpha_{2,1} = \frac{4.112}{21.024} \approx 0.20$, $\alpha_{2,2} = \frac{16.912}{21.024} \approx 0.80$.</li>
+      <li>Строка 1: $e^{0.7071} \approx 2.0281$, $e^0 = 1.0$. Сумма $= 3.0281$.
+        <div class="math-scroll-wrapper">
+        $$ \alpha_{1, 1} = \frac{2.0281}{3.0281} \approx \mathbf{0.6698}, \quad \alpha_{1, 2} = \frac{1.0}{3.0281} \approx \mathbf{0.3302} $$
+        </div>
+      </li>
+      <li>Строка 2: $e^{1.4142} \approx 4.1132$, $e^{2.8284} \approx 16.9184$. Сумма $= 21.0316$.
+        <div class="math-scroll-wrapper">
+        $$ \alpha_{2, 1} = \frac{4.1132}{21.0316} \approx \mathbf{0.1956}, \quad \alpha_{2, 2} = \frac{16.9184}{21.0316} \approx \mathbf{0.8044} $$
+        </div>
+      </li>
     </ul>
-    $$ A = \text{Softmax}\left(\frac{Q K^T}{\sqrt{d_k}}\right) \approx \begin{pmatrix} 0.67 & 0.33 \\ 0.20 & 0.80 \end{pmatrix} $$
+    <div class="math-scroll-wrapper">
+    $$ A = \begin{pmatrix} 0.6698 & 0.3302 \\ 0.1956 & 0.8044 \end{pmatrix} $$
+    </div>
   </li>
-  <li><strong>Умножение на $V$:</strong>
-    $$ \text{Out} = A \cdot V = \begin{pmatrix} 0.67 & 0.33 \\ 0.20 & 0.80 \end{pmatrix} \begin{pmatrix} 10 & 0 \\ 0 & 20 \end{pmatrix} = \begin{pmatrix} 0.67 \cdot 10 & 0.33 \cdot 20 \\ 0.20 \cdot 10 & 0.80 \cdot 20 \end{pmatrix} = \begin{pmatrix} 6.7 & 6.6 \\ 2.0 & 16.0 \end{pmatrix} $$
+  <li><strong>Умножение на матрицу значений $V$:</strong>
+    <div class="math-scroll-wrapper">
+    $$ \text{Out} = A \cdot V = \begin{pmatrix} 0.6698 & 0.3302 \\ 0.1956 & 0.8044 \end{pmatrix} \begin{pmatrix} 10.0 & 0.0 \\ 0.0 & 20.0 \end{pmatrix} = \begin{pmatrix} 0.6698 \cdot 10.0 & 0.3302 \cdot 20.0 \\ 0.1956 \cdot 10.0 & 0.8044 \cdot 20.0 \end{pmatrix} = \mathbf{\begin{pmatrix} 6.698 & 6.604 \\ 1.956 & 16.088 \end{pmatrix}} $$
+    </div>
   </li>
 </ol>
 
-<!-- ============================================ -->
-<h2 id="s8"><span class="num">8.</span> Практическая реализация на PyTorch</h2>
+<h3>Практическая реализация Scaled Dot-Product Attention на PyTorch</h3>
+<pre><code>import math
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
 
-<pre><code><span class="kw">import</span> torch
-<span class="kw">import</span> torch.nn <span class="kw">as</span> nn
-<span class="kw">import</span> math
-
-<span class="kw">class</span> ScaledDotProductAttention(nn.Module):
-    <span class="kw">def</span> __init__(self, dropout=<span class="num2">0.1</span>):
-        <span class="kw">super</span>().__init__()
+class ScaledDotProductAttention(nn.Module):
+    def __init__(self, dropout: float = 0.1):
+        super().__init__()
         self.dropout = nn.Dropout(dropout)
 
-    <span class="kw">def</span> forward(self, q, k, v, mask=<span class="kw">None</span>):
-        <span class="cmt"># q, k, v: (B, h, T, d_k)</span>
-        d_k = q.size(-<span class="num2">1</span>)
+    def forward(self, q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, mask: torch.Tensor = None) -> tuple[torch.Tensor, torch.Tensor]:
+        # q, k, v: [B, h, T, d_k]
+        d_k = q.size(-1)
+        # 1. Скалярное произведение и масштабирование на sqrt(d_k)
+        scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(d_k)
         
-        <span class="cmt"># 1. Скалярное произведение Q * K^T / sqrt(d_k)</span>
-        scores = torch.matmul(q, k.transpose(-<span class="num2">2</span>, -<span class="num2">1</span>)) / math.sqrt(d_k)
-        
-        <span class="cmt"># 2. Применение маски (если задана)</span>
-        <span class="kw">if</span> mask <span class="kw">is not None</span>:
-            scores = scores.masked_fill(mask == <span class="num2">0</span>, -<span class="num2">1e9</span>)
+        # 2. Применение маски (Causal или Padding)
+        if mask is not None:
+            scores = scores.masked_fill(mask == 0, -1e9)
             
-        <span class="cmt"># 3. Softmax по последней оси</span>
-        attn_weights = torch.softmax(scores, dim=-<span class="num2">1</span>)
+        # 3. Softmax по последней размерности (ключам K)
+        attn_weights = F.softmax(scores, dim=-1)
         attn_weights = self.dropout(attn_weights)
         
-        <span class="cmt"># 4. Взвешенная сумма со значениями V</span>
-        output = torch.matmul(attn_weights, v) <span class="cmt"># (B, h, T, d_k)</span>
-        <span class="kw">return</span> output, attn_weights
+        # 4. Взвешенное суммирование значений V
+        output = torch.matmul(attn_weights, v)
+        return output, attn_weights
 </code></pre>
+
+<!-- ============================================ -->
+<h2 id="s5"><span class="num">5.</span> Преимущества, недостатки и применимость</h2>
+
+<div class="table-scroll-wrapper">
+<table>
+  <thead>
+    <tr>
+      <th>Механизм внимания</th>
+      <th>Память KV Cache</th>
+      <th>Скорость инференса</th>
+      <th>Плюсы</th>
+      <th>Минусы</th>
+      <th>Где применяется</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>Multi-Head Attention (MHA)</strong></td>
+      <td>$2 \times H \times L \times d_k$ (100%)</td>
+      <td>Базовая (упирается в память)</td>
+      <td>Максимальная емкость и выразительность.</td>
+      <td>Огромный размер KV-кэша при длинном контексте.</td>
+      <td>BERT, GPT-2/3, T5, оригинальный Transformer.</td>
+    </tr>
+    <tr>
+      <td><strong>Multi-Query Attention (MQA)</strong></td>
+      <td>$2 \times 1 \times L \times d_k$ ($\frac{1}{H} \approx 3\text{--}6\%$)</td>
+      <td>Максимальная ($4\text{--}8\times$ быстрее)</td>
+      <td>Крошечный объем KV-кэша, высокая скорость генерации.</td>
+      <td>Небольшое падение качества на сложных reasoning-задачах.</td>
+      <td>PaLM, Falcon, StarCoder.</td>
+    </tr>
+    <tr>
+      <td><strong>Grouped-Query Attention (GQA)</strong></td>
+      <td>$2 \times G \times L \times d_k$ ($\frac{G}{H} \approx 25\%$)</td>
+      <td>Высокая ($2\text{--}4\times$ быстрее)</td>
+      <td><strong>Золотой стандарт:</strong> качество уровня MHA при памяти MQA.</td>
+      <td>Требует делимости $H$ на $G$.</td>
+      <td>LLaMA-2/3, Mistral, Qwen-2, Gemma.</td>
+    </tr>
+    <tr>
+      <td><strong>FlashAttention (v1/v2/v3)</strong></td>
+      <td>$O(1)$ на шаге внимания (SRAM)</td>
+      <td>Ускорение в $3\text{--}5\times$</td>
+      <td>Математически точный результат, не материализует $T \times T$ в HBM.</td>
+      <td>Требует поддержки архитектуры GPU (Turing, Ampere, Hopper).</td>
+      <td>Все современные фреймворки обучения и инференса LLM.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
 
 <!-- ============================================ -->
 <h2 id="qa">🎯 Препод спросит</h2>
 
-<details class="qa"><summary>Что произойдет, если убрать деление на $\sqrt{d_k}$ в формуле Attention?</summary>
+<details class="qa"><summary>Что произойдет с процессом обучения трансформера, если убрать деление на $\sqrt{d_k}$?</summary>
 <div class="ans">
-<p>При больших размерностях ключа $d_k$ (например, 64 или 128) дисперсия скалярных произведений $q \cdot k$ вырастет до $d_k$, а значения логитов достигнут десятков единиц. Softmax перейдет в насыщение (one-hot распределение с вероятностью 1 на максимальном элементе и 0 на остальных). В этой области производная Softmax практически равна нулю, градиенты исчезнут, и обучение модели полностью сорвется.</p>
+<p>При больших размерностях $d_k$ (например, 64 или 128) дисперсия скалярного произведения $q \cdot k$ вырастет до $d_k$, а значения логитов достигнут $\pm 20 \dots 30$. Softmax перейдет в область крайнего насыщения (one-hot распределение с вероятностью 1 на максимуме и 0 на остальных). В этой зоне градиент Softmax практически равен нулю ($\text{Softmax}' \to 0$), происходит катастрофическое затухание градиентов, и обучение модели полностью останавливается.</p>
 </div></details>
 
-<details class="qa"><summary>Почему сложность Attention квадратична $O(T^2)$ по длине последовательности?</summary>
+<details class="qa"><summary>Почему вычислительная сложность внимания квадратична $O(T^2)$ по длине последовательности?</summary>
 <div class="ans">
-<p>Потому что мы обязаны вычислить степень схожести <em>каждого из $T$ токенов со всеми остальными $T$ токенами</em>, что порождает матрицу парных произведений $Q K^T$ размером $T \times T$. Умножение матрицы $(T \times d)$ на $(d \times T)$ требует $O(T^2 d)$ операций и $O(T^2)$ памяти.</p>
+<p>Потому что каждый из $T$ токенов последовательности должен вычислить скалярное произведение со всеми остальными $T$ токенами, формируя матрицу парных оценок $Q K^\top$ размерности $T \times T$. Умножение матрицы $(T \times d)$ на $(d \times T)$ требует $O(T^2 d)$ операций FLOPs и $O(T^2)$ памяти для хранения матрицы внимания.</p>
 </div></details>
 
-<details class="qa"><summary>Чем отличаются матрицы $W^Q$ и $W^K$, если они имеют одинаковую размерность?</summary>
+<details class="qa"><summary>Зачем нужны отдельные проекционные матрицы $W^Q$ и $W^K$, если они имеют одинаковый размер?</summary>
 <div class="ans">
-<p>Они инициализируются независимо и обучаются проецировать вектор токена в разные функциональные пространства: $W^Q$ формирует вектор «того, что токен ищет», а $W^K$ — «того, чем токен является для других». Если бы $W^Q = W^K$, матрица $Q K^T = Q Q^T$ была бы симметричной, что исключило бы асимметричные направленные отношения (например, глагол управляет существительным, но не наоборот).</p>
+<p>Они проецируют токен в два принципиально разных функциональных пространства: $W^Q$ определяет то, «что токен ищет», а $W^K$ — то, «чем токен является для других». Если бы $W^Q = W^K$, матрица сходства $Q K^\top = Q Q^\top$ была бы строго симметричной, что исключило бы асимметричные направленные лингвистические связи (например, глагол управляет прямым дополнением, но дополнение не управляет глаголом).</p>
 </div></details>
 
-<details class="qa"><summary>Как устроена причинная маска (Causal Mask) на уровне тензоров в PyTorch?</summary>
+<details class="qa"><summary>Как технически устроена причинная маска (Causal Mask) на уровне тензоров?</summary>
 <div class="ans">
-<p>Создается верхнетреугольная матрица с нулями на главной диагонали и выше (`torch.triu(..., diagonal=1)`). Все единичные элементы этой маски заменяются значением `-1e9` или `-inf` в матрице scores перед подачей в `torch.softmax`.</p>
+<p>Формируется верхнетреугольная матрица размера $T \times T$ с нулями на главной диагонали и ниже, и значением $-\infty$ выше главной диагонали (`torch.triu(..., diagonal=1)`). При сложении с матрицей логитов $\frac{QK^\top}{\sqrt{d_k}} + M$ значения для всех будущих позиций становятся равными $-\infty$, а после операции Softmax их вероятности строго обращаются в ноль ($e^{-\infty} = 0$).</p>
 </div></details>
 
-<details class="qa"><summary>Какова размерность выхода Multi-Head Attention после конкатенации голов?</summary>
+<details class="qa"><summary>Какова размерность выхода Multi-Head Attention после объединения всех голов?</summary>
 <div class="ans">
-<p>Если в модели $h$ голов с размерностью $d_v = d_{\text{model}} / h$, то конкатенация всех голов дает тензор размера $(B, T, h \cdot d_v) = (B, T, d_{\text{model}})$. Затем он умножается на финальную матрицу $W^O \in \mathbb{R}^{d_{\text{model}} \times d_{\text{model}}}$, сохраняя итоговую форму $(B, T, d_{\text{model}})$.</p>
+<p>При $h$ головах размерности $d_v = d_{\text{model}} / h$ конкатенация выходов дает тензор формы $(B, T, h \cdot d_v) = (B, T, d_{\text{model}})$. Финальное умножение на проекционную матрицу $W^O \in \mathbb{R}^{d_{\text{model}} \times d_{\text{model}}}$ сохраняет итоговую размерность $(B, T, d_{\text{model}})$, равную исходному входу.</p>
 </div></details>
 
-<details class="qa"><summary>Что делает FlashAttention и меняет ли он математический результат Attention?</summary>
+<details class="qa"><summary>Что делает алгоритм FlashAttention и меняет ли он математический результат внимания?</summary>
 <div class="ans">
-<p>FlashAttention дает <strong>математически абсолютно точный результат</strong> классического внимания. Он оптимизирует выполнение на уровне «железа»: разбивает матрицы на блоки, помещающиеся в быструю память SRAM GPU, и вычисляет Softmax через онлайн-перемасштабирование (Online Softmax), не записывая матрицу $T \times T$ в медленную память HBM.</p>
+<p>FlashAttention дает <strong>математически абсолютно точный результат</strong> классического внимания. Он оптимизирует работу с памятью на уровне архитектуры GPU: разбивает матрицы $Q, K, V$ на блоки (тайлы), загружает их в сверхбыструю кэш-память SRAM процессора GPU и вычисляет Softmax через динамическое перемасштабирование (Online Softmax), вообще не материализуя матрицу $T \times T$ в медленной глобальной памяти HBM.</p>
 </div></details>
 
-<details class="qa"><summary>Почему сумма элементов по каждой строке матрицы весов внимания всегда равна 1?</summary>
+<details class="qa"><summary>Почему сумма коэффициентов внимания по каждой строке матрицы всегда равна 1?</summary>
 <div class="ans">
-<p>Потому что Softmax применяется построчно по последней размерности (dim=-1). Это гарантирует, что вектор выхода для каждого токена является корректной выпуклой комбинацией (взвешенным средним) векторов значений $V$.</p>
+<p>Потому что операция $\text{Softmax}$ применяется строго построчно по последней размерности (dim=-1). Это гарантирует, что выходной вектор для каждого токена является корректной выпуклой комбинацией (взвешенным средним) векторов значений $V$, сохраняя устойчивость масштаба признаков.</p>
 </div></details>
 
-<details class="qa"><summary>Математически докажите, почему дисперсия скалярного произведения $\text{Var}(q \cdot k) = d_k$, если компоненты $q_i, k_i$ независимы с $\mathbb{E}=0$ и $\text{Var}=1$.</summary>
+<details class="qa"><summary>Математически докажите, почему дисперсия скалярного произведения $\text{Var}(q \cdot k) = d_k$.</summary>
 <div class="ans">
-<p>Пусть $q, k \in \mathbb{R}^{d_k}$ — независимые случайные векторы, компоненты которых $q_i, k_i$ имеют нулевое математическое ожидание $\mathbb{E}[q_i] = \mathbb{E}[k_i] = 0$ и единичную дисперсию $\text{Var}(q_i) = \text{Var}(k_i) = 1$.</p>
-<p>Скалярное произведение равно сумме: $z = q \cdot k = \sum_{i=1}^{d_k} q_i k_i$.</p>
-<ol>
-  <li><strong>Математическое ожидание каждого слагаемого:</strong> В силу независимости $q_i$ и $k_i$, $\mathbb{E}[q_i k_i] = \mathbb{E}[q_i] \mathbb{E}[k_i] = 0 \cdot 0 = 0$. Значит, $\mathbb{E}[z] = 0$.</li>
-  <li><strong>Дисперсия одного слагаемого:</strong> $\text{Var}(q_i k_i) = \mathbb{E}[(q_i k_i)^2] - (\mathbb{E}[q_i k_i])^2 = \mathbb{E}[q_i^2] \mathbb{E}[k_i^2] - 0 = 1 \cdot 1 = 1$.</li>
-  <li><strong>Дисперсия суммы независимых слагаемых:</strong> Так как все компоненты взаимно независимы:
-  $$\text{Var}(q \cdot k) = \text{Var}\left(\sum_{i=1}^{d_k} q_i k_i\right) = \sum_{i=1}^{d_k} \text{Var}(q_i k_i) = \sum_{i=1}^{d_k} 1 = d_k$$
-  </li>
-</ol>
-<p>Следовательно, стандартное отклонение скалярного произведения равно $\sigma = \sqrt{d_k}$. Деление на $\sqrt{d_k}$ нормализует дисперсию: $\text{Var}\left(\frac{q \cdot k}{\sqrt{d_k}}\right) = \frac{\text{Var}(q \cdot k)}{(\sqrt{d_k})^2} = \frac{d_k}{d_k} = 1$, что удерживает аргументы Softmax в зоне максимального градиента.</p>
+<p>Для независимых случайных величин с $\mathbb{E}[q_i] = \mathbb{E}[k_i] = 0$ и $\text{Var}(q_i) = \text{Var}(k_i) = 1$ скалярное произведение есть $z = \sum_{i=1}^{d_k} q_i k_i$. Математическое ожидание каждого слагаемого $\mathbb{E}[q_i k_i] = \mathbb{E}[q_i]\mathbb{E}[k_i] = 0$. Дисперсия слагаемого: $\text{Var}(q_i k_i) = \mathbb{E}[q_i^2 k_i^2] - 0 = \mathbb{E}[q_i^2]\mathbb{E}[k_i^2] = 1 \cdot 1 = 1$. В силу независимости дисперсия суммы равна сумме дисперсий: $\text{Var}(z) = \sum_{i=1}^{d_k} 1 = d_k$.</p>
 </div></details>
 
-<details class="qa"><summary>Почему в причинной маске (Causal Mask) для запрещенных позиций используют $-\infty$ (или $-10^4 / -10^9$) и как избежать появления NaN при вычислениях в float16?</summary>
+<details class="qa"><summary>Почему в причинной маске используют $-\infty$ и как избежать появления NaN при вычислениях в float16?</summary>
 <div class="ans">
-<p>В формуле внимания Softmax вычисляется как $\text{Softmax}(z)_i = \frac{e^{z_i}}{\sum_j e^{z_j}}$. Чтобы занулить вероятность внимания к будущему токену $j$, его логит $z_j$ должен стремиться к $-\infty$, поскольку $\lim_{z \to -\infty} e^z = 0$.</p>
-<p>При переходе к половинной точности (<code>float16</code> / <code>bfloat16</code>) возникают численные риски:</p>
-<ul>
-  <li>В формате <code>torch.float16</code> минимальное представимое конечное число равно $\approx -65504$. Если записать константу <code>-1e9</code>, в <code>float16</code> она переполнится до <code>-inf</code>. Если целая строка матрицы оказывается замаскированной (например, в padding-предложении), сумма в Softmax будет равна $\sum e^{-\infty} = 0$, и деление $\frac{0}{0}$ породит <strong>NaN</strong>, разрушающий веса модели.</li>
-  <li>Правильная реализация в PyTorch использует минимальное число для текущего типа данных через <code>torch.finfo(dtype).min</code>, либо заполняет маскированные логиты значением <code>-1e4</code>, гарантируя $e^{-10000} = 0$ в float16 без риска переполнения.</li>
-</ul>
+<p>В формуле Softmax $\lim_{z \to -\infty} e^z = 0$, что зануляет веса внимания к будущим токенам. В формате `float16` минимальное представимое число равно $-65504$. Запись константы `-1e9` переполняется в `-inf`. Если целая строка матрицы замаскирована, сумма Softmax равна $0$, и деление $\frac{0}{0}$ порождает NaN. В PyTorch следует использовать `torch.finfo(dtype).min` или безопасное значение `-1e4`.</p>
 </div></details>
 
-<details class="qa"><summary>В чем разница между Multi-Head (MHA), Multi-Query (MQA) и Grouped-Query Attention (GQA) и почему современные LLM перешли на GQA?</summary>
+<details class="qa"><summary>В чем разница между Multi-Head (MHA), Multi-Query (MQA) и Grouped-Query Attention (GQA)?</summary>
 <div class="ans">
-<p>При авторегрессионной генерации токенов (LLM inference) скорость упирается не в вычислительную мощность GPU (FLOPs), а в пропускную способность видеопамяти при загрузке KV-кэша (Memory Bandwidth bound):</p>
-<ol>
-  <li><strong>Multi-Head Attention (MHA):</strong> Каждая из $H$ голов внимания имеет собственные уникальные проекции $Q, K, V$ ($H_K = H$). Для контекста длины $L$ кэш хранит $2 \times H \times L \times d_k$ значений, что при 32 головах требует гигантского объема памяти.</li>
-  <li><strong>Multi-Query Attention (MQA, Shazeer 2019):</strong> Все $H$ голов запросов $Q$ разделяют <strong>одну-единственную общую пару голов $K$ и $V$</strong> ($H_K = 1$). Объем KV-кэша и трафик памяти сокращаются в $H$ раз, но модель теряет в емкости и качестве на сложных рассуждениях.</li>
-  <li><strong>Grouped-Query Attention (GQA, Ainslie et al., 2023):</strong> Компромиссная схема, где $H$ голов запросов делятся на $G$ групп (например, $G=8$ при $H=32$). Внутри каждой группы из 4 голов $Q$ используется одна общая пара голов $K$ и $V$.</li>
-</ol>
-<p>GQA (используется в LLaMA-2/3, Mistral, Gemma) сокращает размер KV-кэша в 4–8 раз и многократно ускоряет генерацию токенов при практически нулевой потере качества по сравнению с полным MHA.</p>
+<p>В MHA каждая голова $Q$ имеет собственные головы $K$ и $V$ ($H_K = H$). В MQA все $H$ голов $Q$ делят одну пару голов $K, V$ ($H_K = 1$), экономя память в $H$ раз ценой небольшого падения качества. В GQA (LLaMA-3, Mistral) $H$ голов $Q$ разбиты на $G$ групп (например, $G=8$ при $H=32$), где каждая группа делит одну пару $K, V$. Это сокращает KV-кэш в 4–8 раз при сохранении качества MHA.</p>
 </div></details>
 
 <!-- ============================================ -->
@@ -310,8 +334,8 @@ $$ Q = \begin{pmatrix} 1 & 0 \\ 0 & 2 \end{pmatrix}, \quad K = \begin{pmatrix} 1
   <div class="tt">Задача 1. Расчет дисперсии скалярного произведения</div>
   <p>Векторы $q, k \in \mathbb{R}^{128}$ имеют независимые компоненты со стандартным отклонением $\sigma = 1$. Чему равно стандартное отклонение скалярного произведения $q \cdot k$ до масштабирования и после деления на $\sqrt{128}$?</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>1. Дисперсия до масштабирования: $\text{Var}(q \cdot k) = d_k = 128$. Стандартное отклонение: $\sigma = \sqrt{128} \approx 11.31$.</p>
-    <p>2. После масштабирования: $\text{Var}\left(\frac{q \cdot k}{\sqrt{128}}\right) = \frac{128}{128} = 1.0$. Стандартное отклонение: $\sigma = 1.0$.</p>
+    <p>1. Дисперсия до масштабирования: $\text{Var}(q \cdot k) = d_k = 128$. Стандартное отклонение: $\sigma = \sqrt{128} \approx \mathbf{11.31}$.</p>
+    <p>2. После деления: $\text{Var}\left(\frac{q \cdot k}{\sqrt{128}}\right) = \frac{128}{128} = 1.0$. Стандартное отклонение: $\sigma = \mathbf{1.0}$.</p>
   </div></details>
 </div>
 
@@ -320,71 +344,79 @@ $$ Q = \begin{pmatrix} 1 & 0 \\ 0 & 2 \end{pmatrix}, \quad K = \begin{pmatrix} 1
   <p>В модели $d_{\text{model}} = 768$, число голов $h = 12$, размерность головы $d_k = d_v = 64$. Сколько параметров содержат матрицы проекций $W^Q, W^K, W^V, W^O$ (без bias)?</p>
   <details><summary>Решение</summary><div class="sol">
     <p>Матрица $W^Q$: $768 \times (12 \cdot 64) = 768 \times 768 = 589\,824$.</p>
-    <p>Матрицы $W^K, W^V, W^O$ имеют такой же размер: по $589\,824$.</p>
-    <p>$$ \text{Всего параметров} = 4 \times 589\,824 = 2\,359\,296 \approx 2.36 \text{ млн} $$</p>
+    <p>Матрицы $W^K, W^V, W^O$ имеют идентичную размерность: $589\,824$ каждая.</p>
+    <div class="math-scroll-wrapper">
+    $$ \text{Суммарно параметров} = 4 \times 589\,824 = \mathbf{2\,359\,296} \approx 2.36 \text{ млн} $$
+    </div>
   </div></details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 3. Расчет памяти под матрицу внимания</div>
-  <p>Модель LLaMA обрабатывает последовательность длиной $T = 8192$ токенов при размере батча $B = 4$ и числе голов $h = 32$ (тип данных float16, 2 байта). Сколько мегабайт занимает в памяти одна матрица весов внимания $Q K^T$?</p>
+  <div class="tt">Задача 3. Расчет объема памяти под матрицу внимания</div>
+  <p>Модель обрабатывает последовательность длиной $T = 8192$ токенов при размере батча $B = 4$ и числе голов $h = 32$ (тип данных float16, 2 байта). Сколько гигабайт памяти занимает матрица $Q K^\top$?</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>Число элементов матрицы: $B \times h \times T \times T = 4 \times 32 \times 8192 \times 8192 = 8\,589\,934\,592$ элементов.</p>
-    <p>Объем в байтах: $8\,589\,934\,592 \times 2 \text{ байта} = 17\,179\,869\,184 \text{ байт} = 16 \text{ ГБ}$!</p>
-    <p><strong>Вывод:</strong> Вот почему для длинных контекстов необходим FlashAttention (который не хранит эту матрицу в HBM).</p>
+    <p>Число элементов: $B \times h \times T \times T = 4 \times 32 \times 8192 \times 8192 = 8\,589\,934\,592$ элементов.</p>
+    <p>Объем в байтах: $8\,589\,934\,592 \times 2 \text{ байта} = 17\,179\,869\,184 \text{ байт} = \mathbf{16 \text{ ГБ}}$.</p>
+    <p><em>Вывод:</em> Для длинных контекстов необходим FlashAttention, исключающий материализацию этой матрицы в HBM.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 4. Применение Causal Mask к матрице scores</div>
-  <p>Дана матрица логитов: $\begin{pmatrix} 2.0 & 5.0 \\ 1.0 & 3.0 \end{pmatrix}$. Примените Causal Mask и посчитайте веса внимания после Softmax.</p>
+  <p>Дана матрица логитов $\begin{pmatrix} 2.0 & 5.0 \\ 1.0 & 3.0 \end{pmatrix}$. Примените Causal Mask и вычислите веса внимания после Softmax.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>Маска заменяет верхний правый элемент на $-\infty$:</p>
-    <p>$$ \text{Masked Scores} = \begin{pmatrix} 2.0 & -\infty \\ 1.0 & 3.0 \end{pmatrix} $$</p>
+    <p>Применяем маску к верхнему правому элементу:</p>
+    <div class="math-scroll-wrapper">
+    $$ M_{\text{scores}} = \begin{pmatrix} 2.0 & -\infty \\ 1.0 & 3.0 \end{pmatrix} $$
+    </div>
     <p>Softmax по строкам:</p>
     <ul>
       <li>Строка 1: $\text{Softmax}([2.0, -\infty]) = [1.0, \, 0.0]$.</li>
-      <li>Строка 2: $\text{Softmax}([1.0, 3.0]) = \left[\frac{e^1}{e^1 + e^3}, \frac{e^3}{e^1 + e^3}\right] \approx [0.119, \, 0.881]$.</li>
+      <li>Строка 2: $\left[\frac{e^1}{e^1 + e^3}, \frac{e^3}{e^1 + e^3}\right] \approx [0.119, \, 0.881]$.</li>
     </ul>
-    <p>$$ A = \begin{pmatrix} 1.0 & 0.0 \\ 0.119 & 0.881 \end{pmatrix} $$</p>
+    <div class="math-scroll-wrapper">
+    $$ A = \begin{pmatrix} 1.000 & 0.000 \\ 0.119 & 0.881 \end{pmatrix} $$
+    </div>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 5. Размерность тензоров при Multi-Head Reshape</div>
-  <p>Тензор $Q$ имеет форму $(B=2, T=4, d=512)$. Мы хотим разбить его на $h=8$ голов. Каковы формы тензора после `.view()` и после `.transpose(1, 2)`?</p>
+  <p>Тензор $Q$ имеет форму $(B=2, T=4, d=512)$. Мы разбиваем его на $h=8$ голов. Каковы формы тензора после `.view()` и после `.transpose(1, 2)`?</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>1. После `view(B, T, h, d_k)`: размерность $(2, 4, 8, 64)$.</p>
-    <p>2. После `transpose(1, 2)`: размерность $(B, h, T, d_k) = (2, 8, 4, 64)$.</p>
-    <p>Это необходимо, чтобы батчевое матричное умножение выполнялось независимо для каждой головы.</p>
+    <p>1. После `view(B, T, h, d_k)`: $(2, 4, 8, 64)$.</p>
+    <p>2. После `transpose(1, 2)`: $\mathbf{(B, h, T, d_k) = (2, 8, 4, 64)}$.</p>
+    <p>Перестановка осей позволяет выполнять батчевое умножение независимо для каждой головы.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 6. Внимание к самому себе (Self-Focus)</div>
-  <p>Если вектор запроса $q_1$ и ключ $k_1$ совпадают ($q_1 = k_1$), а все остальные ключи $k_j$ ортогональны ему ($q_1 \cdot k_j = 0$), какой вес внимания получит токен 1 при $d_k=4$ и длине фразы $T=4$ ($q_1 \cdot k_1 = 4.0$)?</p>
+  <p>Вектор запроса $q_1$ совпадает с ключом $k_1$ ($q_1 \cdot k_1 = 4.0$), а остальные ключи ортогональны ему ($q_1 \cdot k_j = 0.0$). Найдите вес внимания $\alpha_1$ при $d_k=4$ и длине фразы $T=4$.</p>
   <details><summary>Решение</summary><div class="sol">
     <p>Логиты после деления на $\sqrt{4} = 2$:</p>
-    <p>$z_1 = 4.0 / 2 = 2.0$. Для остальных: $z_2 = z_3 = z_4 = 0.0 / 2 = 0.0$.</p>
-    <p>$\exp(z_1) = e^2 \approx 7.389$, $\exp(z_{2,3,4}) = 1.0$. Сумма: $7.389 + 3 \cdot 1.0 = 10.389$.</p>
-    <p>$$ \alpha_1 = \frac{7.389}{10.389} \approx 0.711 \quad (71.1\%) $$</p>
-    <p>Токен 1 забирает $71.1\%$ внимания, отдавая по $9.6\%$ остальным токенам.</p>
+    <p>$z_1 = 4.0 / 2 = 2.0$. Для $j \in \{2, 3, 4\}$: $z_j = 0.0 / 2 = 0.0$.</p>
+    <p>Экспоненты: $e^2 \approx 7.389$, $e^0 = 1.0$. Сумма: $7.389 + 3 \times 1.0 = 10.389$.</p>
+    <div class="math-scroll-wrapper">
+    $$ \alpha_1 = \frac{7.389}{10.389} \approx \mathbf{0.711} \quad (71.1\%) $$
+    </div>
   </div></details>
 </div>
 
 <!-- ============================================ -->
-<h2 id="cheat">⚡ Ответ за 3 минуты</h2>
+<h2 id="cheat">⚡ Краткий скелет ответа по билету</h2>
 
 <div class="cheat">
-  <div class="bt">Скелет устного ответа по билету 16 (Внимание и Самовнимание)</div>
+  <div class="bt">Скелет устного ответа по билету 16 (Самовнимание: Q, K, V, маски)</div>
   <ol>
-    <li><strong>Интуиция Q, K, V.</strong> Аналогия поиска: Query — что ищем, Key — дескриптор/заголовок каждого токена, Value — содержимое токена.</li>
-    <li><strong>Проекции.</strong> $Q = X W^Q, K = X W^K, V = X W^V$. Отдельные матрицы позволяют токену искать одно, а предлагать другое.</li>
-    <li><strong>Формула Attention.</strong> $\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{Q K^T}{\sqrt{d_k}}\right) V$. Матрица $Q K^T$ размера $T \times T$.</li>
-    <li><strong>Зачем $\sqrt{d_k}$.</strong> Дисперсия $q \cdot k$ равна $d_k$. Без деления при $d_k=64$ Softmax насыщается, градиенты обнуляются. Деление на $\sqrt{d_k}$ нормализует дисперсию к 1.</li>
-    <li><strong>Multi-Head Attention.</strong> Проекция в $h$ голов ($d_k = d_{\text{model}}/h$). Каждая голова улавливает свои отношения (грамматика, местоимения, контекст). Затраты равны одной большой голове.</li>
-    <li><strong>Маски.</strong> Padding mask (зануляет pad-токены через $-\infty$) и Causal mask (верхнетреугольная матрица $-\infty$ в декодере от заглядывания в будущее).</li>
-    <li><strong>Сложность $O(T^2)$.</strong> Вычисление и хранение матрицы $T \times T$ квадратично. FlashAttention решает проблему через тайлинг в SRAM без материализации $T \times T$ в HBM.</li>
+    <li><strong>Интуиция Q, K, V:</strong> Дифференцируемый поиск по словарю. Query — что токен ищет, Key — дескриптор токена, Value — фактическое информационное наполнение.</li>
+    <li><strong>Линейные проекции:</strong> $Q = X W^Q, K = X W^K, V = X W^V$. Независимые матрицы позволяют токену искать одно, а предлагать другое.</li>
+    <li><strong>Формула Attention:</strong> $\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{Q K^\top}{\sqrt{d_k}}\right) V$. Сложность по времени $O(T^2 d)$, по памяти $O(T^2)$.</li>
+    <li><strong>Зачем делить на $\sqrt{d_k}$:</strong> Дисперсия скалярного произведения $\text{Var}(q \cdot k) = d_k$. Без деления Softmax уходит в насыщение с нулевыми градиентами. Деление на $\sqrt{d_k}$ нормализует дисперсию к 1.</li>
+    <li><strong>Multi-Head Attention:</strong> Проекция в $h$ независимых голов ($d_k = d_{\text{model}}/h$). Разные головы отслеживают синтаксис, кореференцию и контекст при равных вычислительных затратах.</li>
+    <li><strong>Виды масок:</strong> Padding Mask (зануляет pad-токены через $-\infty$) и Causal Mask (верхнетреугольная матрица $-\infty$ в декодере от подглядывания в будущее).</li>
+    <li><strong>Эволюция KV-кэша:</strong> MHA (полный кэш) $\to$ MQA (одна пара голов K, V) $\to$ GQA (группировка $Q$, стандарт LLaMA-3).</li>
+    <li><strong>FlashAttention:</strong> Вычисление внимания через блочный тайлинг в SRAM GPU без материализации матрицы $T \times T$ в HBM, ускорение в 3–5 раз.</li>
   </ol>
 </div>
 

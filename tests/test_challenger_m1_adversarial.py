@@ -26,11 +26,11 @@ class TestChallengerM1ServiceWorker(unittest.TestCase):
         cls.sw_content = SW_FILE.read_text(encoding="utf-8")
 
     def test_01_sw_cache_version_and_name(self):
-        """Verify CACHE_NAME is bumped to ai-course-v2."""
+        """Verify CACHE_NAME is bumped to ai-course-v3."""
         match = re.search(r"const\s+CACHE_NAME\s*=\s*['\"]([^'\"]+)['\"];", self.sw_content)
         self.assertIsNotNone(match, "CACHE_NAME definition not found in sw.js")
         cache_name = match.group(1)
-        self.assertEqual(cache_name, "ai-course-v2", f"Expected CACHE_NAME='ai-course-v2', found '{cache_name}'")
+        self.assertEqual(cache_name, "ai-course-v3", f"Expected CACHE_NAME='ai-course-v3', found '{cache_name}'")
 
     def test_02_all_static_assets_exist_on_filesystem(self):
         """Verify every single asset in STATIC_ASSETS exists on disk and is non-empty."""
@@ -129,17 +129,13 @@ class TestChallengerM1DOMAndUI(unittest.TestCase):
         self.assertIn('id="stat-qas-val"', hub_html, "stat-qas-val must exist")
         self.assertIn('id="stat-tasks-val"', hub_html, "stat-tasks-val must exist")
 
-    def test_07_course_tracker_methods_and_anki_export_preserved(self):
-        """Verify CourseTracker has exportProgressJSON, importProgressJSON, resetProgress, and Anki decks remain."""
+    def test_07_course_tracker_methods_and_exam_data_preserved(self):
+        """Verify CourseTracker has exportProgressJSON, importProgressJSON, resetProgress, and getOverallStats."""
         self.assertIn("exportProgressJSON()", self.tracker_content)
         self.assertIn("importProgressJSON(jsonStr)", self.tracker_content)
         self.assertIn("resetProgress()", self.tracker_content)
         self.assertIn("getOverallStats()", self.tracker_content)
-
-        # Anki export links in simulator
-        self.assertIn("anki_decks/ai_course_exam_qas.tsv", self.sim_content)
-        self.assertIn("anki_decks/ai_course_microtasks.tsv", self.sim_content)
-        self.assertIn("anki_decks/ai_course_3min_cheatsheets.tsv", self.sim_content)
+        self.assertIn("window.EXAM_DATA", self.sim_content)
 
 
 class TestChallengerM1NodeHarnessExecution(unittest.TestCase):

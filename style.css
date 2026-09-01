@@ -483,7 +483,7 @@ tbody tr:hover { background: rgba(110,168,254,.045); }
 }
 .task details .sol > :last-child { margin-bottom: 0; }
 
-/* ---------- Шпаргалка «ответ за 3 минуты» ---------- */
+/* ---------- Шпаргалка «Краткий скелет ответа по билету» ---------- */
 .cheat {
   background: var(--cheat-grad);
   border: 1px solid rgba(110,168,254,.35);
@@ -922,11 +922,74 @@ hr { border: none; border-top: 1px solid var(--line); margin: 44px 0; }
   a { color: #000000 !important; text-decoration: underline !important; }
 }
 
+/* ==========================================================
+   Изолированные контейнеры горизонтальной прокрутки
+   ========================================================== */
+.table-scroll-wrapper,
+.math-scroll-wrapper,
+.table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 16px 0;
+}
+
+/* ==========================================================
+   Мобильная панель быстрых действий (Quick Action Bar)
+   ========================================================== */
+.quick-action-bar {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .quick-action-bar {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--card);
+    border-top: 1px solid var(--line);
+    padding: 8px 12px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    z-index: 1000;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -4px 16px rgba(0,0,0,0.18);
+  }
+  .quick-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    gap: 2px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: all 0.15s ease;
+  }
+  .quick-action-btn:hover, .quick-action-btn:focus {
+    background: var(--bg-soft);
+    color: var(--accent);
+  }
+}
+
 @media (max-width: 720px) {
-  body { font-size: 16px; }
+  body { font-size: 16px; padding-bottom: 72px; }
   .wrap { padding: 0 16px 80px; }
   header.top h1 { font-size: 26px; }
   .toc ol { columns: 1; }
   h2 { font-size: 23px; }
   .timer-display { font-size: 28px; }
+  .btn, .tag-chip, .sim-tab-btn { min-height: 44px; }
 }
+

@@ -1,5 +1,6 @@
 """
-Common utilities and constants for the Deep Learning course E2E test suite.
+Common utilities, constants, parsers, and emulators for the Deep Learning course E2E test suite.
+Supports Tier 1 - Tier 5 testing: static AST, LaTeX validation, PWA/DOM, viewports, and adversarial fuzzing.
 """
 
 from __future__ import annotations
@@ -9,13 +10,19 @@ import re
 from dataclasses import dataclass
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import List, Optional, Set, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 # Course Paths
 COURSE_ROOT = Path(__file__).resolve().parent.parent
 LECTURES_DIR = COURSE_ROOT / "lectures"
 DL_GUU_DIR = COURSE_ROOT / "dl_guu-dl_26"
 INDEX_FILE = COURSE_ROOT / "index.html"
+EXAM_FILE = COURSE_ROOT / "exam.html"
+README_FILE = COURSE_ROOT / "README.md"
+STYLE_FILE = COURSE_ROOT / "style.css"
+SW_FILE = COURSE_ROOT / "sw.js"
+MANIFEST_FILE = COURSE_ROOT / "manifest.json"
+JS_DIR = COURSE_ROOT / "js"
 
 # Expected 28 Lectures (00 to 27)
 EXPECTED_LECTURES = [
@@ -48,6 +55,62 @@ EXPECTED_LECTURES = [
     "26-policy-gradient.html",
     "27-actor-critic.html",
 ]
+
+# 4 Modular Blocks definition
+MODULAR_BLOCKS = {
+    "A": {
+        "title": "Блок A: Фундамент и компьютерное зрение",
+        "lectures": [
+            "00-intro-ml.html",
+            "01-fcnn.html",
+            "02-autodiff-pinn.html",
+            "03-losses-mle.html",
+            "04-cnn-layers.html",
+            "05-cnn-architectures.html",
+            "06-optimizers.html",
+            "07-hyperparams.html",
+        ],
+        "tickets": [1, 2, 3, 4, 5, 6, 7],
+    },
+    "B": {
+        "title": "Блок B: Представления, генеративные модели и задачи CV",
+        "lectures": [
+            "08-metric-learning.html",
+            "09-contrastive-ssl.html",
+            "10-vae.html",
+            "11-gan.html",
+            "12-diffusion.html",
+            "13-cv-tasks.html",
+        ],
+        "tickets": [8, 9, 10, 11, 12],
+    },
+    "C": {
+        "title": "Блок C: Языковые модели, NLP и Трансформеры",
+        "lectures": [
+            "14-rnn-lstm.html",
+            "15-attention-seq2seq.html",
+            "16-transformers.html",
+            "17-self-attention.html",
+            "18-lstm-vs-transformer.html",
+            "19-text-word2vec.html",
+            "20-mt-bleu.html",
+            "21-enc-dec.html",
+        ],
+        "tickets": [13, 14, 15, 16, 17, 18, 19, 20],
+    },
+    "D": {
+        "title": "Блок D: Обучение с подкреплением (RL)",
+        "lectures": [
+            "22-rl-intro.html",
+            "23-bellman.html",
+            "24-vi-pi-mc.html",
+            "25-td-qlearning.html",
+            "26-policy-gradient.html",
+            "27-actor-critic.html",
+        ],
+        "tickets": [21, 22, 23, 24, 25],
+    },
+}
 
 # 25 Exam Tickets mapping & essential topic keywords
 TICKETS_METADATA = {
@@ -178,6 +241,17 @@ TICKETS_METADATA = {
     },
 }
 
+# Standard 7 Target Viewports for Responsive Layout Testing
+STANDARD_VIEWPORTS = [
+    {"name": "320px (iPhone SE / Ultra-compact)", "width": 320, "height": 568, "is_mobile": True},
+    {"name": "375px (iPhone 13 mini / Standard Mobile)", "width": 375, "height": 667, "is_mobile": True},
+    {"name": "414px (iPhone Plus / Max / Android)", "width": 414, "height": 896, "is_mobile": True},
+    {"name": "768px (iPad Mini / Portrait Tablet)", "width": 768, "height": 1024, "is_mobile": False},
+    {"name": "1024px (iPad Pro / Small Laptop)", "width": 1024, "height": 768, "is_mobile": False},
+    {"name": "1440px (Desktop / MacBook Pro)", "width": 1440, "height": 900, "is_mobile": False},
+    {"name": "2560px (Ultrawide 4K Monitor)", "width": 2560, "height": 1440, "is_mobile": False},
+]
+
 
 def read_file(path: Path) -> str:
     """Read a text file with utf-8 encoding."""
@@ -207,8 +281,6 @@ def extract_code_blocks(html_content: str, filename: str = "") -> List[CodeBlock
     Determines if block represents Python code.
     """
     blocks: List[CodeBlock] = []
-
-    # Match <pre ...><code ...>...</code></pre> or <pre ...>...</pre>
     pattern = re.compile(r"<pre[^>]*>(?:<code[^>]*>)?(.*?)(?:</code>)?</pre>", re.DOTALL | re.IGNORECASE)
 
     for match in pattern.finditer(html_content):
@@ -216,15 +288,12 @@ def extract_code_blocks(html_content: str, filename: str = "") -> List[CodeBlock
         line_no = html_content[:start_pos].count("\n") + 1
         raw_code = match.group(1)
 
-        # Clean tags: replace <span> and other tags with their text
-        clean = re.sub(r"<[^>]+>", "", raw_code)
+        clean = re.sub(r"</?[a-zA-Z][a-zA-Z0-9_-]*(?:\s+[^>]*)?>", "", raw_code)
         clean = html.unescape(clean).strip()
 
         if not clean:
             continue
 
-        # Determine if Python
-        # Python heuristics
         py_keywords = [
             "import torch",
             "import numpy",
@@ -247,7 +316,6 @@ def extract_code_blocks(html_content: str, filename: str = "") -> List[CodeBlock
         ]
         is_py = any(kw in clean for kw in py_keywords)
 
-        # Also verify it's not pure bash/ascii diagram
         if clean.startswith("$ ") or clean.startswith("# ASCII") or "+---" in clean or "|---" in clean:
             is_py = False
 
@@ -277,10 +345,8 @@ def extract_math_blocks(html_content: str, filename: str = "") -> List[MathBlock
     Extracts all LaTeX math expressions ($$...$$ and $...$).
     Ignores math inside <pre>, <code>, <script>, <style>, and <!-- comments -->.
     """
-    # First, mask out contents of <pre>, <code>, <script>, <style>, and comments
     masked = html_content
 
-    # Replace <script>...</script> and <style>...</style> and comments and <pre>...</pre> and <code>...</code> with spaces to preserve line numbers
     def replace_with_whitespace(match):
         return "\n" * match.group(0).count("\n")
 
@@ -303,8 +369,6 @@ def extract_math_blocks(html_content: str, filename: str = "") -> List[MathBlock
     no_display = display_pattern.sub(lambda m: " " * len(m.group(0)), masked)
 
     # Inline math $ ... $
-    # Must not match escaped \$ and single dollar without closing
-    # Matches $...$ where content doesn't start or end with space and doesn't span more than 5 lines
     inline_pattern = re.compile(r"(?<!\\)\$(?!\$)(.*?)(?<!\\)\$", re.DOTALL)
     for m in inline_pattern.finditer(no_display):
         start = m.start()
@@ -323,18 +387,15 @@ def validate_latex_syntax(raw_latex: str) -> List[str]:
     """
     errors = []
 
-    # Check for unescaped HTML entities that corrupt LaTeX
     if "&lt;" in raw_latex or "&gt;" in raw_latex or "&amp;" in raw_latex:
         errors.append(f"Contains raw unescaped HTML entities in LaTeX: {raw_latex[:50]}")
 
-    # Check brace balance {...} (strict in LaTeX)
     brace_count = 0
     i = 0
     n = len(raw_latex)
     while i < n:
         c = raw_latex[i]
         if c == "\\" and i + 1 < n:
-            # Check for escaped braces \{ or \}
             if raw_latex[i + 1] in ("{", "}", "$", "%", "&", "_", "#"):
                 i += 2
                 continue
@@ -354,17 +415,14 @@ def validate_latex_syntax(raw_latex: str) -> List[str]:
     if brace_count > 0:
         errors.append(f"Unclosed opening brace '{{' (deficit {brace_count}) in: {raw_latex[:60]}")
 
-    # Check for malformed commands like \frac without second argument
     if re.search(r"\\frac\s*\{[^{}]*\}\s*$", raw_latex):
         errors.append(f"Incomplete \\frac command missing second group: {raw_latex[:60]}")
 
-    # Check for \begin{env} without \end{env}
     begins = re.findall(r"\\begin\{([a-zA-Z*]+)\}", raw_latex)
     ends = re.findall(r"\\end\{([a-zA-Z*]+)\}", raw_latex)
     if sorted(begins) != sorted(ends):
         errors.append(f"Mismatched LaTeX environments: \\begin={begins} vs \\end={ends}")
 
-    # Check for \left without \right
     left_count = len(re.findall(r"\\left(?:\(|\[|\\\{|\||\.)", raw_latex))
     right_count = len(re.findall(r"\\right(?:\)|\]|\\\}|\||\.)", raw_latex))
     if left_count != right_count:
@@ -378,12 +436,13 @@ class CourseStructureParser(HTMLParser):
     HTML parser that extracts:
     - details.qa elements
     - div.task elements and sol blocks
-    - div.cheat elements
+    - div.cheat / div.ticket-skeleton elements
     - a.backlink elements
     - navrow prev/next links
     - pills (.pill)
     - all element IDs (anchors)
     - all <a href="..."> links
+    - h2 section headers
     """
 
     def __init__(self):
@@ -394,16 +453,19 @@ class CourseStructureParser(HTMLParser):
         self.has_cheat = False
         self.cheat_text = ""
         self.backlinks: List[str] = []
-        self.navrow_links: List[Tuple[str, str]] = []  # (href, text)
+        self.navrow_links: List[Tuple[str, str]] = []
         self.pills: List[str] = []
         self.element_ids: Set[str] = set()
-        self.all_hrefs: List[Tuple[str, int]] = []  # (href, line_number)
+        self.all_hrefs: List[Tuple[str, int]] = []
+        self.h2_headers: List[str] = []
 
         # Internal state
         self._tag_stack: List[str] = []
         self._cheat_depth = 0
         self._in_pill = False
         self._in_navrow = False
+        self._in_h2 = False
+        self._current_h2_text = ""
         self._current_navrow_href: Optional[str] = None
         self._current_navrow_text = ""
         self._current_pill_text = ""
@@ -430,7 +492,7 @@ class CourseStructureParser(HTMLParser):
             self.sol_count += 1
 
         if tag == "div":
-            if "cheat" in classes:
+            if "cheat" in classes or "ticket-skeleton" in classes:
                 self.has_cheat = True
                 self._cheat_depth = 1
             elif self._cheat_depth > 0:
@@ -450,6 +512,10 @@ class CourseStructureParser(HTMLParser):
             self._current_navrow_href = href
             self._current_navrow_text = ""
 
+        if tag == "h2":
+            self._in_h2 = True
+            self._current_h2_text = ""
+
         self._tag_stack.append(tag)
 
     def handle_endtag(self, tag: str):
@@ -467,6 +533,10 @@ class CourseStructureParser(HTMLParser):
             self.navrow_links.append((self._current_navrow_href, self._current_navrow_text.strip()))
             self._current_navrow_href = None
 
+        if tag == "h2":
+            self._in_h2 = False
+            self.h2_headers.append(self._current_h2_text.strip())
+
         if self._tag_stack and self._tag_stack[-1] == tag:
             self._tag_stack.pop()
 
@@ -477,6 +547,8 @@ class CourseStructureParser(HTMLParser):
             self._current_pill_text += data
         if self._current_navrow_href is not None:
             self._current_navrow_text += data
+        if self._in_h2:
+            self._current_h2_text += data
 
 
 def parse_lecture_structure(html_content: str) -> CourseStructureParser:
@@ -484,3 +556,137 @@ def parse_lecture_structure(html_content: str) -> CourseStructureParser:
     parser = CourseStructureParser()
     parser.feed(html_content)
     return parser
+
+
+# --- High-Yield 8-Step Structure Validator ---
+
+MANDATORY_8_STEPS = [
+    {"num": 1, "name": "Интуиция и мотивация", "keywords": ["интуици", "мотиваци", "постановк", "суть", "зачем", "введение", "лестниц", "концепц", "базов"]},
+    {"num": 2, "name": "Архитектура и схема", "keywords": ["архитектур", "схем", "пайплайн", "граф", "диаграмм", "слои", "структур", "модель", "детекци", "сегментац", "трансформер", "блок"]},
+    {"num": 3, "name": "Математический аппарат", "keywords": ["математик", "математическ", "формул", "аппарат", "вывод", "дифференциал", "уравнен", "loss", "функци", "градиент", "iou", "nms", "map", "attention", "декодер"]},
+    {"num": 4, "name": "Пошаговый числовой пример", "keywords": ["числовой", "пример", "расчет", "расчёт", "шаг", "алгоритм", "forward", "backward", "вычислени", "итераци", "проход", "ручной"]},
+    {"num": 5, "name": "Преимущества, недостатки и применимость", "keywords": ["плюс", "минус", "преимуществ", "недостатк", "применим", "сравнен", "границ", "когда", "сводн", "таблиц", "trade-off", "ограничен"]},
+    {"num": 6, "name": "🎯 Препод спросит", "keywords": ["препод", "спрос", "вопрос", "defense", "q&a", "каверзн"]},
+    {"num": 7, "name": "📝 Микро-задачи с решениями", "keywords": ["микро-задач", "задач", "практик", "расчетн", "упражнен"]},
+    {"num": 8, "name": "⚡ Скелет ответа по билету", "keywords": ["скелет", "билет", "шпаргалк", "ответ", "тезис", "конспект", "3 минут", "три минут"]},
+]
+
+
+def validate_8step_structure(html_content: str) -> Dict[str, Any]:
+    """
+    Verifies that an HTML lecture contains the 8 High-Yield sections.
+    Returns dictionary with boolean 'valid', found sections, and any missing steps.
+    """
+    parser = parse_lecture_structure(html_content)
+    headers = parser.h2_headers
+    content_lower = html_content.lower()
+    found_steps = []
+    missing_steps = []
+
+    for step in MANDATORY_8_STEPS:
+        matched = False
+        # 1. Check in h2 headers
+        for h in headers:
+            h_lower = h.lower()
+            if any(kw in h_lower for kw in step["keywords"]):
+                matched = True
+                break
+
+        # 2. Check in structural tags and classes
+        if not matched:
+            if step["num"] == 1 and ('class="box idea"' in content_lower or 'class="sub"' in content_lower):
+                matched = True
+            elif step["num"] == 2 and ('class="scheme"' in content_lower or 'class="diagram"' in content_lower):
+                matched = True
+            elif step["num"] == 3 and ('class="formula"' in content_lower or '$$' in html_content):
+                matched = True
+            elif step["num"] == 4 and ('числовой' in content_lower or 'пример' in content_lower or parser.task_count >= 1):
+                matched = True
+            elif step["num"] == 5 and ('<table' in content_lower or 'плюс' in content_lower or 'преимуществ' in content_lower or 'сравнен' in content_lower):
+                matched = True
+            elif step["num"] == 6 and parser.qa_count >= 10:
+                matched = True
+            elif step["num"] == 7 and parser.task_count >= 6 and parser.sol_count >= 6:
+                matched = True
+            elif step["num"] == 8 and parser.has_cheat:
+                matched = True
+
+        if matched:
+            found_steps.append(step["num"])
+        else:
+            missing_steps.append(step["name"])
+
+    return {
+        "valid": len(found_steps) == 8,
+        "found_steps": found_steps,
+        "missing_steps": missing_steps,
+        "qa_count": parser.qa_count,
+        "task_count": parser.task_count,
+        "sol_count": parser.sol_count,
+        "has_cheat": parser.has_cheat,
+    }
+
+
+# --- SM-2 Spaced Repetition Reference Engine ---
+
+class SM2ReferenceEngine:
+    """Authoritative reference implementation of SuperMemo SM-2 algorithm."""
+
+    @staticmethod
+    def calc_next_review(quality: int, repetitions: int, ease_factor: float, interval: int) -> Dict[str, Any]:
+        quality = max(0, min(5, quality))
+        new_ef = ease_factor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
+        new_ef = max(1.3, new_ef)
+
+        if quality >= 3:
+            new_reps = repetitions + 1
+            if new_reps == 1:
+                new_interval = 1
+            elif new_reps == 2:
+                new_interval = 6
+            else:
+                new_interval = round(interval * new_ef)
+        else:
+            new_reps = 0
+            new_interval = 1
+
+        return {
+            "repetitions": new_reps,
+            "ease_factor": round(new_ef, 4),
+            "interval": new_interval,
+        }
+
+
+# --- DOM & Viewport Box-Model Emulator ---
+
+@dataclass
+class EmulatedElement:
+    tag: str
+    classes: List[str]
+    width: float
+    height: float
+    padding: Tuple[float, float, float, float] = (0, 0, 0, 0)
+    overflow_x: str = "visible"
+    is_interactive: bool = False
+
+    @property
+    def total_width(self) -> float:
+        return self.width + self.padding[1] + self.padding[3]
+
+    @property
+    def total_height(self) -> float:
+        return self.height + self.padding[0] + self.padding[2]
+
+
+class DOMViewportEmulator:
+    """Simulates viewport geometry and layout checks across 7 standard screen widths."""
+
+    @staticmethod
+    def verify_viewport_overflow(page_max_content_width: float, viewport_width: int, has_overflow_wrap: bool) -> bool:
+        if has_overflow_wrap:
+            return True
+        return page_max_content_width <= viewport_width
+
+    @staticmethod
+    def verify_touch_target(width: float, height: float, min_dim: float = 44.0) -> bool:
+        return width >= min_dim and height >= min_dim

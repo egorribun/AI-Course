@@ -1,36 +1,60 @@
-# E2E Test Infra: Deep Learning Educational Platform
+# E2E Test Infra: «Методы ИИ» Educational Web Course
 
 ## Test Philosophy
-- Requirement-driven, opaque-box and structural verification.
-- 4-Tier test architecture + Tier 5 adversarial stress testing:
-  - **Tier 1 - Feature Coverage**: Structural & functional verification of all 28 lectures, PWA, SM-2, exam simulator, hotkeys, copy buttons, Anki export.
-  - **Tier 2 - Boundary & Corner Cases**: Edge conditions (navigation limits at L00/L27, shortcut focus collision in text inputs, SM-2 boundary ratings, extreme LaTeX formulas, print `<details>` states).
-  - **Tier 3 - Cross-Feature Combinations**: Interactions between LocalStorage tracker, SM-2 state, exam simulator randomizer, theme switcher, and Anki data export.
-  - **Tier 4 - Real-World Application Scenarios**: Complete exam preparation workflow simulation (studying lecture $\to$ solving microtasks $\to$ running 3-min timer on exam ticket $\to$ Leitner review $\to$ Anki export).
-  - **Tier 5 - Adversarial Coverage Hardening**: White-box stress testing of PyTorch snippets, dynamic tensor execution, and LaTeX syntax parsers.
+- Requirement-driven, opaque-box and static AST verification.
+- Zero tolerance for broken MathJax/KaTeX syntax, missing lecture steps, hardcoded answers, or viewport horizontal scroll regressions.
+- Framework: Python `pytest` + `lxml`/`BeautifulSoup4` + Playwright/HTML DOM/CSS validator, executable via `uv run pytest` and `python tests/run_all_tests.py`.
 
-## Feature Inventory & Test Coverage Mapping
-| # | Feature | Source (Requirement) | Tier 1 | Tier 2 | Tier 3 | Tier 4 |
-|---|---------|---------------------|:------:|:------:|:------:|:------:|
-| 1 | Zero-build PWA & Service Worker (`sw.js`, `manifest.json`) | ORIGINAL_REQUEST §R1 | ✓ | ✓ | ✓ | ✓ |
-| 2 | Web App Manifest & App Icons | ORIGINAL_REQUEST §R1 | ✓ | ✓ | ✓ | ✓ |
-| 3 | Spaced Repetition (Leitner / SM-2) | ORIGINAL_REQUEST §R2 | ✓ | ✓ | ✓ | ✓ |
-| 4 | Exam Simulator: Ticket Selector (1-25) | ORIGINAL_REQUEST §R2 | ✓ | ✓ | ✓ | ✓ |
-| 5 | Exam Simulator: 3-Min Timer & Audio | ORIGINAL_REQUEST §R2 | ✓ | ✓ | ✓ | ✓ |
-| 6 | Exam Simulator: Blitz & Drill Modes | ORIGINAL_REQUEST §R2 | ✓ | ✓ | ✓ | ✓ |
-| 7 | Global Keyboard Shortcuts (`[`, `]`, `T`, `/`, `Alt+O`) | ORIGINAL_REQUEST §R2 | ✓ | ✓ | ✓ | ✓ |
-| 8 | Code Snippet Copy Buttons & Feedback | ORIGINAL_REQUEST §R2 | ✓ | ✓ | ✓ | ✓ |
-| 9 | Print CSS & WCAG 2.1 AA a11y | ORIGINAL_REQUEST §R1 | ✓ | ✓ | ✓ | ✓ |
-| 10 | 28 Lectures Academic Rigor (8 Core Proofs) | ORIGINAL_REQUEST §R3 | ✓ | ✓ | ✓ | ✓ |
-| 11 | EdTech Q&A ($\ge 10$) & Micro-Tasks ($\ge 6$) | ORIGINAL_REQUEST §R3 | ✓ | ✓ | ✓ | ✓ |
-| 12 | LaTeX Delimiter & Syntax Integrity | ORIGINAL_REQUEST §R3 | ✓ | ✓ | ✓ | ✓ |
-| 13 | PyTorch 2.x Idioms & AST Validation | ORIGINAL_REQUEST §R3 | ✓ | ✓ | ✓ | ✓ |
-| 14 | Anki TSV Exporter (`tools/export_anki.py`) | ORIGINAL_REQUEST §R4 | ✓ | ✓ | ✓ | ✓ |
-| 15 | Repository & Documentation Sync (`README.md`, `ruff`) | ORIGINAL_REQUEST §R5 | ✓ | ✓ | ✓ | ✓ |
+## 5-Tier Test Architecture
 
-## Test Architecture & Execution
-- Framework: `pytest` (Python 3.10+)
-- Master Test Suite: `tests/`
-- Execution Command: `uv run pytest -v` (and `uv run python tests/run_all_tests.py`)
-- Linter Command: `uv run ruff check .`
-- Anki Generator Command: `uv run python tools/export_anki.py`
+### Tier 1: Python Tooling & CLI Coverage (100% target)
+- `tests/test_tier1_tools.py`
+- Tests for `tools/build_exam_data.py`:
+  - Parsing all 28 lectures.
+  - JSON and JS output format verification (`window.EXAM_DATA = ...`).
+  - Error handling for malformed HTML, missing sections, invalid arguments.
+  - CLI flags (`--output`, `--dry-run`, `--check`, `--verbose`).
+  - 100% line and branch coverage via `pytest-cov`.
+
+### Tier 2: Static Analysis, Math Rigor & 8-Step High-Yield Architecture
+- `tests/test_tier2_static_ast.py`
+- Validates all 28 lecture HTML files:
+  - Strict presence of all 8 High-Yield sections (`## 1. Интуиция и мотивация` through `## 8. Скелет ответа по билету`).
+  - Quantitative requirements: $\ge 10$ defense Q&As per lecture, $\ge 6$ micro-tasks per lecture.
+  - Mathematical LaTeX rigor: Brace balance matching, no unescaped `&`, valid math environments (`$...$`, `$$...$$`), verification of 10 key theoretical derivations (ELBO, Bellman, MLE->Losses, Scaled Dot-Product variance normalization, Policy Gradient, Backprop chain rule, Softmax derivative, Triplet loss, GAN minimax, Diffusion reverse variance).
+  - Python AST validation for all PyTorch/NumPy code blocks embedded in lectures.
+  - De-sprintization compliance: 0 occurrences of sprint terms in user-facing text and navigation.
+
+### Tier 3: DOM, PWA, Service Worker & State Persistence
+- `tests/test_tier3_pwa_dom.py`
+- PWA & Service Worker validation:
+  - Cache version `ai-course-v3`.
+  - Offline assets caching integrity (all HTML, CSS, JS, fonts included in precache list).
+  - Web App Manifest conformance (`manifest.json` fields, icons, display standalone).
+- Spaced Repetition (SM-2) engine tests:
+  - Formula validation ($EF' = EF + (0.1 - (5 - q) \cdot (0.08 + (5 - q) \cdot 0.02))$, $EF \ge 1.3$).
+  - Due date calculation and interval computation ($I_1=1, I_2=6, I_n = I_{n-1} \cdot EF$).
+  - LocalStorage serialization, schema versioning, corrupt state recovery.
+
+### Tier 4: Viewport & Responsive Layout (320px – 2560px)
+- `tests/test_tier4_viewport_responsive.py`
+- Tested viewports: `320px` (iPhone SE/older), `375px` (iPhone Mini/standard), `414px` (iPhone Plus/Max), `768px` (iPad Portrait), `1024px` (iPad Landscape), `1440px` (Desktop), `2560px` (Ultra-wide/4K).
+- Assertions:
+  - Document root horizontal overflow: `scrollWidth <= clientWidth` (0 horizontal scroll on body).
+  - Touch targets: All interactive elements (`<button>`, `<a>`, `.tab`, `.card`, input controls) have dimensions $\ge 44 \times 44\text{ px}$ on mobile viewports ($<768\text{px}$).
+  - Isolated formula & table containers: Every formula and table has `.math-scroll-wrapper` or `.table-scroll-wrapper` allowing internal horizontal scroll without spilling into page body.
+  - Safe-area-insets: Quick Action Bar uses `padding-bottom: max(12px, env(safe-area-inset-bottom))`.
+
+### Tier 5: Adversarial Fuzzing & Stress Testing
+- `tests/test_tier5_adversarial.py`
+- Adversarial search input fuzzing (XSS payloads, Unicode stress, regex injection).
+- LocalStorage state corruption recovery (invalid JSON, missing fields, future timestamps).
+- Exam simulator queue stress (empty queues, 1000+ items, rapid transitions).
+- Edge-case mathematical expressions (nested fractions, multiline aligned matrices).
+
+## Coverage Thresholds
+- Tier 1: 100% line & branch coverage on Python scripts.
+- Tier 2: 28/28 lectures passing all 8-step structure, AST, and LaTeX checks.
+- Tier 3: 100% SM-2 algorithm & PWA manifest verification.
+- Tier 4: 7/7 viewports with 0 page overflow and 100% $\ge 44\text{px}$ touch targets.
+- Tier 5: 100% pass on all fuzzing and adversarial cases.

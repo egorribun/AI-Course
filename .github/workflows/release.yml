@@ -39,8 +39,8 @@ jobs:
       - name: Run Pytest test suite
         run: uv run pytest tests/ -v
 
-      - name: Generate Anki Decks
-        run: uv run python tools/export_anki.py
+      - name: Compile Exam Dataset
+        run: uv run python tools/build_exam_data.py --check
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3
@@ -50,9 +50,6 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            anki_decks/ai_course_exam_qas.tsv
-            anki_decks/ai_course_microtasks.tsv
-            anki_decks/ai_course_3min_cheatsheets.tsv
             js/exam_data.js
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
