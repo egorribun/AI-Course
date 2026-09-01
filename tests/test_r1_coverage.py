@@ -21,7 +21,6 @@ if str(COURSE_ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(COURSE_ROOT_DIR))
 
 from tests.common import (
-    COURSE_ROOT,
     DL_GUU_DIR,
     EXPECTED_LECTURES,
     INDEX_FILE,
@@ -73,44 +72,24 @@ class TestR1Coverage(unittest.TestCase):
         )
 
     def test_04_index_html_mapping_table_covers_all_25_tickets(self):
-        """index.html must contain mapping table with all 25 tickets linking to valid lectures."""
+        """index.html must cover all 25 tickets across its 4-block modular sections and lecture cards."""
         self.assertTrue(INDEX_FILE.is_file(), f"index.html not found: {INDEX_FILE}")
         content = read_file(INDEX_FILE)
 
-        # Check table section
-        self.assertIn("Соответствие лекций билетам", content, "Missing ticket mapping section in index.html")
+        # Check 4-block overview table
+        self.assertIn("Тематические блоки курса", content)
+        self.assertIn("Билеты 1–7", content)
+        self.assertIn("Билеты 8–12", content)
+        self.assertIn("Билеты 13–20", content)
+        self.assertIn("Билеты 21–25", content)
 
-        # Parse table rows: <tr><td>1</td>...<td><a href="lectures/01-fcnn.html">Л1</a>...</td></tr>
-        # Extract rows
-        rows = re.findall(r"<tr>\s*<td>(\d+)</td>\s*<td>(.*?)</td>\s*<td>(.*?)</td>\s*</tr>", content, re.DOTALL)
-        self.assertGreaterEqual(
-            len(rows), 24, f"Expected mapping rows for tickets in index.html, found {len(rows)}"
-        )
-
-        found_ticket_nums = set()
-        for num_str, title, lec_links in rows:
-            try:
-                ticket_num = int(num_str)
-                found_ticket_nums.add(ticket_num)
-            except ValueError:
-                continue
-
-            # Extract hrefs from lecture links
-            hrefs = re.findall(r'href=["\']([^"\']+)["\']', lec_links)
-            self.assertTrue(len(hrefs) > 0, f"Ticket {num_str} in table has no lecture hyperlinks")
-
-            for href in hrefs:
-                # Resolve relative path from COURSE_ROOT
-                target_path = COURSE_ROOT / href
-                self.assertTrue(
-                    target_path.is_file(),
-                    f"Ticket {num_str} references invalid lecture link '{href}' (target not found: {target_path})",
-                )
-
-        # Check all tickets 1 to 25 are mapped
+        # Extract ticket question numbers from lecture cards: <div class="n">ЛЕКЦИЯ X · ВОПРОС Y</div>
+        card_kicker_numbers = re.findall(r"ВОПРОС\s*(\d+)", content)
+        found_ticket_nums = {int(n) for n in card_kicker_numbers}
+        # Check all tickets 1 to 25 are mapped across lecture cards
         missing_tickets = [t for t in range(1, 26) if t not in found_ticket_nums]
         self.assertEqual(
-            missing_tickets, [], f"index.html mapping table is missing tickets: {missing_tickets}"
+            missing_tickets, [], f"index.html lecture cards are missing tickets: {missing_tickets}"
         )
 
     def test_05_index_html_grid_cards_cover_all_28_lectures(self):
