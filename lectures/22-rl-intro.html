@@ -124,7 +124,7 @@ window.MathJax = {
 <!-- ============================================ -->
 <h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
 
-<h4>1. Марковское свойство (Markov Property)</h4>
+<h3>1. Марковское свойство (Markov Property)</h3>
 <p>Состояние среды $S_t$ обладает <strong>Марковским свойством</strong> тогда и только тогда, когда условное распределение будущего состояния и награды зависит исключительно от текущего состояния $S_t$ и действия $A_t$, и полностью инвариантно ко всей предшествующей предыстории:</p>
 
 <div class="math-scroll-wrapper">
@@ -132,7 +132,7 @@ $$ \mathbb{P}(S_{t+1} = s', R_{t+1} = r \mid S_t = s_t, A_t = a_t, S_{t-1} = s_{
 </div>
 <p><em>«Будущее независимо от прошлого при фиксированном настоящем.»</em> Текущее состояние $S_t$ является достаточной статистикой процесса.</p>
 
-<h4>2. Марковский процесс принятия решений (Markov Decision Process, MDP)</h4>
+<h3>2. Марковский процесс принятия решений (Markov Decision Process, MDP)</h3>
 <p>Формально классическая среда в RL описывается кортежем из 5 компонент:</p>
 
 <div class="math-scroll-wrapper">
@@ -147,7 +147,7 @@ $$ \mathcal{M} = \langle \mathcal{S}, \, \mathcal{A}, \, \mathcal{P}, \, \mathca
   <li>$\gamma \in [0, 1)$ — коэффициент дисконтирования (Discount Factor).</li>
 </ul>
 
-<h4>3. Дисконтированный доход (Discounted Return $G_t$)</h4>
+<h3>3. Дисконтированный доход (Discounted Return $G_t$)</h3>
 <p>Цель агента — максимизировать суммарный дисконтированный доход $G_t$, начиная с шага $t$:</p>
 
 <div class="math-scroll-wrapper">
@@ -167,13 +167,13 @@ $$ G_t \doteq \sum_{k=0}^{\infty} \gamma^k R_{t+k+1} = R_{t+1} + \gamma R_{t+2} 
   </ol>
 </div>
 
-<h4>4. Стратегия агента (Policy $\pi$)</h4>
+<h3>4. Стратегия агента (Policy $\pi$)</h3>
 <ul>
   <li><strong>Детерминированная стратегия:</strong> $\mu: \mathcal{S} \to \mathcal{A}$, сопоставляющая состоянию конкретное действие $a = \mu(s)$.</li>
   <li><strong>Стохастическая стратегия:</strong> $\pi(a \mid s) = \mathbb{P}(A_t = a \mid S_t = s)$, где $\sum_{a \in \mathcal{A}} \pi(a \mid s) = 1$ и $\pi(a \mid s) \ge 0$.</li>
 </ul>
 
-<h4>5. Функции ценности (Value Functions)</h4>
+<h3>5. Функции ценности (Value Functions)</h3>
 <p>Для заданной стратегии $\pi$ определяются две фундаментальные функции:</p>
 
 <div class="math-scroll-wrapper">
@@ -189,7 +189,7 @@ $$ Q^\pi(s, a) \doteq \mathbb{E}_\pi \left[ G_t \;\middle|\; S_t = s, A_t = a \r
 $$ V^\pi(s) = \sum_{a \in \mathcal{A}} \pi(a \mid s) Q^\pi(s, a) = \mathbb{E}_{a \sim \pi(\cdot|s)} [Q^\pi(s, a)] $$
 </div>
 
-<h4>6. Дилемма Exploration vs Exploitation</h4>
+<h3>6. Дилемма Exploration vs Exploitation</h3>
 <p>Для баланса между исследованием новых действий и использованием наилучших известных применяются стратегии:</p>
 <ol>
   <li><strong>$\epsilon$-Greedy (Эпсилон-жадная):</strong>
@@ -209,7 +209,7 @@ $$ V^\pi(s) = \sum_{a \in \mathcal{A}} \pi(a \mid s) Q^\pi(s, a) = \mathbb{E}_{a
   </li>
 </ol>
 
-<h4>7. Практическая реализация среды и расчета доходов на Python</h4>
+<h3>7. Практическая реализация среды и расчета доходов на Python</h3>
 <pre><code>import numpy as np
 
 class SimpleGridWorld:
@@ -271,7 +271,7 @@ def evaluate_policy_expected_value(q_table, state, policy_probs):
   </ul>
   <p>Прямой расчет для $G_0$: $G_0 = 2 \cdot 0.9^0 + 0 \cdot 0.9^1 + (-1) \cdot 0.9^2 + 10 \cdot 0.9^3 = 2 + 0 - 0.81 + 7.29 = 8.48$. Значения идеально совпадают!</p>
 
-  <h4>Симуляция взаимодействия агента и среды на Python</h4>
+  <h3>Симуляция взаимодействия агента и среды на Python</h3>
 <pre><code>import numpy as np
 
 def simulate_episode(env, policy, max_steps=100):
@@ -545,5 +545,55 @@ def simulate_episode(env, policy, max_steps=100):
 </div>
 
 </div>
+<!-- Mobile Bottom Navigation Bar (<768px) -->
+<nav class="bottom-nav-bar" aria-label="Мобильная навигация">
+  <a href="../index.html?focus=search" class="bottom-nav-item" id="nav-search-btn" aria-label="Поиск по 28 лекциям">
+    <span class="bottom-nav-icon" aria-hidden="true">🔍</span>
+    <span class="bottom-nav-label">Поиск</span>
+  </a>
+  <a href="../exam.html" class="bottom-nav-item" id="nav-exam-btn" aria-label="Тренажёр устного экзамена">
+    <span class="bottom-nav-icon" aria-hidden="true">🎲</span>
+    <span class="bottom-nav-label">Тренажёр</span>
+  </a>
+  <button type="button" class="bottom-nav-item" id="nav-progress-btn" aria-label="Мой прогресс освоения курса">
+    <span class="bottom-nav-icon" aria-hidden="true">📊</span>
+    <span class="bottom-nav-label">Прогресс</span>
+  </button>
+</nav>
+
+<!-- Universal Progress Modal -->
+<div id="course-progress-modal" class="progress-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-progress-title" hidden>
+  <div class="progress-modal-content">
+    <div class="progress-modal-header">
+      <h3 id="modal-progress-title" class="progress-modal-title">📊 Прогресс освоения курса</h3>
+      <button type="button" class="modal-close-btn" id="modal-progress-close" aria-label="Закрыть окно прогресса">✕</button>
+    </div>
+    <div class="progress-modal-body">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="modal-progress-fill" style="width: 0%;"></div>
+      </div>
+      <div class="progress-modal-percent" id="modal-progress-percent">Общий прогресс: 0%</div>
+      <div class="progress-stats-grid">
+        <div class="stat-card">
+          <div class="val" id="modal-stat-lecs">0 / 28 (0%)</div>
+          <div class="lbl">Лекции пройдены</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-qas">0 / 296 (0%)</div>
+          <div class="lbl">Вопросов «Препод спросит»</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-tasks">0 / 170 (0%)</div>
+          <div class="lbl">Микро-задач решено</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="modal-reset-progress-btn">🔄 Сбросить прогресс</button>
+        <button type="button" class="btn btn-primary" id="modal-close-action-btn">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

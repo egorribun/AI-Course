@@ -106,7 +106,7 @@ window.MathJax = {
 <!-- ============================================ -->
 <h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
 
-<h4>1. Оценка функции состояния TD(0)</h4>
+<h3>1. Оценка функции состояния TD(0)</h3>
 <p>В алгоритме TD(0) ценность состояния обновляется после каждого шага $t$:</p>
 
 <div class="math-scroll-wrapper">
@@ -114,7 +114,7 @@ $$ V(S_t) \leftarrow V(S_t) + \alpha \Big( \underbrace{R_{t+1} + \gamma V(S_{t+1
 </div>
 <p>где $\delta_t \doteq R_{t+1} + \gamma V(S_{t+1}) - V(S_t)$ — <strong>ошибка временных разностей (TD-Error)</strong>, а $\alpha \in (0, 1]$ — скорость обучения.</p>
 
-<h4>2. SARSA: On-Policy TD Control</h4>
+<h3>2. SARSA: On-Policy TD Control</h3>
 <p>SARSA оценивает функцию $Q(s, a)$ для стратегии $\pi$, по которой сам же и действует (например, $\epsilon$-greedy):</p>
 
 <div class="math-scroll-wrapper">
@@ -122,7 +122,7 @@ $$ Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \alpha \left[ R_{t+1} + \gamma Q(S_{t+1}
 </div>
 <p>где действие $A_{t+1} \sim \pi(\cdot \mid S_{t+1})$ сэмплируется согласно текущей исследовательской политике агента.</p>
 
-<h4>3. Q-Learning (Watkins, 1989): Off-Policy TD Control</h4>
+<h3>3. Q-Learning (Watkins, 1989): Off-Policy TD Control</h3>
 <p>Q-Learning напрямую оценивает оптимальную функцию $Q^*(s, a)$ независимо от стратегии сбора данных $b(a|s)$:</p>
 
 <div class="math-scroll-wrapper">
@@ -137,7 +137,7 @@ $$ Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \alpha \left[ R_{t+1} + \gamma \max_{a \
   </ul>
 </div>
 
-<h4>4. Deep Q-Networks (DQN, Mnih et al., 2015)</h4>
+<h3>4. Deep Q-Networks (DQN, Mnih et al., 2015)</h3>
 <p>Для работы в непрерывных пространствах состояний таблица $Q(s, a)$ заменяется нейросетью $Q(s, a; \theta)$. Функция потерь DQN:</p>
 
 <div class="math-scroll-wrapper">
@@ -149,7 +149,7 @@ $$ \mathcal{L}(\theta) = \mathbb{E}_{(s, a, r, s', d) \sim \mathcal{D}} \left[ \
   <li><strong>Target Network (Целевая сеть $\theta^-$):</strong> Веса $\theta^-$ замораживаются и обновляются периодически $\theta^- \leftarrow \theta$ раз в $C$ шагов, предотвращая расходимость и эффект «бегущей цели».</li>
 </ol>
 
-<h4>5. Double DQN (van Hasselt et al., 2015)</h4>
+<h3>5. Double DQN (van Hasselt et al., 2015)</h3>
 <p>Стандартный DQN систематически завышает оценки $Q$ (Overestimation Bias) из-за оператора $\mathbb{E}[\max(X)] \ge \max(\mathbb{E}[X])$. Double DQN разделяет выбор действия и его оценку:</p>
 
 <div class="math-scroll-wrapper">
@@ -157,7 +157,7 @@ $$ y^{\text{DoubleDQN}} = r + \gamma (1 - d) Q\left(s', \arg\max_{a'} Q(s', a'; 
 </div>
 <p>Online-сеть $\theta$ выбирает лучшее действие $a^* = \arg\max_{a'} Q(s', a'; \theta)$, а Target-сеть $\theta^-$ вычисляет его ценность $Q(s', a^*; \theta^-)$.</p>
 
-<h4>6. Практическая реализация Q-Learning, SARSA и DQN на Python / PyTorch</h4>
+<h3>6. Практическая реализация Q-Learning, SARSA и DQN на Python / PyTorch</h3>
 <pre><code>import numpy as np
 import torch
 import torch.nn as nn
@@ -216,7 +216,7 @@ def compute_dqn_loss(online_net, target_net, states, actions, rewards, next_stat
     </li>
   </ul>
 
-  <h4>1. Расчет обновления по Q-Learning:</h4>
+  <h3>1. Расчет обновления по Q-Learning:</h3>
   <p>Ищем максимальное значение в новом состоянии: $\max_{a'} Q(s_1, a') = \max(2.0, 6.0, 4.0) = 6.0$.</p>
   <div class="math-scroll-wrapper">
   $$ \text{TD Target} = R_{t+1} + \gamma \max_{a'} Q(s_1, a') = 5.0 + 0.9 \cdot 6.0 = 5.0 + 5.4 = 10.4 $$
@@ -228,7 +228,7 @@ def compute_dqn_loss(online_net, target_net, states, actions, rewards, next_stat
   $$ Q_{\text{new}}(s_0, a_1) = 0.0 + 0.1 \cdot 10.4 = 1.04 $$
   </div>
 
-  <h4>2. Расчет обновления по SARSA:</h4>
+  <h3>2. Расчет обновления по SARSA:</h3>
   <p>Предположим, в состоянии $s_1$ исследовательская политика $\epsilon$-greedy выбрала действие $A_{t+1} = a_0$ с $Q(s_1, a_0) = 2.0$:</p>
   <div class="math-scroll-wrapper">
   $$ \text{SARSA Target} = R_{t+1} + \gamma Q(s_1, a_0) = 5.0 + 0.9 \cdot 2.0 = 5.0 + 1.8 = 6.8 $$
@@ -253,7 +253,7 @@ def compute_dqn_loss(online_net, target_net, states, actions, rewards, next_stat
   $$ y_3 = 2.0 + 0.99 \cdot (1 - 1) \cdot 2.1 = 2.0 + 0.0 = 2.000 \quad \text{(Терминал: будущее обнулено!)} $$
   </div>
 
-  <h4>Реализация буфера воспроизведения Experience Replay на Python</h4>
+  <h3>Реализация буфера воспроизведения Experience Replay на Python</h3>
 <pre><code>import random
 from collections import deque
 
@@ -514,5 +514,55 @@ class ReplayBuffer:
 </div>
 
 </div>
+<!-- Mobile Bottom Navigation Bar (<768px) -->
+<nav class="bottom-nav-bar" aria-label="Мобильная навигация">
+  <a href="../index.html?focus=search" class="bottom-nav-item" id="nav-search-btn" aria-label="Поиск по 28 лекциям">
+    <span class="bottom-nav-icon" aria-hidden="true">🔍</span>
+    <span class="bottom-nav-label">Поиск</span>
+  </a>
+  <a href="../exam.html" class="bottom-nav-item" id="nav-exam-btn" aria-label="Тренажёр устного экзамена">
+    <span class="bottom-nav-icon" aria-hidden="true">🎲</span>
+    <span class="bottom-nav-label">Тренажёр</span>
+  </a>
+  <button type="button" class="bottom-nav-item" id="nav-progress-btn" aria-label="Мой прогресс освоения курса">
+    <span class="bottom-nav-icon" aria-hidden="true">📊</span>
+    <span class="bottom-nav-label">Прогресс</span>
+  </button>
+</nav>
+
+<!-- Universal Progress Modal -->
+<div id="course-progress-modal" class="progress-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-progress-title" hidden>
+  <div class="progress-modal-content">
+    <div class="progress-modal-header">
+      <h3 id="modal-progress-title" class="progress-modal-title">📊 Прогресс освоения курса</h3>
+      <button type="button" class="modal-close-btn" id="modal-progress-close" aria-label="Закрыть окно прогресса">✕</button>
+    </div>
+    <div class="progress-modal-body">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="modal-progress-fill" style="width: 0%;"></div>
+      </div>
+      <div class="progress-modal-percent" id="modal-progress-percent">Общий прогресс: 0%</div>
+      <div class="progress-stats-grid">
+        <div class="stat-card">
+          <div class="val" id="modal-stat-lecs">0 / 28 (0%)</div>
+          <div class="lbl">Лекции пройдены</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-qas">0 / 296 (0%)</div>
+          <div class="lbl">Вопросов «Препод спросит»</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-tasks">0 / 170 (0%)</div>
+          <div class="lbl">Микро-задач решено</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="modal-reset-progress-btn">🔄 Сбросить прогресс</button>
+        <button type="button" class="btn btn-primary" id="modal-close-action-btn">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

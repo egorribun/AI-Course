@@ -239,7 +239,7 @@ def box_iou(boxes1, boxes2):
   </ul>
 </div>
 
-<h4>Шаг 1. Расчет IoU между боксами A и GT</h4>
+<h3>Шаг 1. Расчет IoU между боксами A и GT</h3>
 <p>Площадь $GT$: $(120 - 20) \times (130 - 30) = 100 \times 100 = 10\,000$.</p>
 <p>Площадь A: $(110 - 30) \times (125 - 35) = 80 \times 90 = 7\,200$.</p>
 <p>Пересечение: $x_1^{\cap} = \max(20, 30) = 30$, $y_1^{\cap} = \max(30, 35) = 35$, $x_2^{\cap} = \min(120, 110) = 110$, $y_2^{\cap} = \min(130, 125) = 125$.</p>
@@ -248,10 +248,10 @@ def box_iou(boxes1, boxes2):
 $$\text{IoU}(A, GT) = \frac{7\,200}{10\,000 + 7\,200 - 7\,200} = \frac{7\,200}{10\,000} = 0.72$$
 </div>
 
-<h4>Шаг 2. NMS подавление между A и B</h4>
+<h3>Шаг 2. NMS подавление между A и B</h3>
 <p>Бокс A имеет наивысший $\text{conf}=0.90$, берем его в итоговый список. Вычисляем $\text{IoU}(A, B) \approx 0.85 > 0.5 \implies$ бокс B подавляется.</p>
 
-<h4>Шаг 3. Расчет Precision и Recall</h4>
+<h3>Шаг 3. Расчет Precision и Recall</h3>
 <p>Имеем: 1 истинный объект ($GT$). Бокс A: $\text{IoU}=0.72 \ge 0.5 \implies \text{True Positive (TP)}$.</p>
 <p>Бокс C: $\text{IoU}(C, GT) = 0 \implies \text{False Positive (FP)}$.</p>
 <div class="math-scroll-wrapper">
@@ -476,5 +476,55 @@ $$\text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}} = \frac{1}{1 + 1} =
 </div>
 
 </div>
+<!-- Mobile Bottom Navigation Bar (<768px) -->
+<nav class="bottom-nav-bar" aria-label="Мобильная навигация">
+  <a href="../index.html?focus=search" class="bottom-nav-item" id="nav-search-btn" aria-label="Поиск по 28 лекциям">
+    <span class="bottom-nav-icon" aria-hidden="true">🔍</span>
+    <span class="bottom-nav-label">Поиск</span>
+  </a>
+  <a href="../exam.html" class="bottom-nav-item" id="nav-exam-btn" aria-label="Тренажёр устного экзамена">
+    <span class="bottom-nav-icon" aria-hidden="true">🎲</span>
+    <span class="bottom-nav-label">Тренажёр</span>
+  </a>
+  <button type="button" class="bottom-nav-item" id="nav-progress-btn" aria-label="Мой прогресс освоения курса">
+    <span class="bottom-nav-icon" aria-hidden="true">📊</span>
+    <span class="bottom-nav-label">Прогресс</span>
+  </button>
+</nav>
+
+<!-- Universal Progress Modal -->
+<div id="course-progress-modal" class="progress-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-progress-title" hidden>
+  <div class="progress-modal-content">
+    <div class="progress-modal-header">
+      <h3 id="modal-progress-title" class="progress-modal-title">📊 Прогресс освоения курса</h3>
+      <button type="button" class="modal-close-btn" id="modal-progress-close" aria-label="Закрыть окно прогресса">✕</button>
+    </div>
+    <div class="progress-modal-body">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="modal-progress-fill" style="width: 0%;"></div>
+      </div>
+      <div class="progress-modal-percent" id="modal-progress-percent">Общий прогресс: 0%</div>
+      <div class="progress-stats-grid">
+        <div class="stat-card">
+          <div class="val" id="modal-stat-lecs">0 / 28 (0%)</div>
+          <div class="lbl">Лекции пройдены</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-qas">0 / 296 (0%)</div>
+          <div class="lbl">Вопросов «Препод спросит»</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-tasks">0 / 170 (0%)</div>
+          <div class="lbl">Микро-задач решено</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="modal-reset-progress-btn">🔄 Сбросить прогресс</button>
+        <button type="button" class="btn btn-primary" id="modal-close-action-btn">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

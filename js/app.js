@@ -168,9 +168,9 @@ document.addEventListener('DOMContentLoaded', () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
-  // 5. Mobile Quick Action Bar Buttons
+  // 5. Mobile Quick Action & Bottom Navigation Buttons
   const mobThemeBtn = document.getElementById('mob-theme-toggle');
-  const mobSearchBtn = document.getElementById('mob-search-btn');
+  const mobSearchBtn = document.getElementById('mob-search-btn') || document.getElementById('nav-search-btn');
   const mobTopBtn = document.getElementById('mob-top-btn');
 
   if (mobThemeBtn) {
@@ -180,13 +180,27 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   if (mobSearchBtn) {
-    mobSearchBtn.addEventListener('click', () => {
+    mobSearchBtn.addEventListener('click', (e) => {
       if (searchInput) {
+        e.preventDefault();
         searchInput.focus();
+        searchInput.select();
         searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
     });
   }
+
+  // Handle URL query ?focus=search from subpages
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('focus') === 'search' && searchInput) {
+      setTimeout(() => {
+        searchInput.focus();
+        searchInput.select();
+        searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 120);
+    }
+  } catch (e) {}
 
   if (mobTopBtn) {
     mobTopBtn.addEventListener('click', () => {

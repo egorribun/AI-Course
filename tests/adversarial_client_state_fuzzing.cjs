@@ -162,7 +162,8 @@ test('LocalStorage: Recovery from completely invalid JSON and unexpected types',
 
       const stats = tracker.getOverallStats();
       assert(typeof stats === 'object' && stats !== null, 'getOverallStats should return valid object');
-      assert(typeof stats.percent === 'number' && !isNaN(stats.percent), 'Stats percent must be number');
+      const pct = typeof stats.overallPercent === 'number' ? stats.overallPercent : stats.percent;
+      assert(typeof pct === 'number' && !isNaN(pct), 'Stats percent must be number');
     }
   });
 });

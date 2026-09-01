@@ -91,22 +91,22 @@ class TestM1ProgressHubUIEmpirical(unittest.TestCase):
         cls.tracker_text = TRACKER_FILE.read_text(encoding="utf-8")
 
     def test_08_global_progress_hub_export_button_strictly_removed(self):
-        """Verify рџ’ѕ Р­РєСЃРїРѕСЂС‚ button is completely removed from #global-progress-hub in index.html."""
+        """Verify 💾 Экспорт button is completely removed from #global-progress-hub in index.html."""
         start_idx = self.index_text.find('id="global-progress-hub"')
         self.assertNotEqual(start_idx, -1, "#global-progress-hub element must exist in index.html")
-        end_idx = self.index_text.find('id="exam-simulator-container"', start_idx)
+        end_idx = self.index_text.find('class="search-box"', start_idx)
         self.assertNotEqual(
-            end_idx, -1, "#exam-simulator-container element must exist following progress hub"
+            end_idx, -1, ".search-box element must exist following progress hub"
         )
         hub_slice = self.index_text[start_idx:end_idx]
 
         self.assertNotIn(
             "\u042d\u043a\u0441\u043f\u043e\u0440\u0442",
             hub_slice,
-            "'Р­РєСЃРїРѕСЂС‚' text must not appear anywhere in #global-progress-hub",
+            "'Экспорт' text must not appear anywhere in #global-progress-hub",
         )
         self.assertNotIn(
-            "\U0001f4be", hub_slice, "'рџ’ѕ' icon must not appear in #global-progress-hub"
+            "\U0001f4be", hub_slice, "'💾' icon must not appear in #global-progress-hub"
         )
         self.assertNotIn(
             "exportProgressJSON",
@@ -115,9 +115,9 @@ class TestM1ProgressHubUIEmpirical(unittest.TestCase):
         )
 
     def test_09_global_progress_hub_reset_button_and_stats_preserved(self):
-        """Verify рџ”„ РЎР±СЂРѕСЃ button, stat cards, and progress bar are intact in #global-progress-hub."""
+        """Verify 🔄 Сброс button, stat cards, and progress bar are intact in #global-progress-hub."""
         start_idx = self.index_text.find('id="global-progress-hub"')
-        end_idx = self.index_text.find('id="exam-simulator-container"', start_idx)
+        end_idx = self.index_text.find('class="search-box"', start_idx)
         hub_slice = self.index_text[start_idx:end_idx]
 
         self.assertIn(

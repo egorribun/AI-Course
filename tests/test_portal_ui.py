@@ -12,7 +12,7 @@ COURSE_ROOT = Path(__file__).resolve().parent.parent
 if str(COURSE_ROOT) not in sys.path:
     sys.path.insert(0, str(COURSE_ROOT))
 
-from tests.common import read_file, INDEX_FILE
+from tests.common import read_file, INDEX_FILE, EXAM_FILE
 
 
 class TestPortalUI(unittest.TestCase):
@@ -21,19 +21,23 @@ class TestPortalUI(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.index_content = read_file(INDEX_FILE)
+        cls.exam_content = read_file(EXAM_FILE)
 
     def test_01_index_html_links_style_css_and_scripts(self):
         """Verify index.html imports style.css and all required JS modules."""
         self.assertIn('<link rel="stylesheet" href="style.css">', self.index_content)
         self.assertIn('src="js/exam_data.js"', self.index_content)
         self.assertIn('src="js/tracker.js"', self.index_content)
-        self.assertIn('src="js/simulator.js"', self.index_content)
         self.assertIn('src="js/app.js"', self.index_content)
+        self.assertIn('src="js/exam.js"', self.exam_content)
 
     def test_02_index_html_has_progress_and_simulator_containers(self):
-        """Verify index.html has progress hub, simulator container, and search input."""
+        """Verify index.html has progress hub, search input, desktop header button, and bottom nav."""
         self.assertIn('id="global-progress-hub"', self.index_content)
-        self.assertIn('id="exam-simulator-container"', self.index_content)
+        self.assertIn('class="btn-header-exam"', self.index_content)
+        self.assertIn('class="bottom-nav-bar"', self.index_content)
+        self.assertIn('id="course-progress-modal"', self.index_content)
+        self.assertIn('id="exam-simulator-container"', self.exam_content)
         self.assertIn('id="lecture-search-input"', self.index_content)
         self.assertIn('class="tag-chip"', self.index_content)
 
@@ -42,8 +46,8 @@ class TestPortalUI(unittest.TestCase):
         # Extract global-progress-hub section
         start_idx = self.index_content.find('id="global-progress-hub"')
         self.assertNotEqual(start_idx, -1, "global-progress-hub must exist")
-        # Hub extends to next major section
-        end_idx = self.index_content.find('id="exam-simulator-container"', start_idx)
+        # Hub extends to search box section
+        end_idx = self.index_content.find('class="search-box"', start_idx)
         hub_html = (
             self.index_content[start_idx:end_idx]
             if end_idx != -1

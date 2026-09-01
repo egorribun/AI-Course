@@ -325,7 +325,7 @@ class TestLinkGraphAndAnchors(unittest.TestCase):
                         )
                 else:
                     parts = href.split("#", 1)
-                    target_rel_path = parts[0]
+                    target_rel_path = parts[0].split("?", 1)[0]
                     target_anchor = parts[1] if len(parts) > 1 else None
 
                     if target_rel_path:

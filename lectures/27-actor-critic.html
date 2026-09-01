@@ -112,7 +112,7 @@ window.MathJax = {
 <!-- ============================================ -->
 <h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
 
-<h4>1. Функция преимущества (Advantage Function $A(s, a)$)</h4>
+<h3>1. Функция преимущества (Advantage Function $A(s, a)$)</h3>
 <p>Функция преимущества показывает, насколько конкретное действие $a$ лучше или хуже среднестатистического действия в состоянии $s$:</p>
 
 <div class="math-scroll-wrapper">
@@ -127,14 +127,14 @@ $$ \mathbb{E}_{a \sim \pi(\cdot \mid s)} \left[ A^\pi(s, a) \right] = \sum_{a \i
   <li>Если $A(s, a) < 0$ — действие $a$ хуже среднего, его вероятность подавляется.</li>
 </ul>
 
-<h4>2. Одношаговый TD-критик как аппроксимация Advantage</h4>
+<h3>2. Одношаговый TD-критик как аппроксимация Advantage</h3>
 <p>Так как $Q^\pi(S_t, A_t) = \mathbb{E}[R_{t+1} + \gamma V^\pi(S_{t+1}) \mid S_t, A_t]$, 1-шаговая TD-ошибка является несмещенной оценкой функции преимущества:</p>
 
 <div class="math-scroll-wrapper">
 $$ \delta_t \doteq R_{t+1} + \gamma V_\phi(S_{t+1}) - V_\phi(S_t) \approx A(S_t, A_t) $$
 </div>
 
-<h4>3. Правила обновления весов в Advantage Actor-Critic (A2C)</h4>
+<h3>3. Правила обновления весов в Advantage Actor-Critic (A2C)</h3>
 <p>Обучение происходит параллельно для двух нейросетей:</p>
 <ol>
   <li><strong>Критик ($V_\phi$, веса $\phi$):</strong> Минимизирует среднеквадратичную ошибку прогнозирования ценности (MSE Bellman residual):
@@ -151,7 +151,7 @@ $$ \delta_t \doteq R_{t+1} + \gamma V_\phi(S_{t+1}) - V_\phi(S_t) \approx A(S_t,
   </li>
 </ol>
 
-<h4>4. Generalized Advantage Estimation (GAE($\gamma, \lambda$), Schulman et al., 2015)</h4>
+<h3>4. Generalized Advantage Estimation (GAE($\gamma, \lambda$), Schulman et al., 2015)</h3>
 <p>Для тонкой настройки компромисса между смещением (Bias) и дисперсией (Variance) вводится параметр экспоненциального сглаживания $\lambda \in [0, 1]$:</p>
 
 <div class="math-scroll-wrapper">
@@ -164,7 +164,7 @@ $$ \hat{A}_t^{\text{GAE}(\gamma, \lambda)} \doteq \sum_{l=0}^{\infty} (\gamma \l
   <li>На практике значение $\lambda \in [0.92, 0.98]$ обеспечивает наилучшую сходимость в PPO и A2C.</li>
 </ul>
 
-<h4>5. Soft Actor-Critic (SAC, Haarnoja et al., 2018)</h4>
+<h3>5. Soft Actor-Critic (SAC, Haarnoja et al., 2018)</h3>
 <p>SAC — современный SOTA-алгоритм для непрерывного управления, основанный на концепции <strong>Maximum Entropy RL</strong>:</p>
 
 <div class="math-scroll-wrapper">
@@ -172,7 +172,7 @@ $$ J(\pi) = \mathbb{E}_{\tau \sim \pi} \left[ \sum_{t=0}^\infty \gamma^t \left( 
 </div>
 <p>где $\alpha > 0$ — температура энтропии, управляющая компромиссом между исследованием и максимизацией награды. SAC использует <em>Twin Q-networks</em> ($Q_{\phi_1}, Q_{\phi_2}$) для предотвращения переоценки и автоматическую настройку температуры $\alpha$ через градиентный спуск.</p>
 
-<h4>6. Практическая реализация Actor-Critic и GAE на PyTorch</h4>
+<h3>6. Практическая реализация Actor-Critic и GAE на PyTorch</h3>
 <pre><code>import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -222,18 +222,18 @@ def compute_gae_advantages(rewards, values, next_values, dones, gamma=0.99, lam=
     <li>Скорости обучения: $\alpha_\phi = 0.1, \quad \alpha_\theta = 0.05$.</li>
   </ul>
 
-  <h4>1. Вычисление TD-таргета и Advantage $\delta_t$:</h4>
+  <h3>1. Вычисление TD-таргета и Advantage $\delta_t$:</h3>
   <div class="math-scroll-wrapper">
   $$ \text{Target} = R_{t+1} + \gamma V_\phi(S_{t+1}) = 2.0 + 0.9 \cdot 2.0 = 2.0 + 1.8 = 3.8 $$
   $$ \delta_t = \text{Target} - V_\phi(S_t) = 3.8 - 1.0 = +2.8 $$
   </div>
 
-  <h4>2. Обновление весов Критика:</h4>
+  <h3>2. Обновление весов Критика:</h3>
   <div class="math-scroll-wrapper">
   $$ \Delta \phi = \alpha_\phi \cdot \delta_t \cdot \nabla_\phi V_\phi(S_t) = 0.1 \cdot 2.8 \cdot [0.5, -0.2] = 0.28 \cdot [0.5, -0.2] = [0.14, -0.056] $$
   </div>
 
-  <h4>3. Обновление весов Актора:</h4>
+  <h3>3. Обновление весов Актора:</h3>
   <div class="math-scroll-wrapper">
   $$ \Delta \theta = \alpha_\theta \cdot \delta_t \cdot \nabla_\theta \log \pi_\theta(A_t \mid S_t) = 0.05 \cdot 2.8 \cdot [1.2, 0.4] = 0.14 \cdot [1.2, 0.4] = [0.168, 0.056] $$
   </div>
@@ -250,7 +250,7 @@ def compute_gae_advantages(rewards, values, next_values, dones, gamma=0.99, lam=
     <li><strong>Шаг 0:</strong> $\hat{A}_0 = \delta_0 + (\gamma \lambda) \hat{A}_1 = 1.0 + 0.72 \cdot 0.94 = 1.0 + 0.6768 = +1.6768$</li>
   </ul>
 
-  <h4>Обучающий шаг Actor-Critic на PyTorch</h4>
+  <h3>Обучающий шаг Actor-Critic на PyTorch</h3>
 <pre><code>import torch
 import torch.optim as optim
 
@@ -520,5 +520,55 @@ def train_actor_critic_step(model, optimizer, state, action, reward, next_state,
 </div>
 
 </div>
+<!-- Mobile Bottom Navigation Bar (<768px) -->
+<nav class="bottom-nav-bar" aria-label="Мобильная навигация">
+  <a href="../index.html?focus=search" class="bottom-nav-item" id="nav-search-btn" aria-label="Поиск по 28 лекциям">
+    <span class="bottom-nav-icon" aria-hidden="true">🔍</span>
+    <span class="bottom-nav-label">Поиск</span>
+  </a>
+  <a href="../exam.html" class="bottom-nav-item" id="nav-exam-btn" aria-label="Тренажёр устного экзамена">
+    <span class="bottom-nav-icon" aria-hidden="true">🎲</span>
+    <span class="bottom-nav-label">Тренажёр</span>
+  </a>
+  <button type="button" class="bottom-nav-item" id="nav-progress-btn" aria-label="Мой прогресс освоения курса">
+    <span class="bottom-nav-icon" aria-hidden="true">📊</span>
+    <span class="bottom-nav-label">Прогресс</span>
+  </button>
+</nav>
+
+<!-- Universal Progress Modal -->
+<div id="course-progress-modal" class="progress-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-progress-title" hidden>
+  <div class="progress-modal-content">
+    <div class="progress-modal-header">
+      <h3 id="modal-progress-title" class="progress-modal-title">📊 Прогресс освоения курса</h3>
+      <button type="button" class="modal-close-btn" id="modal-progress-close" aria-label="Закрыть окно прогресса">✕</button>
+    </div>
+    <div class="progress-modal-body">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="modal-progress-fill" style="width: 0%;"></div>
+      </div>
+      <div class="progress-modal-percent" id="modal-progress-percent">Общий прогресс: 0%</div>
+      <div class="progress-stats-grid">
+        <div class="stat-card">
+          <div class="val" id="modal-stat-lecs">0 / 28 (0%)</div>
+          <div class="lbl">Лекции пройдены</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-qas">0 / 296 (0%)</div>
+          <div class="lbl">Вопросов «Препод спросит»</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-tasks">0 / 170 (0%)</div>
+          <div class="lbl">Микро-задач решено</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="modal-reset-progress-btn">🔄 Сбросить прогресс</button>
+        <button type="button" class="btn btn-primary" id="modal-close-action-btn">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

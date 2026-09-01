@@ -8,10 +8,12 @@ const CACHE_NAME = 'ai-course-v3';
 const STATIC_ASSETS = [
   './',
   './index.html',
+  './exam.html',
   './manifest.json',
   './style.css',
   './icon.svg',
   './js/app.js',
+  './js/exam.js',
   './js/lecture.js',
   './js/simulator.js',
   './js/tracker.js',

@@ -99,7 +99,7 @@ window.MathJax = {
 <!-- ============================================ -->
 <h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
 
-<h4>1. Policy Iteration (Итерация по стратегиям)</h4>
+<h3>1. Policy Iteration (Итерация по стратегиям)</h3>
 <p>Алгоритм состоит из чередования двух фаз:</p>
 <ol>
   <li><strong>Фаза 1: Оценка стратегии (Policy Evaluation).</strong> Итеративно решается линейное уравнение Беллмана до сходимости ($\max_s |V_{k+1}(s) - V_k(s)| < \theta$):
@@ -127,7 +127,7 @@ window.MathJax = {
   </div>
 </div>
 
-<h4>2. Value Iteration (Итерация по ценностям)</h4>
+<h3>2. Value Iteration (Итерация по ценностям)</h3>
 <p>Value Iteration объединяет фазу оценки и улучшения в <strong>один шаг обновления с оператором максимума</strong>, применяя оператор оптимальности Беллмана $\mathcal{T}^*$:</p>
 
 <div class="math-scroll-wrapper">
@@ -135,7 +135,7 @@ $$ V_{k+1}(s) \leftarrow \max_{a \in \mathcal{A}} \sum_{s' \in \mathcal{S}} \mat
 </div>
 <p>Критерий остановки: $\max_{s \in \mathcal{S}} |V_{k+1}(s) - V_k(s)| < \frac{\epsilon(1 - \gamma)}{2\gamma}$, что гарантирует $\|V_{k+1} - V^*\|_\infty \le \epsilon$. После сходимости оптимальная стратегия извлекается за 1 жадный шаг: $\pi^*(s) = \arg\max_a \sum_{s'} \mathcal{P}(s'|s, a) [\mathcal{R} + \gamma V^*(s')]$.</p>
 
-<h4>3. Методы Монте-Карло (Monte Carlo Methods)</h4>
+<h3>3. Методы Монте-Карло (Monte Carlo Methods)</h3>
 <p>Методы Монте-Карло не требуют знания $\mathcal{P}$ и $\mathcal{R}$. Обучение происходит на основе сгенерированных эпизодов $\tau = (S_0, A_0, R_1, S_1, A_1, \dots, S_T)$:</p>
 <div class="math-scroll-wrapper">
 $$ G_t = \sum_{k=0}^{T - t - 1} \gamma^k R_{t+k+1} $$
@@ -152,7 +152,7 @@ $$ V(S_t) \leftarrow V(S_t) + \alpha \left( G_t - V(S_t) \right) $$
 </div>
 <p>где $\alpha = \frac{1}{N(S_t)}$ для простого среднего или постоянный $\alpha \in (0, 1]$ для нестационарных сред.</p>
 
-<h4>4. Важностное сэмплирование (Off-Policy Importance Sampling)</h4>
+<h3>4. Важностное сэмплирование (Off-Policy Importance Sampling)</h3>
 <p>Если данные собираются по стратегии исследования $b(a|s)$ (Behavior Policy), а оценивается целевая стратегия $\pi(a|s)$ (Target Policy), отношение правдоподобия траектории (Importance Sampling Ratio) равно:</p>
 
 <div class="math-scroll-wrapper">
@@ -164,7 +164,7 @@ $$ \rho_{t:T-1} \doteq \prod_{k=t}^{T-1} \frac{\pi(A_k \mid S_k)}{b(A_k \mid S_k
   <li><strong>Weighted Importance Sampling (Взвешенное):</strong> $V(s) = \frac{\sum_{\tau} \rho_{t:T-1} G_t}{\sum_\tau \rho_{t:T-1}}$ (небольшое смещение, но дисперсия строго ограничена).</li>
 </ul>
 
-<h4>5. Практическая реализация Value Iteration и Monte Carlo на Python</h4>
+<h3>5. Практическая реализация Value Iteration и Monte Carlo на Python</h3>
 <pre><code>import numpy as np
 
 def run_value_iteration(P, R, gamma=0.9, theta=1e-6):
@@ -221,19 +221,19 @@ def run_first_visit_mc(episodes, n_states, gamma=0.9):
     <li>В Goal: $V(\text{Goal}) = 0$. Инициализация: $V_0(S_1) = 0, V_0(S_2) = 0$.</li>
   </ul>
 
-  <h4>Итерация 1 ($k=1$):</h4>
+  <h3>Итерация 1 ($k=1$):</h3>
   <ul>
     <li>$V_1(S_1) = \max(\text{влево}: 0 + 0.9 \cdot 0, \; \text{вправо}: 0 + 0.9 \cdot 0) = 0.0$</li>
     <li>$V_1(S_2) = \max(\text{влево}: 0 + 0.9 \cdot 0, \; \text{вправо}: 10 + 0.9 \cdot 0) = 10.0$</li>
   </ul>
 
-  <h4>Итерация 2 ($k=2$):</h4>
+  <h3>Итерация 2 ($k=2$):</h3>
   <ul>
     <li>$V_2(S_1) = \max(\text{влево}: 0 + 0.9 \cdot 0, \; \text{вправо}: 0 + 0.9 \cdot V_1(S_2)) = \max(0, 0 + 0.9 \cdot 10.0) = 9.0$</li>
     <li>$V_2(S_2) = \max(\text{влево}: 0 + 0.9 \cdot V_1(S_1), \; \text{вправо}: 10 + 0) = \max(0, 10.0) = 10.0$</li>
   </ul>
 
-  <h4>Итерация 3 ($k=3$):</h4>
+  <h3>Итерация 3 ($k=3$):</h3>
   <ul>
     <li>$V_3(S_1) = \max(0 + 0.9(9.0), 0 + 0.9(10.0)) = 9.0$</li>
     <li>$V_3(S_2) = \max(0 + 0.9(9.0), 10.0) = \max(8.1, 10.0) = 10.0$</li>
@@ -258,7 +258,7 @@ def run_first_visit_mc(episodes, n_states, gamma=0.9):
   $$ V(S_2) \leftarrow V(S_2) + \alpha (G_1 - V(S_2)) = 8.0 + 0.5 \cdot (12.0 - 8.0) = 8.0 + 0.5 \cdot 4.0 = 10.0 $$
   </div>
 
-  <h4>Алгоритм Policy Iteration на Python</h4>
+  <h3>Алгоритм Policy Iteration на Python</h3>
 <pre><code>import numpy as np
 
 def policy_iteration(P, R, gamma=0.9):
@@ -545,5 +545,55 @@ def policy_iteration(P, R, gamma=0.9):
 </div>
 
 </div>
+<!-- Mobile Bottom Navigation Bar (<768px) -->
+<nav class="bottom-nav-bar" aria-label="Мобильная навигация">
+  <a href="../index.html?focus=search" class="bottom-nav-item" id="nav-search-btn" aria-label="Поиск по 28 лекциям">
+    <span class="bottom-nav-icon" aria-hidden="true">🔍</span>
+    <span class="bottom-nav-label">Поиск</span>
+  </a>
+  <a href="../exam.html" class="bottom-nav-item" id="nav-exam-btn" aria-label="Тренажёр устного экзамена">
+    <span class="bottom-nav-icon" aria-hidden="true">🎲</span>
+    <span class="bottom-nav-label">Тренажёр</span>
+  </a>
+  <button type="button" class="bottom-nav-item" id="nav-progress-btn" aria-label="Мой прогресс освоения курса">
+    <span class="bottom-nav-icon" aria-hidden="true">📊</span>
+    <span class="bottom-nav-label">Прогресс</span>
+  </button>
+</nav>
+
+<!-- Universal Progress Modal -->
+<div id="course-progress-modal" class="progress-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-progress-title" hidden>
+  <div class="progress-modal-content">
+    <div class="progress-modal-header">
+      <h3 id="modal-progress-title" class="progress-modal-title">📊 Прогресс освоения курса</h3>
+      <button type="button" class="modal-close-btn" id="modal-progress-close" aria-label="Закрыть окно прогресса">✕</button>
+    </div>
+    <div class="progress-modal-body">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="modal-progress-fill" style="width: 0%;"></div>
+      </div>
+      <div class="progress-modal-percent" id="modal-progress-percent">Общий прогресс: 0%</div>
+      <div class="progress-stats-grid">
+        <div class="stat-card">
+          <div class="val" id="modal-stat-lecs">0 / 28 (0%)</div>
+          <div class="lbl">Лекции пройдены</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-qas">0 / 296 (0%)</div>
+          <div class="lbl">Вопросов «Препод спросит»</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-tasks">0 / 170 (0%)</div>
+          <div class="lbl">Микро-задач решено</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="modal-reset-progress-btn">🔄 Сбросить прогресс</button>
+        <button type="button" class="btn btn-primary" id="modal-close-action-btn">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

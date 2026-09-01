@@ -36,6 +36,8 @@ venv.bak/
 .mypy_cache/
 .hypothesis/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
 
 # Editor and OS files

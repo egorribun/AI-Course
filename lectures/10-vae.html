@@ -282,7 +282,7 @@ class VAE(nn.Module):
   </ul>
 </div>
 
-<h4>Шаг 1. Восстановление стандартного отклонения $\sigma$</h4>
+<h3>Шаг 1. Восстановление стандартного отклонения $\sigma$</h3>
 <div class="math-scroll-wrapper">
 $$\sigma_1 = \exp(0.5 \cdot 0.0) = \exp(0) = 1.0$$
 </div>
@@ -293,7 +293,7 @@ $$\sigma_2 = \exp(0.5 \cdot (-0.5)) = \exp(-0.25) \approx 0.7788$$
 $$\sigma = [1.0, 0.7788]^\top$$
 </div>
 
-<h4>Шаг 2. Вычисление латентного вектора через репараметризацию</h4>
+<h3>Шаг 2. Вычисление латентного вектора через репараметризацию</h3>
 <div class="math-scroll-wrapper">
 $$z_1 = \mu_1 + \sigma_1 \cdot \epsilon_1 = 0.5 + 1.0 \cdot 0.4 = 0.900$$
 </div>
@@ -304,7 +304,7 @@ $$z_2 = \mu_2 + \sigma_2 \cdot \epsilon_2 = -0.2 + 0.7788 \cdot (-1.0) = -0.2 - 
 $$z = [0.900, -0.9788]^\top$$
 </div>
 
-<h4>Шаг 3. Аналитический расчет KL-дивергенции $D_{\text{KL}}$</h4>
+<h3>Шаг 3. Аналитический расчет KL-дивергенции $D_{\text{KL}}$</h3>
 <p>Для измерения 1 ($\mu_1 = 0.5, \log\sigma_1^2 = 0.0, \sigma_1^2 = 1.0$):</p>
 <div class="math-scroll-wrapper">
 $$\text{term}_1 = 1 + \log\sigma_1^2 - \mu_1^2 - \sigma_1^2 = 1 + 0.0 - (0.5)^2 - 1.0 = 1 - 0.25 - 1 = -0.25$$
@@ -318,7 +318,7 @@ $$\text{term}_2 = 1 + (-0.5) - (-0.2)^2 - 0.60653 = 0.5 - 0.04 - 0.60653 = -0.14
 $$D_{\text{KL}} = -\frac{1}{2} (\text{term}_1 + \text{term}_2) = -\frac{1}{2} (-0.25 - 0.14653) = -\frac{1}{2}(-0.39653) \approx 0.19827$$
 </div>
 
-<h4>Шаг 4. Ошибка реконструкции и общий Loss VAE</h4>
+<h3>Шаг 4. Ошибка реконструкции и общий Loss VAE</h3>
 <p>Пусть декодер выдал $\hat{x} = [0.75, 0.25]^\top$. Ошибка BCE:</p>
 <div class="math-scroll-wrapper">
 $$\text{BCE} = -\Big( 0.8\log(0.75) + 0.2\log(0.25) + 0.2\log(0.25) + 0.8\log(0.75) \Big) \approx 2 \times (0.2301 + 0.2773) = 1.0148$$
@@ -558,5 +558,55 @@ $$\mathcal{L}_{\text{VAE}} = \text{BCE} + D_{\text{KL}} = 1.0148 + 0.1983 = 1.21
 </div>
 
 </div>
+<!-- Mobile Bottom Navigation Bar (<768px) -->
+<nav class="bottom-nav-bar" aria-label="Мобильная навигация">
+  <a href="../index.html?focus=search" class="bottom-nav-item" id="nav-search-btn" aria-label="Поиск по 28 лекциям">
+    <span class="bottom-nav-icon" aria-hidden="true">🔍</span>
+    <span class="bottom-nav-label">Поиск</span>
+  </a>
+  <a href="../exam.html" class="bottom-nav-item" id="nav-exam-btn" aria-label="Тренажёр устного экзамена">
+    <span class="bottom-nav-icon" aria-hidden="true">🎲</span>
+    <span class="bottom-nav-label">Тренажёр</span>
+  </a>
+  <button type="button" class="bottom-nav-item" id="nav-progress-btn" aria-label="Мой прогресс освоения курса">
+    <span class="bottom-nav-icon" aria-hidden="true">📊</span>
+    <span class="bottom-nav-label">Прогресс</span>
+  </button>
+</nav>
+
+<!-- Universal Progress Modal -->
+<div id="course-progress-modal" class="progress-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-progress-title" hidden>
+  <div class="progress-modal-content">
+    <div class="progress-modal-header">
+      <h3 id="modal-progress-title" class="progress-modal-title">📊 Прогресс освоения курса</h3>
+      <button type="button" class="modal-close-btn" id="modal-progress-close" aria-label="Закрыть окно прогресса">✕</button>
+    </div>
+    <div class="progress-modal-body">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="modal-progress-fill" style="width: 0%;"></div>
+      </div>
+      <div class="progress-modal-percent" id="modal-progress-percent">Общий прогресс: 0%</div>
+      <div class="progress-stats-grid">
+        <div class="stat-card">
+          <div class="val" id="modal-stat-lecs">0 / 28 (0%)</div>
+          <div class="lbl">Лекции пройдены</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-qas">0 / 296 (0%)</div>
+          <div class="lbl">Вопросов «Препод спросит»</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-tasks">0 / 170 (0%)</div>
+          <div class="lbl">Микро-задач решено</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="modal-reset-progress-btn">🔄 Сбросить прогресс</button>
+        <button type="button" class="btn btn-primary" id="modal-close-action-btn">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

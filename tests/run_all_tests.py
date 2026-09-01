@@ -44,6 +44,9 @@ from tests.test_r5_summary_styling import TestR5SummaryStyling
 from tests.test_theme_and_styles import TestThemeAndStyles
 from tests.test_portal_ui import TestPortalUI
 from tests.test_adversarial_challenger_2 import TestDOMAndPillInvariants
+from tests.test_m1_responsive_nav_comprehensive import TestMilestone1ResponsiveNav
+from tests.test_lighthouse_and_web_vitals import TestLighthouseAndWebVitals
+from tests.test_e2e_requirements import TestE2EPlatformRequirements
 
 # Tier 5 Imports
 from tests.test_tier5_adversarial import TestTier5Adversarial
@@ -143,6 +146,9 @@ TIER_DEFINITIONS: List[Tuple[str, List[Tuple[Any, str]]]] = [
             (TestQAPillSync, "UI: QA Pill Badge Dynamic Sync"),
             (TestPwaManifestAndServiceWorker, "PWA: Manifest & SW Cache Strategies"),
             (TestKeyboardShortcutsAndInteraction, "UX: Keyboard Shortcuts & Focus Visible"),
+            (TestLighthouseAndWebVitals, "Quality: Lighthouse CI & Web Vitals Invariants"),
+            (TestMilestone1ResponsiveNav, "UI/UX: Universal 3-Item Bottom Nav Bar across 30 Pages"),
+            (TestE2EPlatformRequirements, "Architecture: Comprehensive 16-Feature E2E Requirements"),
         ],
     ),
     (

@@ -19,7 +19,26 @@
   function safeGetJSON(key, defaultVal) {
     try {
       const data = localStorage.getItem(key);
-      return data ? JSON.parse(data) : defaultVal;
+      if (data === null || data === undefined) {
+        return defaultVal;
+      }
+      const parsed = JSON.parse(data);
+      if (Array.isArray(defaultVal)) {
+        return Array.isArray(parsed) ? parsed : defaultVal;
+      }
+      if (typeof defaultVal === 'object' && defaultVal !== null) {
+        return (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : defaultVal;
+      }
+      if (typeof defaultVal === 'string') {
+        return typeof parsed === 'string' ? parsed : defaultVal;
+      }
+      if (typeof defaultVal === 'number') {
+        return typeof parsed === 'number' && !isNaN(parsed) ? parsed : defaultVal;
+      }
+      if (typeof defaultVal === 'boolean') {
+        return typeof parsed === 'boolean' ? parsed : defaultVal;
+      }
+      return parsed !== null && parsed !== undefined ? parsed : defaultVal;
     } catch (e) {
       console.warn('LocalStorage error:', e);
       return defaultVal;
@@ -72,7 +91,22 @@
       const theme = this.getTheme();
       const isLight = theme === 'light';
       document.querySelectorAll('.theme-toggle').forEach(btn => {
-        btn.innerHTML = `<span class="theme-icon" aria-hidden="true">${isLight ? '🌙' : '☀️'}</span><span class="theme-text">${isLight ? 'Тёмная тема' : 'Светлая тема'}</span>`;
+        const isBottomNav = btn.classList.contains('bottom-nav-item');
+        const icon = btn.querySelector('.theme-icon');
+        const text = btn.querySelector('.theme-text, .theme-label');
+        if (icon) {
+          icon.textContent = isLight ? '🌙' : '☀️';
+        }
+        if (text) {
+          text.textContent = isBottomNav ? 'Тема' : (isLight ? 'Тёмная тема' : 'Светлая тема');
+        }
+        if (!icon && !text) {
+          if (isBottomNav) {
+            btn.innerHTML = `<span class="bottom-nav-icon theme-icon" aria-hidden="true">${isLight ? '🌙' : '☀️'}</span><span class="bottom-nav-label theme-label">Тема</span>`;
+          } else {
+            btn.innerHTML = `<span class="theme-icon" aria-hidden="true">${isLight ? '🌙' : '☀️'}</span><span class="theme-text">${isLight ? 'Тёмная тема' : 'Светлая тема'}</span>`;
+          }
+        }
         btn.setAttribute('aria-label', isLight ? 'Включить тёмную тему' : 'Включить светлую тему');
         btn.setAttribute('title', isLight ? 'Включить тёмную тему' : 'Включить светлую тему');
       });
@@ -80,17 +114,19 @@
 
     // ---------- Lectures Progress ----------
     getCompletedLectures() {
-      return safeGetJSON(STORAGE_KEYS.COMPLETED_LECTURES, []);
+      const val = safeGetJSON(STORAGE_KEYS.COMPLETED_LECTURES, []);
+      return Array.isArray(val) ? val : [];
     },
 
     isLectureCompleted(id) {
       const list = this.getCompletedLectures();
-      return list.includes(String(id));
+      return Array.isArray(list) && list.includes(String(id));
     },
 
     setLectureCompleted(id, completed) {
       const strId = String(id);
       let list = this.getCompletedLectures();
+      if (!Array.isArray(list)) list = [];
       if (completed) {
         if (!list.includes(strId)) list.push(strId);
       } else {
@@ -108,17 +144,19 @@
 
     // ---------- QA Items ----------
     getCheckedQAs() {
-      return safeGetJSON(STORAGE_KEYS.CHECKED_QAS, []);
+      const val = safeGetJSON(STORAGE_KEYS.CHECKED_QAS, []);
+      return Array.isArray(val) ? val : [];
     },
 
     isQAChecked(qaId) {
       const list = this.getCheckedQAs();
-      return list.includes(String(qaId));
+      return Array.isArray(list) && list.includes(String(qaId));
     },
 
     setQAChecked(qaId, checked) {
       const strId = String(qaId);
       let list = this.getCheckedQAs();
+      if (!Array.isArray(list)) list = [];
       if (checked) {
         if (!list.includes(strId)) list.push(strId);
       } else {
@@ -136,17 +174,19 @@
 
     // ---------- Task Items ----------
     getCheckedTasks() {
-      return safeGetJSON(STORAGE_KEYS.CHECKED_TASKS, []);
+      const val = safeGetJSON(STORAGE_KEYS.CHECKED_TASKS, []);
+      return Array.isArray(val) ? val : [];
     },
 
     isTaskChecked(taskId) {
       const list = this.getCheckedTasks();
-      return list.includes(String(taskId));
+      return Array.isArray(list) && list.includes(String(taskId));
     },
 
     setTaskChecked(taskId, checked) {
       const strId = String(taskId);
       let list = this.getCheckedTasks();
+      if (!Array.isArray(list)) list = [];
       if (checked) {
         if (!list.includes(strId)) list.push(strId);
       } else {
@@ -162,10 +202,22 @@
       return this.setTaskChecked(taskId, !current);
     },
 
+    // ---------- Direct SM-2 Calculation Helper ----------
+    calcSM2(grade, reps, ef, interval) {
+      return this.sm2.calculateNextState({
+        cardId: '',
+        box: 1,
+        repetitions: reps,
+        easeFactor: ef,
+        interval: interval
+      }, grade);
+    },
+
     // ---------- Leitner / SM-2 Spaced Repetition Engine ----------
     sm2: {
       getCards() {
-        return safeGetJSON(STORAGE_KEYS.SM2_CARDS, {});
+        const val = safeGetJSON(STORAGE_KEYS.SM2_CARDS, {});
+        return (typeof val === 'object' && val !== null && !Array.isArray(val)) ? val : {};
       },
 
       getCard(cardId) {
@@ -186,7 +238,7 @@
       },
 
       calculateNextState(prevState, grade) {
-        const q = Math.max(0, Math.min(5, Number(grade)));
+        const q = Math.max(0, Math.min(5, Number(grade) || 0));
         const prev = prevState || {
           cardId: '',
           box: 1,
@@ -195,10 +247,10 @@
           easeFactor: 2.5
         };
 
-        let ef = Number(prev.easeFactor) || 2.5;
-        let reps = Number(prev.repetitions) || 0;
-        let interval = Number(prev.interval) || 1;
-        let box = Number(prev.box) || 1;
+        let ef = Math.max(1.3, Number(prev.easeFactor) || 2.5);
+        let reps = Math.max(0, Number(prev.repetitions) || 0);
+        let interval = Math.max(1, Number(prev.interval) || 1);
+        let box = Math.max(1, Math.min(5, Number(prev.box) || 1));
 
         // SM-2 Ease Factor formula: EF' = EF + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02))
         const efDelta = 0.1 - (5 - q) * (0.08 + (5 - q) * 0.02);
@@ -224,7 +276,7 @@
         const nextReview = now + interval * 24 * 60 * 60 * 1000;
 
         return {
-          cardId: prev.cardId,
+          cardId: prev.cardId || '',
           box: box,
           repetitions: reps,
           interval: interval,
@@ -291,29 +343,37 @@
 
     // ---------- Global Statistics ----------
     getOverallStats() {
-      const completedLecs = this.getCompletedLectures().length;
-      const checkedQAs = this.getCheckedQAs().length;
-      const checkedTasks = this.getCheckedTasks().length;
+      const completedList = this.getCompletedLectures();
+      const checkedQAList = this.getCheckedQAs();
+      const checkedTaskList = this.getCheckedTasks();
 
-      const lecPct = Math.round((completedLecs / TOTAL_LECTURES) * 100);
-      const qaPct = Math.round((checkedQAs / TOTAL_QAS) * 100);
-      const taskPct = Math.round((checkedTasks / TOTAL_TASKS) * 100);
-      const totalPct = Math.round((lecPct * 0.4) + (qaPct * 0.35) + (taskPct * 0.25));
+      const completedLecs = Array.isArray(completedList) ? completedList.length : 0;
+      const checkedQAs = Array.isArray(checkedQAList) ? checkedQAList.length : 0;
+      const checkedTasks = Array.isArray(checkedTaskList) ? checkedTaskList.length : 0;
+
+      const safeLecs = (typeof completedLecs === 'number' && !isNaN(completedLecs) && isFinite(completedLecs)) ? Math.max(0, completedLecs) : 0;
+      const safeQAs = (typeof checkedQAs === 'number' && !isNaN(checkedQAs) && isFinite(checkedQAs)) ? Math.max(0, checkedQAs) : 0;
+      const safeTasks = (typeof checkedTasks === 'number' && !isNaN(checkedTasks) && isFinite(checkedTasks)) ? Math.max(0, checkedTasks) : 0;
+
+      const lecPct = TOTAL_LECTURES > 0 ? Math.min(100, Math.max(0, Math.round((safeLecs / TOTAL_LECTURES) * 100))) : 0;
+      const qaPct = TOTAL_QAS > 0 ? Math.min(100, Math.max(0, Math.round((safeQAs / TOTAL_QAS) * 100))) : 0;
+      const taskPct = TOTAL_TASKS > 0 ? Math.min(100, Math.max(0, Math.round((safeTasks / TOTAL_TASKS) * 100))) : 0;
+      const totalPct = Math.min(100, Math.max(0, Math.round((lecPct * 0.4) + (qaPct * 0.35) + (taskPct * 0.25))));
 
       return {
         totalLectures: TOTAL_LECTURES,
-        completedLectures: completedLecs,
-        lecturePercent: lecPct,
+        completedLectures: safeLecs,
+        lecturePercent: isNaN(lecPct) ? 0 : lecPct,
 
         totalQAs: TOTAL_QAS,
-        checkedQAs: checkedQAs,
-        qaPercent: qaPct,
+        checkedQAs: safeQAs,
+        qaPercent: isNaN(qaPct) ? 0 : qaPct,
 
         totalTasks: TOTAL_TASKS,
-        checkedTasks: checkedTasks,
-        taskPercent: taskPct,
+        checkedTasks: safeTasks,
+        taskPercent: isNaN(taskPct) ? 0 : taskPct,
 
-        overallPercent: Math.min(100, Math.max(0, totalPct))
+        overallPercent: isNaN(totalPct) ? 0 : totalPct
       };
     },
 
@@ -331,11 +391,16 @@
     importProgressJSON(jsonStr) {
       try {
         const obj = JSON.parse(jsonStr);
-        if (obj.theme) this.setTheme(obj.theme);
-        if (Array.isArray(obj.completedLectures)) safeSetJSON(STORAGE_KEYS.COMPLETED_LECTURES, obj.completedLectures);
-        if (Array.isArray(obj.checkedQAs)) safeSetJSON(STORAGE_KEYS.CHECKED_QAS, obj.checkedQAs);
-        if (Array.isArray(obj.checkedTasks)) safeSetJSON(STORAGE_KEYS.CHECKED_TASKS, obj.checkedTasks);
-        if (obj.sm2Cards && typeof obj.sm2Cards === 'object') safeSetJSON(STORAGE_KEYS.SM2_CARDS, obj.sm2Cards);
+        if (obj === null || obj === undefined) {
+          return false;
+        }
+        if (typeof obj === 'object') {
+          if (typeof obj.theme === 'string') this.setTheme(obj.theme);
+          if (Array.isArray(obj.completedLectures)) safeSetJSON(STORAGE_KEYS.COMPLETED_LECTURES, obj.completedLectures);
+          if (Array.isArray(obj.checkedQAs)) safeSetJSON(STORAGE_KEYS.CHECKED_QAS, obj.checkedQAs);
+          if (Array.isArray(obj.checkedTasks)) safeSetJSON(STORAGE_KEYS.CHECKED_TASKS, obj.checkedTasks);
+          if (obj.sm2Cards && typeof obj.sm2Cards === 'object' && !Array.isArray(obj.sm2Cards)) safeSetJSON(STORAGE_KEYS.SM2_CARDS, obj.sm2Cards);
+        }
         notifyChange();
         return true;
       } catch (e) {
@@ -355,11 +420,90 @@
     }
   };
 
-  // Auto-init theme
+  // Universal Progress Modal Controller
+  function initProgressModal() {
+    const modal = document.getElementById('course-progress-modal');
+    const openBtn = document.getElementById('nav-progress-btn');
+    const closeBtn = document.getElementById('modal-progress-close');
+    const closeActionBtn = document.getElementById('modal-close-action-btn');
+    const resetBtn = document.getElementById('modal-reset-progress-btn');
+
+    function updateModalStats() {
+      if (!modal) return;
+      const stats = CourseTracker.getOverallStats();
+      const fill = document.getElementById('modal-progress-fill');
+      const percent = document.getElementById('modal-progress-percent');
+      const lecs = document.getElementById('modal-stat-lecs');
+      const qas = document.getElementById('modal-stat-qas');
+      const tasks = document.getElementById('modal-stat-tasks');
+
+      if (fill) fill.style.width = `${stats.overallPercent}%`;
+      if (percent) percent.textContent = `Общий прогресс: ${stats.overallPercent}%`;
+      if (lecs) lecs.textContent = `${stats.completedLectures} / ${stats.totalLectures} (${stats.lecturePercent}%)`;
+      if (qas) qas.textContent = `${stats.checkedQAs} / ${stats.totalQAs} (${stats.qaPercent}%)`;
+      if (tasks) tasks.textContent = `${stats.checkedTasks} / ${stats.totalTasks} (${stats.taskPercent}%)`;
+    }
+
+    function openModal() {
+      if (!modal) return;
+      updateModalStats();
+      modal.removeAttribute('hidden');
+      if (closeBtn) closeBtn.focus();
+    }
+
+    function closeModal() {
+      if (!modal) return;
+      modal.setAttribute('hidden', '');
+      if (openBtn) openBtn.focus();
+    }
+
+    if (openBtn) {
+      openBtn.addEventListener('click', openModal);
+    }
+    if (closeBtn) {
+      closeBtn.addEventListener('click', closeModal);
+    }
+    if (closeActionBtn) {
+      closeActionBtn.addEventListener('click', closeModal);
+    }
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+      });
+    }
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        if (confirm('Сбросить весь сохраненный прогресс курса?')) {
+          CourseTracker.resetProgress();
+          updateModalStats();
+        }
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal && !modal.hasAttribute('hidden')) {
+        e.preventDefault();
+        closeModal();
+      }
+    });
+
+    window.addEventListener('course-progress-changed', () => {
+      updateModalStats();
+    });
+  }
+
+  // Auto-init theme & modal
   document.addEventListener('DOMContentLoaded', () => {
     const currentTheme = CourseTracker.getTheme();
     document.documentElement.setAttribute('data-theme', currentTheme);
     CourseTracker.updateThemeButtons();
+    initProgressModal();
+
+    document.querySelectorAll('.theme-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        CourseTracker.toggleTheme();
+      });
+    });
   });
 
   // Auto Service Worker registration for Zero-build PWA

@@ -303,6 +303,68 @@ class TestTier1ToolsCoverage(unittest.TestCase):
         self.assertTrue(DOMViewportEmulator.verify_touch_target(44.0, 44.0))
         self.assertFalse(DOMViewportEmulator.verify_touch_target(43.0, 44.0))
 
+    def test_07_build_exam_data_100_percent_coverage_edges(self):
+        """Test remaining branches: duplicate ticket names, non-verbose check, and __main__ runpy."""
+        import runpy
+        import sys
+        from unittest.mock import patch
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            lec_dir = tmp_path / "lectures"
+            lec_dir.mkdir()
+            (lec_dir / "12-diff.html").write_text(
+                "<h1>Диффузия</h1><details class='qa'><summary>Q?</summary><div class='ans'>A</div></details>",
+                encoding="utf-8",
+            )
+            (lec_dir / "13-cv.html").write_text(
+                "<h1>CV</h1><details class='qa'><summary>Q2?</summary><div class='ans'>A2</div></details>",
+                encoding="utf-8",
+            )
+            out_file = tmp_path / "exam_data.js"
+
+            # 1. Compile dataset with shared ticket name to hit 201->209 branch (False branch of 'if ticket_name not in tickets_map')
+            mock_dataset = [
+                {
+                    "id": "01",
+                    "filename": "01-test.html",
+                    "title": "Title 1",
+                    "ticket": "Билет 1",
+                    "module": "A",
+                    "qas": [{"question": "Q1", "answer": "A1"}],
+                    "tasks": [{"title": "T1", "problem": "P1", "solution": "S1"}],
+                    "cheat_items": ["C1"],
+                },
+                {
+                    "id": "01b",
+                    "filename": "01b-test.html",
+                    "title": "Title 1b",
+                    "ticket": "Билет 1",
+                    "module": "A",
+                    "qas": [{"question": "Q2", "answer": "A2"}],
+                    "tasks": [{"title": "T2", "problem": "P2", "solution": "S2"}],
+                    "cheat_items": ["C2"],
+                },
+            ]
+            js_code = build_js_content(mock_dataset)
+            self.assertIn("window.EXAM_DATA =", js_code)
+
+            # 2. Build real output file for lec_dir
+            code_build = build_main(["-l", str(lec_dir), "-o", str(out_file)])
+            self.assertEqual(code_build, 0)
+
+            # 3. Check mode without --verbose to hit 321->323 branch
+            code_check_no_verbose = build_main(["-l", str(lec_dir), "-o", str(out_file), "--check"])
+            self.assertEqual(code_check_no_verbose, 0)
+
+            # 4. Direct module execution via runpy to cover `if __name__ == '__main__': sys.exit(main())`
+            tool_path = Path(__file__).resolve().parent.parent / "tools" / "build_exam_data.py"
+            test_argv = ["build_exam_data.py", "-l", str(lec_dir), "-o", str(out_file), "--check"]
+            with patch.object(sys, "argv", test_argv):
+                with self.assertRaises(SystemExit) as cm:
+                    runpy.run_path(str(tool_path), run_name="__main__")
+                self.assertEqual(cm.exception.code, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

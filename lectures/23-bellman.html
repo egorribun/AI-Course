@@ -91,19 +91,19 @@ window.MathJax = {
 <!-- ============================================ -->
 <h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
 
-<h4>1. Уравнение Беллмана для функции ценности состояния $V^\pi(s)$</h4>
+<h3>1. Уравнение Беллмана для функции ценности состояния $V^\pi(s)$</h3>
 <p>По определению $V^\pi(s) = \mathbb{E}_\pi [G_t \mid S_t = s]$. Используя рекуррентную форму дохода $G_t = R_{t+1} + \gamma G_{t+1}$ и закон полного математического ожидания:</p>
 
 <div class="math-scroll-wrapper">
 $$ V^\pi(s) = \sum_{a \in \mathcal{A}} \pi(a \mid s) \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \left[ \mathcal{R}(s, a, s') + \gamma V^\pi(s') \right] $$
 </div>
 
-<h4>2. Уравнение Беллмана для функции ценности действия $Q^\pi(s, a)$</h4>
+<h3>2. Уравнение Беллмана для функции ценности действия $Q^\pi(s, a)$</h3>
 <div class="math-scroll-wrapper">
 $$ Q^\pi(s, a) = \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \left[ \mathcal{R}(s, a, s') + \gamma \sum_{a' \in \mathcal{A}} \pi(a' \mid s') Q^\pi(s', a') \right] $$
 </div>
 
-<h4>3. Матричная форма уравнения Беллмана для $V^\pi$</h4>
+<h3>3. Матричная форма уравнения Беллмана для $V^\pi$</h3>
 <p>Для конечного пространства состоя $|\mathcal{S}| = N$ уравнение $V^\pi$ представляет собой линейную систему $N$ уравнений с $N$ неизвестными:</p>
 
 <div class="math-scroll-wrapper">
@@ -116,7 +116,7 @@ $$ (I - \gamma \mathcal{P}^\pi) V^\pi = \mathcal{R}^\pi \implies V^\pi = (I - \g
 </div>
 <p>Матрица $(I - \gamma \mathcal{P}^\pi)$ всегда обратима при $\gamma < 1$, так как максимальное собственное значение стохастической матрицы $\mathcal{P}^\pi$ равно $1$, а спектральный радиус $\rho(\gamma \mathcal{P}^\pi) = \gamma < 1$. Сложность обращения матрицы — $O(|\mathcal{S}|^3)$.</p>
 
-<h4>4. Уравнения оптимальности Беллмана (Bellman Optimality Equations)</h4>
+<h3>4. Уравнения оптимальности Беллмана (Bellman Optimality Equations)</h3>
 <p>Оптимальные функции ценности определяются как $V^*(s) = \max_\pi V^\pi(s)$ и $Q^*(s, a) = \max_\pi Q^\pi(s, a)$:</p>
 
 <div class="math-scroll-wrapper">
@@ -128,7 +128,7 @@ $$ Q^*(s, a) = \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \left[ \mathc
 </div>
 <p>Уравнение оптимальности <strong>нелинейно</strong> из-за оператора $\max$, поэтому его нельзя решить прямым обращением матрицы!</p>
 
-<h4>5. Оператор Беллмана и строгое доказательство сжатия (Banach Fixed Point)</h4>
+<h3>5. Оператор Беллмана и строгое доказательство сжатия (Banach Fixed Point)</h3>
 <div class="box mathbox">
   <div class="bt">📐 Теорема о сжимающем отображении оператора Беллмана</div>
   <p>Определим оператор оптимальности Беллмана $\mathcal{T}^*: \mathbb{R}^{|\mathcal{S}|} \to \mathbb{R}^{|\mathcal{S}|}$:</p>
@@ -160,7 +160,7 @@ $$ Q^*(s, a) = \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \left[ \mathc
   </ol>
 </div>
 
-<h4>6. Практическая реализация матричного решения и оператора Беллмана на Python</h4>
+<h3>6. Практическая реализация матричного решения и оператора Беллмана на Python</h3>
 <pre><code>import numpy as np
 
 def solve_bellman_matrix(P_pi, R_pi, gamma=0.9):
@@ -202,7 +202,7 @@ def apply_bellman_optimality_operator(V, P, R, gamma=0.9):
   $$ V^*(s_2) = \max \Big( 2.0 + 0.9 V^*(s_2), \; 0.0 + 0.9 V^*(s_1) \Big) $$
   </div>
 
-  <h4>Аналитический расчет:</h4>
+  <h3>Аналитический расчет:</h3>
   <ol>
     <li>Для состояния $s_2$: действие $a_1$ дает награду $+2$ на каждом шаге. Если оставаться в $s_2$, то:
       <div class="math-scroll-wrapper">
@@ -219,7 +219,7 @@ def apply_bellman_optimality_operator(V, P, R, gamma=0.9):
   </ol>
   <p><strong>Итоговый точный вектор оптимальных ценностей:</strong> $V^* = \begin{pmatrix} 18.0 \\ 20.0 \end{pmatrix}$.</p>
 
-  <h4>Численные итерации Value Iteration (старт с $V_0 = \begin{pmatrix} 0 \\ 0 \end{pmatrix}$):</h4>
+  <h3>Численные итерации Value Iteration (старт с $V_0 = \begin{pmatrix} 0 \\ 0 \end{pmatrix}$):</h3>
   <ul>
     <li><strong>Итерация 1:</strong> $V_1(s_1) = \max(1, 0) = 1.0$, $V_1(s_2) = \max(2, 0) = 2.0$.</li>
     <li><strong>Итерация 2:</strong> $V_2(s_1) = \max(1 + 0.9(1), 0.9(2)) = \max(1.9, 1.8) = 1.9$; $V_2(s_2) = \max(2 + 0.9(2), 0.9(1)) = 3.8$.</li>
@@ -227,7 +227,7 @@ def apply_bellman_optimality_operator(V, P, R, gamma=0.9):
     <li><strong>Через 50 итераций:</strong> $V_{50} = \begin{pmatrix} 17.91 \\ 19.90 \end{pmatrix} \to \begin{pmatrix} 18.0 \\ 20.0 \end{pmatrix}$.</li>
   </ul>
 
-  <h4>Программная симуляция сходимости Value Iteration на Python</h4>
+  <h3>Программная симуляция сходимости Value Iteration на Python</h3>
 <pre><code>import numpy as np
 
 def run_contraction_simulation():
@@ -483,5 +483,55 @@ def run_contraction_simulation():
 </div>
 
 </div>
+<!-- Mobile Bottom Navigation Bar (<768px) -->
+<nav class="bottom-nav-bar" aria-label="Мобильная навигация">
+  <a href="../index.html?focus=search" class="bottom-nav-item" id="nav-search-btn" aria-label="Поиск по 28 лекциям">
+    <span class="bottom-nav-icon" aria-hidden="true">🔍</span>
+    <span class="bottom-nav-label">Поиск</span>
+  </a>
+  <a href="../exam.html" class="bottom-nav-item" id="nav-exam-btn" aria-label="Тренажёр устного экзамена">
+    <span class="bottom-nav-icon" aria-hidden="true">🎲</span>
+    <span class="bottom-nav-label">Тренажёр</span>
+  </a>
+  <button type="button" class="bottom-nav-item" id="nav-progress-btn" aria-label="Мой прогресс освоения курса">
+    <span class="bottom-nav-icon" aria-hidden="true">📊</span>
+    <span class="bottom-nav-label">Прогресс</span>
+  </button>
+</nav>
+
+<!-- Universal Progress Modal -->
+<div id="course-progress-modal" class="progress-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-progress-title" hidden>
+  <div class="progress-modal-content">
+    <div class="progress-modal-header">
+      <h3 id="modal-progress-title" class="progress-modal-title">📊 Прогресс освоения курса</h3>
+      <button type="button" class="modal-close-btn" id="modal-progress-close" aria-label="Закрыть окно прогресса">✕</button>
+    </div>
+    <div class="progress-modal-body">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="modal-progress-fill" style="width: 0%;"></div>
+      </div>
+      <div class="progress-modal-percent" id="modal-progress-percent">Общий прогресс: 0%</div>
+      <div class="progress-stats-grid">
+        <div class="stat-card">
+          <div class="val" id="modal-stat-lecs">0 / 28 (0%)</div>
+          <div class="lbl">Лекции пройдены</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-qas">0 / 296 (0%)</div>
+          <div class="lbl">Вопросов «Препод спросит»</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-tasks">0 / 170 (0%)</div>
+          <div class="lbl">Микро-задач решено</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="modal-reset-progress-btn">🔄 Сбросить прогресс</button>
+        <button type="button" class="btn btn-primary" id="modal-close-action-btn">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

@@ -31,13 +31,19 @@ window.MathJax = {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-svg.js" async></script>
 <script src="js/exam_data.js"></script>
 <script src="js/tracker.js"></script>
-<script src="js/simulator.js"></script>
 <script src="js/app.js"></script>
 
 </head>
 <body>
 
 <header class="top"><div class="inner">
+  <div class="header-actions">
+    <a href="exam.html" class="btn-header-exam" aria-label="Перейти в тренажёр экзамена">🎲 Тренажёр экзамена</a>
+    <button type="button" class="theme-toggle" aria-label="Включить тёмную тему" title="Включить тёмную тему">
+      <span class="theme-icon" aria-hidden="true">🌙</span>
+      <span class="theme-text">Тёмная тема</span>
+    </button>
+  </div>
   <div class="kicker">Подготовка к устному экзамену (ГУУ 2026)</div>
   <h1>Методы искусственного интеллекта</h1>
   <p class="sub">Полный интерактивный курс по всем 25 экзаменационным вопросам, организованный в 4 тематических блока. Каждая лекция — строгий конспект: интуиция, схемы, формулы, вопросы препода с ответами, микро-задачи и скелет устного ответа.</p>
@@ -79,9 +85,6 @@ window.MathJax = {
     </div>
   </div>
 </div>
-
-<!-- ========== Интерактивный симулятор экзамена ========== -->
-<div id="exam-simulator-container"></div>
 
 <!-- ========== Живой поиск и фильтрация по темам ========== -->
 <div class="search-box">
@@ -337,13 +340,55 @@ window.MathJax = {
 
 </div>
 
-<!-- Mobile Quick Action Bar (<768px) -->
-<nav class="quick-action-bar" aria-label="Быстрые действия на мобильных устройствах">
-  <button type="button" class="quick-action-btn" id="mob-search-btn" aria-label="Поиск по курсу">
-    <span aria-hidden="true">🔍</span>
-    <span>Поиск по 28 лекциям...</span>
+<!-- Mobile Bottom Navigation Bar (<768px) -->
+<nav class="bottom-nav-bar" aria-label="Мобильная навигация">
+  <button type="button" class="bottom-nav-item" id="nav-search-btn" aria-label="Поиск по 28 лекциям">
+    <span class="bottom-nav-icon" aria-hidden="true">🔍</span>
+    <span class="bottom-nav-label">Поиск</span>
+  </button>
+  <a href="exam.html" class="bottom-nav-item" id="nav-exam-btn" aria-label="Тренажёр устного экзамена">
+    <span class="bottom-nav-icon" aria-hidden="true">🎲</span>
+    <span class="bottom-nav-label">Тренажёр</span>
+  </a>
+  <button type="button" class="bottom-nav-item" id="nav-progress-btn" aria-label="Мой прогресс освоения курса">
+    <span class="bottom-nav-icon" aria-hidden="true">📊</span>
+    <span class="bottom-nav-label">Прогресс</span>
   </button>
 </nav>
+
+<!-- Universal Progress Modal -->
+<div id="course-progress-modal" class="progress-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-progress-title" hidden>
+  <div class="progress-modal-content">
+    <div class="progress-modal-header">
+      <h3 id="modal-progress-title" class="progress-modal-title">📊 Прогресс освоения курса</h3>
+      <button type="button" class="modal-close-btn" id="modal-progress-close" aria-label="Закрыть окно прогресса">✕</button>
+    </div>
+    <div class="progress-modal-body">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="modal-progress-fill" style="width: 0%;"></div>
+      </div>
+      <div class="progress-modal-percent" id="modal-progress-percent">Общий прогресс: 0%</div>
+      <div class="progress-stats-grid">
+        <div class="stat-card">
+          <div class="val" id="modal-stat-lecs">0 / 28 (0%)</div>
+          <div class="lbl">Лекции пройдены</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-qas">0 / 296 (0%)</div>
+          <div class="lbl">Вопросов «Препод спросит»</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-tasks">0 / 170 (0%)</div>
+          <div class="lbl">Микро-задач решено</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="modal-reset-progress-btn">🔄 Сбросить прогресс</button>
+        <button type="button" class="btn btn-primary" id="modal-close-action-btn">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Floating Back to Top Button -->
 <button type="button" class="back-to-top" id="back-to-top-btn" aria-label="Вернуться наверх" title="Наверх">↑</button>

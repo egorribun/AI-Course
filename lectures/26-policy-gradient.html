@@ -109,14 +109,14 @@ window.MathJax = {
 <!-- ============================================ -->
 <h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
 
-<h4>1. Метод Cross-Entropy (CEM)</h4>
+<h3>1. Метод Cross-Entropy (CEM)</h3>
 <p>CEM оптимизирует целевую функцию $J(\theta)$ без вычисления производных среды. На каждой итерации сэмплируется популяция из $N$ агентов $\theta_i \sim \mathcal{N}(\mu, \Sigma)$. После оценки траекторий отбирается элитная доля лучших сессий (квантиль $1 - \rho$, $K = \rho N$ лучших векторов $\theta$). Новые параметры распределения обновляются по методу максимального правдоподобия:</p>
 
 <div class="math-scroll-wrapper">
 $$ \mu_{k+1} = \frac{1}{K} \sum_{i \in \text{Elite}} \theta_i, \quad \Sigma_{k+1} = \frac{1}{K} \sum_{i \in \text{Elite}} (\theta_i - \mu_{k+1})(\theta_i - \mu_{k+1})^T + \epsilon I $$
 </div>
 
-<h4>2. Строгий вывод теоремы о градиенте стратегии (Policy Gradient Theorem)</h4>
+<h3>2. Строгий вывод теоремы о градиенте стратегии (Policy Gradient Theorem)</h3>
 <p>Целевой функционал качества стратегии — математическое ожидание дохода траектории $\tau = (S_0, A_0, \dots, S_T)$:</p>
 
 <div class="math-scroll-wrapper">
@@ -154,7 +154,7 @@ $$ J(\theta) \doteq \mathbb{E}_{\tau \sim P(\tau; \theta)} [R(\tau)] = \int P(\t
   <p><strong>Фундаментальный вывод:</strong> Для вычисления точного градиента целевой функции <strong>не требуется знать уравнения динамики среды $\mathcal{P}$!</strong></p>
 </div>
 
-<h4>3. Алгоритм REINFORCE (Williams, 1992)</h4>
+<h3>3. Алгоритм REINFORCE (Williams, 1992)</h3>
 <p>Используя причинно-следственную связь (действие в момент $t$ влияет только на будущие награды с момента $t$, causality), заменяем полный доход $R(\tau)$ на суффиксный дисконтированный доход $G_t = \sum_{k=0}^\infty \gamma^k R_{t+k+1}$:</p>
 
 <div class="math-scroll-wrapper">
@@ -165,7 +165,7 @@ $$ \nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \sum_{t=0}
 $$ \theta \leftarrow \theta + \alpha \sum_{t=0}^T \nabla_\theta \log \pi_\theta(A_t \mid S_t) G_t $$
 </div>
 
-<h4>4. Снижение дисперсии с помощью Baseline (Базовой линии)</h4>
+<h3>4. Снижение дисперсии с помощью Baseline (Базовой линии)</h3>
 <p>Эмпирические доходы $G_t$ обладают огромной дисперсией. Для ее снижения вычитают независимый от действия базовый уровень $b(S_t)$:</p>
 
 <div class="math-scroll-wrapper">
@@ -178,7 +178,7 @@ $$ \mathbb{E}_{A_t \sim \pi_\theta} \left[ \nabla_\theta \log \pi_\theta(A_t \mi
 </div>
 <p>Оптимальным с точки зрения минимальной дисперсии бейзлайном является функция ценности состояния: $b(s) = V(s)$.</p>
 
-<h4>5. Клиппинг в Proximal Policy Optimization (PPO, Schulman et al., 2017)</h4>
+<h3>5. Клиппинг в Proximal Policy Optimization (PPO, Schulman et al., 2017)</h3>
 <p>Чтобы избежать катастрофического разрушения стратегии слишком большим градиентным шагом, PPO ограничивает отношение вероятностей $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{\text{old}}}(a_t|s_t)}$:</p>
 
 <div class="math-scroll-wrapper">
@@ -186,7 +186,7 @@ $$ L^{\text{CLIP}}(\theta) = \hat{\mathbb{E}}_t \left[ \min\left( r_t(\theta) \h
 </div>
 <p>где $\epsilon \approx 0.2$ — гиперпараметр клиппинга, а $\hat{A}_t = G_t - V(S_t)$ — оценка преимущества.</p>
 
-<h4>6. Практическая реализация REINFORCE и PPO Loss на PyTorch</h4>
+<h3>6. Практическая реализация REINFORCE и PPO Loss на PyTorch</h3>
 <pre><code>import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -234,13 +234,13 @@ def compute_ppo_clipped_loss(log_probs, old_log_probs, advantages, epsilon=0.2):
   <p>Начальное значение $\theta = 0.0 \implies \pi(a_1|s) = \sigma(0) = 0.5, \quad \pi(a_2|s) = 0.5$.</p>
   <p>Агент выбрал действие $A_0 = a_1$ и получил высокий дисконтированный доход $G_0 = +10.0$. Шаг обучения $\alpha = 0.1$.</p>
 
-  <h4>1. Вычисление градиента log-вероятности:</h4>
+  <h3>1. Вычисление градиента log-вероятности:</h3>
   <p>Так как $\frac{d}{d\theta} \log \sigma(\theta) = \frac{1}{\sigma(\theta)} \cdot \sigma(\theta)(1 - \sigma(\theta)) = 1 - \sigma(\theta)$:</p>
   <div class="math-scroll-wrapper">
   $$ \nabla_\theta \log \pi_\theta(a_1 \mid s) = 1 - \sigma(0.0) = 1 - 0.5 = +0.5 $$
   </div>
 
-  <h4>2. Вычисление изменения весов:</h4>
+  <h3>2. Вычисление изменения весов:</h3>
   <div class="math-scroll-wrapper">
   $$ \Delta \theta = \alpha \cdot \nabla_\theta \log \pi_\theta(a_1 \mid s) \cdot G_0 = 0.1 \cdot 0.5 \cdot 10.0 = +0.5 $$
   </div>
@@ -248,7 +248,7 @@ def compute_ppo_clipped_loss(log_probs, old_log_probs, advantages, epsilon=0.2):
   $$ \theta_{\text{new}} = 0.0 + 0.5 = 0.5 $$
   </div>
 
-  <h4>3. Проверка новой вероятности действия $a_1$:</h4>
+  <h3>3. Проверка новой вероятности действия $a_1$:</h3>
   <div class="math-scroll-wrapper">
   $$ \pi_{\theta_{\text{new}}}(a_1 \mid s) = \sigma(0.5) = \frac{1}{1 + e^{-0.5}} \approx \frac{1}{1 + 0.6065} = \frac{1}{1.6065} \approx 0.6225 $$
   </div>
@@ -272,7 +272,7 @@ def compute_ppo_clipped_loss(log_probs, old_log_probs, advantages, epsilon=0.2):
     </li>
   </ul>
 
-  <h4>Реализация метода Cross-Entropy (CEM) на Python</h4>
+  <h3>Реализация метода Cross-Entropy (CEM) на Python</h3>
 <pre><code>import numpy as np
 
 def cross_entropy_method(evaluate_fn, param_dim, n_samples=50, percentile=70, n_iter=20):
@@ -536,5 +536,55 @@ def cross_entropy_method(evaluate_fn, param_dim, n_samples=50, percentile=70, n_
 </div>
 
 </div>
+<!-- Mobile Bottom Navigation Bar (<768px) -->
+<nav class="bottom-nav-bar" aria-label="Мобильная навигация">
+  <a href="../index.html?focus=search" class="bottom-nav-item" id="nav-search-btn" aria-label="Поиск по 28 лекциям">
+    <span class="bottom-nav-icon" aria-hidden="true">🔍</span>
+    <span class="bottom-nav-label">Поиск</span>
+  </a>
+  <a href="../exam.html" class="bottom-nav-item" id="nav-exam-btn" aria-label="Тренажёр устного экзамена">
+    <span class="bottom-nav-icon" aria-hidden="true">🎲</span>
+    <span class="bottom-nav-label">Тренажёр</span>
+  </a>
+  <button type="button" class="bottom-nav-item" id="nav-progress-btn" aria-label="Мой прогресс освоения курса">
+    <span class="bottom-nav-icon" aria-hidden="true">📊</span>
+    <span class="bottom-nav-label">Прогресс</span>
+  </button>
+</nav>
+
+<!-- Universal Progress Modal -->
+<div id="course-progress-modal" class="progress-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-progress-title" hidden>
+  <div class="progress-modal-content">
+    <div class="progress-modal-header">
+      <h3 id="modal-progress-title" class="progress-modal-title">📊 Прогресс освоения курса</h3>
+      <button type="button" class="modal-close-btn" id="modal-progress-close" aria-label="Закрыть окно прогресса">✕</button>
+    </div>
+    <div class="progress-modal-body">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="modal-progress-fill" style="width: 0%;"></div>
+      </div>
+      <div class="progress-modal-percent" id="modal-progress-percent">Общий прогресс: 0%</div>
+      <div class="progress-stats-grid">
+        <div class="stat-card">
+          <div class="val" id="modal-stat-lecs">0 / 28 (0%)</div>
+          <div class="lbl">Лекции пройдены</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-qas">0 / 296 (0%)</div>
+          <div class="lbl">Вопросов «Препод спросит»</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-tasks">0 / 170 (0%)</div>
+          <div class="lbl">Микро-задач решено</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="modal-reset-progress-btn">🔄 Сбросить прогресс</button>
+        <button type="button" class="btn btn-primary" id="modal-close-action-btn">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

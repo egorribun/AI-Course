@@ -288,7 +288,7 @@ class SiameseNet(nn.Module):
   </ul>
 </div>
 
-<h4>Шаг 1. Расчет квадратов евклидовых расстояний $D^2$</h4>
+<h3>Шаг 1. Расчет квадратов евклидовых расстояний $D^2$</h3>
 <div class="math-scroll-wrapper">
 $$D(a, p)^2 = \|z_a - z_p\|_2^2 = (0.6 - 0.8)^2 + (0.8 - 0.6)^2 = (-0.2)^2 + (0.2)^2 = 0.04 + 0.04 = 0.08$$
 </div>
@@ -296,19 +296,19 @@ $$D(a, p)^2 = \|z_a - z_p\|_2^2 = (0.6 - 0.8)^2 + (0.8 - 0.6)^2 = (-0.2)^2 + (0.
 $$D(a, n)^2 = \|z_a - z_n\|_2^2 = (0.6 - 0.0)^2 + (0.8 - 1.0)^2 = (0.6)^2 + (-0.2)^2 = 0.36 + 0.04 = 0.40$$
 </div>
 
-<h4>Шаг 2. Расчет Triplet Loss</h4>
+<h3>Шаг 2. Расчет Triplet Loss</h3>
 <div class="math-scroll-wrapper">
 $$\mathcal{L}_{triplet} = \max\Big(0, D(a, p)^2 - D(a, n)^2 + \alpha\Big) = \max\Big(0, 0.08 - 0.40 + 0.50\Big) = \max(0, 0.18) = 0.18$$
 </div>
 
-<h4>Шаг 3. Классификация типа триплета</h4>
+<h3>Шаг 3. Классификация типа триплета</h3>
 <p>Проверим условие Semi-Hard Mining:</p>
 <div class="math-scroll-wrapper">
 $$D(a, p)^2 = 0.08 < D(a, n)^2 = 0.40 < D(a, p)^2 + \alpha = 0.08 + 0.50 = 0.58$$
 </div>
 <p>Условие $0.08 < 0.40 < 0.58$ <strong>строго выполняется</strong> $\implies$ данный триплет является <strong>Semi-Hard Negative</strong>. Он порождает ненулевой градиент $\mathcal{L} = 0.18$ и стабильно обучает сеть.</p>
 
-<h4>Шаг 4. Градиентный шаг по якорю $z_a$</h4>
+<h3>Шаг 4. Градиентный шаг по якорю $z_a$</h3>
 <p>Производная $\mathcal{L}$ по $z_a$ (когда $\mathcal{L} > 0$):</p>
 <div class="math-scroll-wrapper">
 $$\frac{\partial \mathcal{L}}{\partial z_a} = 2(z_a - z_p) - 2(z_a - z_n) = 2(z_n - z_p) = 2([0.0, 1.0] - [0.8, 0.6]) = 2[-0.8, 0.4] = [-1.6, 0.8]$$
@@ -501,5 +501,55 @@ $$\frac{\partial \mathcal{L}}{\partial z_a} = 2(z_a - z_p) - 2(z_a - z_n) = 2(z_
 </div>
 
 </div>
+<!-- Mobile Bottom Navigation Bar (<768px) -->
+<nav class="bottom-nav-bar" aria-label="Мобильная навигация">
+  <a href="../index.html?focus=search" class="bottom-nav-item" id="nav-search-btn" aria-label="Поиск по 28 лекциям">
+    <span class="bottom-nav-icon" aria-hidden="true">🔍</span>
+    <span class="bottom-nav-label">Поиск</span>
+  </a>
+  <a href="../exam.html" class="bottom-nav-item" id="nav-exam-btn" aria-label="Тренажёр устного экзамена">
+    <span class="bottom-nav-icon" aria-hidden="true">🎲</span>
+    <span class="bottom-nav-label">Тренажёр</span>
+  </a>
+  <button type="button" class="bottom-nav-item" id="nav-progress-btn" aria-label="Мой прогресс освоения курса">
+    <span class="bottom-nav-icon" aria-hidden="true">📊</span>
+    <span class="bottom-nav-label">Прогресс</span>
+  </button>
+</nav>
+
+<!-- Universal Progress Modal -->
+<div id="course-progress-modal" class="progress-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-progress-title" hidden>
+  <div class="progress-modal-content">
+    <div class="progress-modal-header">
+      <h3 id="modal-progress-title" class="progress-modal-title">📊 Прогресс освоения курса</h3>
+      <button type="button" class="modal-close-btn" id="modal-progress-close" aria-label="Закрыть окно прогресса">✕</button>
+    </div>
+    <div class="progress-modal-body">
+      <div class="progress-bar-wrap">
+        <div class="progress-bar-fill" id="modal-progress-fill" style="width: 0%;"></div>
+      </div>
+      <div class="progress-modal-percent" id="modal-progress-percent">Общий прогресс: 0%</div>
+      <div class="progress-stats-grid">
+        <div class="stat-card">
+          <div class="val" id="modal-stat-lecs">0 / 28 (0%)</div>
+          <div class="lbl">Лекции пройдены</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-qas">0 / 296 (0%)</div>
+          <div class="lbl">Вопросов «Препод спросит»</div>
+        </div>
+        <div class="stat-card">
+          <div class="val" id="modal-stat-tasks">0 / 170 (0%)</div>
+          <div class="lbl">Микро-задач решено</div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="modal-reset-progress-btn">🔄 Сбросить прогресс</button>
+        <button type="button" class="btn btn-primary" id="modal-close-action-btn">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>

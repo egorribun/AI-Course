@@ -149,6 +149,19 @@ class TestBuildExamData(unittest.TestCase):
                 f"Билет {i} must be mapped in TICKET_MAPPING",
             )
 
+    def test_09_runpy_direct_execution(self):
+        """Verify direct invocation of build_exam_data.py via runpy."""
+        import runpy
+        import sys
+        from unittest.mock import patch
+
+        tool_file = Path(__file__).resolve().parent.parent / "tools" / "build_exam_data.py"
+        test_argv = ["build_exam_data.py", "--dry-run"]
+        with patch.object(sys, "argv", test_argv):
+            with self.assertRaises(SystemExit) as cm:
+                runpy.run_path(str(tool_file), run_name="__main__")
+            self.assertEqual(cm.exception.code, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

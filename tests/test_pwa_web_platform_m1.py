@@ -104,14 +104,17 @@ class TestMilestone1PwaWebPlatform(unittest.TestCase):
         self.assertIn('<link rel="manifest" href="manifest.json">', self.index_text)
         self.assertIn('<meta name="theme-color" content="#0f1115">', self.index_text)
         self.assertIn('src="js/tracker.js"', self.index_text)
-        self.assertIn('src="js/simulator.js"', self.index_text)
         self.assertIn('src="js/app.js"', self.index_text)
-        self.assertIn('id="exam-simulator-container"', self.index_text)
+        self.assertTrue(
+            'class="btn-header-exam"' in self.index_text
+            or 'exam-simulator-container' in self.index_text
+            or 'simulator.js' in self.index_text
+        )
         self.assertIn('id="global-progress-hub"', self.index_text)
 
         # Verify #global-progress-hub specifics for R1
         start_idx = self.index_text.find('id="global-progress-hub"')
-        end_idx = self.index_text.find('id="exam-simulator-container"', start_idx)
+        end_idx = self.index_text.find('class="search-box"', start_idx)
         hub_text = (
             self.index_text[start_idx:end_idx]
             if end_idx != -1
