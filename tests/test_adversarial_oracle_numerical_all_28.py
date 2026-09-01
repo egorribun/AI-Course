@@ -1,7 +1,5 @@
 import unittest
 import sys
-import math
-import numpy as np
 from pathlib import Path
 
 COURSE_ROOT_DIR = Path(__file__).resolve().parent.parent

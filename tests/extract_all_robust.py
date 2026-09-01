@@ -28,7 +28,7 @@ def extract_all():
             summary = summary_m.group(1).strip() if summary_m else ""
             ans_m = re.search(r'<div\s+class=["\']ans["\']>(.*?)</div>', qa_html, re.DOTALL)
             ans = ans_m.group(1).strip() if ans_m else qa_html[summary_m.end():].strip() if summary_m else qa_html
-            
+
             clean_summary = clean_html(summary)
             clean_ans = clean_html(ans)
             qas.append({

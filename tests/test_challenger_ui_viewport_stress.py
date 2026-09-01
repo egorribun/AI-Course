@@ -10,14 +10,13 @@ Exhaustively tests:
 
 from __future__ import annotations
 
-import html
 import json
 import math
 import re
 import unittest
 from html.parser import HTMLParser
 from pathlib import Path
-from typing import Any, Dict, List, Set, Tuple
+from typing import Any, Dict, List, Tuple
 
 COURSE_ROOT = Path(__file__).resolve().parent.parent
 LECTURES_DIR = COURSE_ROOT / "lectures"
@@ -280,7 +279,7 @@ class TestChallengerEmpiricalSuite(unittest.TestCase):
             "'\"><iframe src=\"javascript:alert('XSS')\"></iframe>",
             "<body onload=alert('XSS')>",
             "<input autofocus onfocus=alert(1)>",
-            
+
             # Regex Injection & Backtracking Vulnerabilities
             "(a+)+$",
             "([a-zA-Z0-9_.-]+)+@",
@@ -294,7 +293,7 @@ class TestChallengerEmpiricalSuite(unittest.TestCase):
             "[a-",
             "(?i)",
             "(?P<name>)",
-            
+
             # Unicode, Control & Exotic Codepoints
             "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f",
             "مرحبا بكم в мире глубокого обучения! 🚀",  # Mixed Arabic/Russian
@@ -303,7 +302,7 @@ class TestChallengerEmpiricalSuite(unittest.TestCase):
             "👨‍👩‍👧‍👦 🏳️‍⚧️ 🦾 🧠 🤖",  # Multi-codepoint emoji sequences
             "𝕸𝖆𝖙𝖍 𝕱𝖔𝖓𝖙𝖘 ℵ ∇ ∮",  # Mathematical alphanumeric symbols
             "\ufffd\ufffe\uffff",  # Replacement & non-characters
-            
+
             # Extreme Lengths & Edge Cases
             "",
             "   \t\r\n   ",

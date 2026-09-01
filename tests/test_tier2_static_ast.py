@@ -17,7 +17,6 @@ from pathlib import Path
 from typing import Dict, List
 
 from tests.common import (
-    COURSE_ROOT,
     EXAM_FILE,
     EXPECTED_LECTURES,
     INDEX_FILE,

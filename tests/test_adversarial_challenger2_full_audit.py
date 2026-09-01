@@ -1,9 +1,6 @@
 import unittest
 import ast
 import re
-import math
-import numpy as np
-from pathlib import Path
 from tests.common import EXPECTED_LECTURES, LECTURES_DIR, read_file, extract_code_blocks, extract_math_blocks, validate_latex_syntax
 
 class TestAdversarialChallenger2FullAudit(unittest.TestCase):
@@ -32,7 +29,7 @@ class TestAdversarialChallenger2FullAudit(unittest.TestCase):
                 errs = validate_latex_syntax(b.raw_latex)
                 if errs:
                     errors.extend([f"{lec}:{b.line_number} {e}" for e in errs])
-        self.assertEqual(len(errors), 0, f"LaTeX errors:\n" + "\n".join(errors[:10]))
+        self.assertEqual(len(errors), 0, "LaTeX errors:\n" + "\n".join(errors[:10]))
 
     def test_03_verify_derivation_01_elbo(self):
         """1. VAE ELBO: Jensen's inequality, KL decomposition, Gaussian analytical form, Reparameterization trick."""
