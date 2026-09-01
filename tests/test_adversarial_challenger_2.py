@@ -142,7 +142,9 @@ class StrictDOMParser(HTMLParser):
     def handle_endtag(self, tag: str):
         if tag == "details":
             if not self._details_has_summary:
-                self.details_summary_errors.append(f"Line {self.getpos()[0]}: <details> missing <summary>")
+                self.details_summary_errors.append(
+                    f"Line {self.getpos()[0]}: <details> missing <summary>"
+                )
             self._in_details = False
             self._details_has_summary = False
 
@@ -192,48 +194,49 @@ class TestDOMAndPillInvariants(unittest.TestCase):
 
             # Invariant 1: QA count >= 10
             self.assertGreaterEqual(
-                parser.qa_count, 10,
-                f"[{filename}] QA count violation: Found {parser.qa_count} < 10 required"
+                parser.qa_count,
+                10,
+                f"[{filename}] QA count violation: Found {parser.qa_count} < 10 required",
             )
             total_qa += parser.qa_count
 
             # Invariant 2: Task count >= 6
             self.assertGreaterEqual(
-                parser.task_count, 6,
-                f"[{filename}] Task count violation: Found {parser.task_count} < 6 required"
+                parser.task_count,
+                6,
+                f"[{filename}] Task count violation: Found {parser.task_count} < 6 required",
             )
             total_tasks += parser.task_count
 
             # Invariant 3: Solutions count matches task count
             self.assertGreaterEqual(
-                parser.sol_count, parser.task_count,
-                f"[{filename}] Solution details count {parser.sol_count} < Task count {parser.task_count}"
+                parser.sol_count,
+                parser.task_count,
+                f"[{filename}] Solution details count {parser.sol_count} < Task count {parser.task_count}",
             )
 
             # Invariant 4: Cheat sheet exists and has substantial content
             self.assertTrue(
-                parser.has_cheat,
-                f"[{filename}] Missing cheat sheet block (<div class='cheat'>)"
+                parser.has_cheat, f"[{filename}] Missing cheat sheet block (<div class='cheat'>)"
             )
             self.assertGreaterEqual(
-                parser.cheat_content_len, 50,
-                f"[{filename}] Cheat sheet content too short ({parser.cheat_content_len} chars)"
+                parser.cheat_content_len,
+                50,
+                f"[{filename}] Cheat sheet content too short ({parser.cheat_content_len} chars)",
             )
 
             # Invariant 5: Top backlink exists and points to index.html
-            self.assertTrue(
-                len(parser.backlinks) > 0,
-                f"[{filename}] Missing top backlink"
-            )
+            self.assertTrue(len(parser.backlinks) > 0, f"[{filename}] Missing top backlink")
             self.assertTrue(
                 any("index.html" in b or b == "../" for b in parser.backlinks),
-                f"[{filename}] Backlink '{parser.backlinks}' does not point to index.html"
+                f"[{filename}] Backlink '{parser.backlinks}' does not point to index.html",
             )
 
             # Invariant 6: Details summary integrity
             self.assertEqual(
-                len(parser.details_summary_errors), 0,
-                f"[{filename}] <details> tag errors: {parser.details_summary_errors}"
+                len(parser.details_summary_errors),
+                0,
+                f"[{filename}] <details> tag errors: {parser.details_summary_errors}",
             )
 
         # Global Invariants
@@ -252,27 +255,33 @@ class TestDOMAndPillInvariants(unittest.TestCase):
             all_pill_text = " ".join(parser.pills)
 
             # 1. QA Pill Sync
-            qa_match = re.search(r"(\d+)\s*(?:вопрос|QA|Q&A|вопросов)", all_pill_text, re.IGNORECASE)
+            qa_match = re.search(
+                r"(\d+)\s*(?:вопрос|QA|Q&A|вопросов)", all_pill_text, re.IGNORECASE
+            )
             self.assertIsNotNone(
                 qa_match,
-                f"[{filename}] Header pills missing QA count badge. Pills found: {parser.pills}"
+                f"[{filename}] Header pills missing QA count badge. Pills found: {parser.pills}",
             )
             pill_qa_num = int(qa_match.group(1))
             self.assertEqual(
-                pill_qa_num, parser.qa_count,
-                f"[{filename}] Desync in QA Pill! Badge says {pill_qa_num}, but DOM has {parser.qa_count} QA blocks"
+                pill_qa_num,
+                parser.qa_count,
+                f"[{filename}] Desync in QA Pill! Badge says {pill_qa_num}, but DOM has {parser.qa_count} QA blocks",
             )
 
             # 2. Task Pill Sync
-            task_match = re.search(r"(\d+)\s*(?:микро-задач|задач|задачи|tasks)", all_pill_text, re.IGNORECASE)
+            task_match = re.search(
+                r"(\d+)\s*(?:микро-задач|задач|задачи|tasks)", all_pill_text, re.IGNORECASE
+            )
             self.assertIsNotNone(
                 task_match,
-                f"[{filename}] Header pills missing Task count badge. Pills found: {parser.pills}"
+                f"[{filename}] Header pills missing Task count badge. Pills found: {parser.pills}",
             )
             pill_task_num = int(task_match.group(1))
             self.assertEqual(
-                pill_task_num, parser.task_count,
-                f"[{filename}] Desync in Task Pill! Badge says {pill_task_num}, but DOM has {parser.task_count} Task blocks"
+                pill_task_num,
+                parser.task_count,
+                f"[{filename}] Desync in Task Pill! Badge says {pill_task_num}, but DOM has {parser.task_count} Task blocks",
             )
 
 
@@ -298,7 +307,11 @@ class TestLinkGraphAndAnchors(unittest.TestCase):
             parser.feed(content)
 
             for href, line_no in parser.hrefs:
-                if href.startswith("http://") or href.startswith("https://") or href.startswith("mailto:"):
+                if (
+                    href.startswith("http://")
+                    or href.startswith("https://")
+                    or href.startswith("mailto:")
+                ):
                     continue
 
                 if href.startswith("javascript:"):
@@ -307,7 +320,9 @@ class TestLinkGraphAndAnchors(unittest.TestCase):
                 if href.startswith("#"):
                     anchor_id = href[1:]
                     if anchor_id and anchor_id not in file_ids[filepath.resolve()]:
-                        dead_anchors.append(f"{filepath.name}:{line_no} -> dead local anchor '{href}'")
+                        dead_anchors.append(
+                            f"{filepath.name}:{line_no} -> dead local anchor '{href}'"
+                        )
                 else:
                     parts = href.split("#", 1)
                     target_rel_path = parts[0]
@@ -316,14 +331,26 @@ class TestLinkGraphAndAnchors(unittest.TestCase):
                     if target_rel_path:
                         target_file = (filepath.parent / target_rel_path).resolve()
                         if not target_file.exists():
-                            broken_links.append(f"{filepath.name}:{line_no} -> missing target file '{href}' (resolved to {target_file})")
+                            broken_links.append(
+                                f"{filepath.name}:{line_no} -> missing target file '{href}' (resolved to {target_file})"
+                            )
                         elif target_anchor:
                             if target_file in file_ids:
                                 if target_anchor not in file_ids[target_file]:
-                                    dead_anchors.append(f"{filepath.name}:{line_no} -> dead anchor '{target_anchor}' in {target_file.name}")
+                                    dead_anchors.append(
+                                        f"{filepath.name}:{line_no} -> dead anchor '{target_anchor}' in {target_file.name}"
+                                    )
 
-        self.assertEqual(len(broken_links), 0, f"Found {len(broken_links)} broken links:\n" + "\n".join(broken_links))
-        self.assertEqual(len(dead_anchors), 0, f"Found {len(dead_anchors)} dead anchors:\n" + "\n".join(dead_anchors))
+        self.assertEqual(
+            len(broken_links),
+            0,
+            f"Found {len(broken_links)} broken links:\n" + "\n".join(broken_links),
+        )
+        self.assertEqual(
+            len(dead_anchors),
+            0,
+            f"Found {len(dead_anchors)} dead anchors:\n" + "\n".join(dead_anchors),
+        )
 
     def test_sequential_navrow_chain(self):
         """Verify the Prev/Next navigation chain 00 <-> 01 <-> ... <-> 27."""
@@ -339,24 +366,24 @@ class TestLinkGraphAndAnchors(unittest.TestCase):
                 next_lec = EXPECTED_LECTURES[1]
                 self.assertTrue(
                     any(next_lec in h for h in nav_hrefs),
-                    f"[L00] Navrow missing link to next lecture {next_lec}. Found: {nav_hrefs}"
+                    f"[L00] Navrow missing link to next lecture {next_lec}. Found: {nav_hrefs}",
                 )
             elif idx == len(EXPECTED_LECTURES) - 1:
                 prev_lec = EXPECTED_LECTURES[idx - 1]
                 self.assertTrue(
                     any(prev_lec in h for h in nav_hrefs),
-                    f"[L27] Navrow missing link to prev lecture {prev_lec}. Found: {nav_hrefs}"
+                    f"[L27] Navrow missing link to prev lecture {prev_lec}. Found: {nav_hrefs}",
                 )
             else:
                 prev_lec = EXPECTED_LECTURES[idx - 1]
                 next_lec = EXPECTED_LECTURES[idx + 1]
                 self.assertTrue(
                     any(prev_lec in h for h in nav_hrefs),
-                    f"[{filename}] Navrow missing link to prev lecture {prev_lec}. Found: {nav_hrefs}"
+                    f"[{filename}] Navrow missing link to prev lecture {prev_lec}. Found: {nav_hrefs}",
                 )
                 self.assertTrue(
                     any(next_lec in h for h in nav_hrefs),
-                    f"[{filename}] Navrow missing link to next lecture {next_lec}. Found: {nav_hrefs}"
+                    f"[{filename}] Navrow missing link to next lecture {next_lec}. Found: {nav_hrefs}",
                 )
 
     def test_index_cards_cover_all_28_lectures(self):
@@ -378,7 +405,9 @@ class TestAdversarialDynamicCodeExecution(unittest.TestCase):
     """Extracts and dynamically stress-tests Python code snippets under edge conditions."""
 
     def test_ast_parse_all_lecture_code_blocks(self):
-        code_block_pattern = re.compile(r"<pre[^>]*>(?:<code[^>]*>)?(.*?)(?:</code>)?</pre>", re.DOTALL | re.IGNORECASE)
+        code_block_pattern = re.compile(
+            r"<pre[^>]*>(?:<code[^>]*>)?(.*?)(?:</code>)?</pre>", re.DOTALL | re.IGNORECASE
+        )
         syntax_errors = []
         parsed_count = 0
 
@@ -394,23 +423,46 @@ class TestAdversarialDynamicCodeExecution(unittest.TestCase):
                 if not clean_code:
                     continue
 
-                if clean_code.startswith("$") or clean_code.startswith("pip install") or "+---" in clean_code or "|---" in clean_code:
+                if (
+                    clean_code.startswith("$")
+                    or clean_code.startswith("pip install")
+                    or "+---" in clean_code
+                    or "|---" in clean_code
+                ):
                     continue
 
                 py_keywords = [
-                    "import ", "def ", "class ", "torch.", "nn.", "F.", "self.", "return ",
-                    "q_table", "model =", "loss", "optimizer"
+                    "import ",
+                    "def ",
+                    "class ",
+                    "torch.",
+                    "nn.",
+                    "F.",
+                    "self.",
+                    "return ",
+                    "q_table",
+                    "model =",
+                    "loss",
+                    "optimizer",
                 ]
                 if any(kw in clean_code for kw in py_keywords):
                     try:
                         ast.parse(clean_code)
                         parsed_count += 1
                     except SyntaxError as e:
-                        line_no = content[:match.start()].count("\n") + 1
-                        syntax_errors.append(f"{filename}:{line_no} -> SyntaxError: {e.msg} at line {e.lineno}")
+                        line_no = content[: match.start()].count("\n") + 1
+                        syntax_errors.append(
+                            f"{filename}:{line_no} -> SyntaxError: {e.msg} at line {e.lineno}"
+                        )
 
-        self.assertGreaterEqual(parsed_count, 10, f"Expected >=10 Python snippets parsed, found {parsed_count}")
-        self.assertEqual(len(syntax_errors), 0, "Syntax errors in lecture code snippets:\n" + "\n".join(syntax_errors))
+        self.assertGreaterEqual(
+            parsed_count, 10, f"Expected >=10 Python snippets parsed, found {parsed_count}"
+        )
+        self.assertEqual(
+            len(syntax_errors),
+            0,
+            "Syntax errors in lecture code snippets:\n" + "\n".join(syntax_errors),
+        )
 
     def test_edge_case_l00_activations(self):
         """L00: Activation functions under extreme inputs without NaN/Inf."""
@@ -441,7 +493,7 @@ class TestAdversarialDynamicCodeExecution(unittest.TestCase):
                         model = nn.Sequential(
                             nn.Linear(in_features, hidden),
                             nn.ReLU(),
-                            nn.Linear(hidden, out_features)
+                            nn.Linear(hidden, out_features),
                         )
                         x = torch.randn(batch_size, in_features, requires_grad=True)
                         target = torch.randn(batch_size, out_features)
@@ -483,6 +535,7 @@ class TestAdversarialDynamicCodeExecution(unittest.TestCase):
 
     def test_edge_case_l04_convolutions(self):
         """L04: Conv2D shape formula on asymmetric dimensions and edge paddings."""
+
         def calc_conv_out(in_dim, k, s, p, d=1):
             return math.floor((in_dim + 2 * p - d * (k - 1) - 1) / s) + 1
 
@@ -499,10 +552,13 @@ class TestAdversarialDynamicCodeExecution(unittest.TestCase):
             conv = nn.Conv2d(3, 16, kernel_size=k, stride=s, padding=p, dilation=d)
             x = torch.randn(1, 3, h_in, h_in)
             out = conv(x)
-            self.assertEqual(out.shape[2], h_theo, f"Failed for H_in={h_in}, K={k}, S={s}, P={p}, D={d}")
+            self.assertEqual(
+                out.shape[2], h_theo, f"Failed for H_in={h_in}, K={k}, S={s}, P={p}, D={d}"
+            )
 
     def test_edge_case_l05_resnet_residual_gradient_flow(self):
         """L05: Residual block gradient flow verification without vanishing."""
+
         class ResBlock(nn.Module):
             def __init__(self, channels):
                 super().__init__()
@@ -555,10 +611,14 @@ class TestAdversarialDynamicCodeExecution(unittest.TestCase):
         cos_theta_m = torch.cos(theta + margin)
 
         self.assertEqual(cos_theta_m.shape, (4, 5))
-        self.assertTrue((cos_theta_m <= cos_theta).all(), "cos(theta + m) must be <= cos(theta) for positive m in [0, pi]")
+        self.assertTrue(
+            (cos_theta_m <= cos_theta).all(),
+            "cos(theta + m) must be <= cos(theta) for positive m in [0, pi]",
+        )
 
     def test_edge_case_l09_contrastive_simclr_loss(self):
         """L09: NT-Xent loss with varying batch size and temperatures."""
+
         def nt_xent(z1, z2, temp=0.1):
             B = z1.size(0)
             z1_norm = F.normalize(z1, dim=1)
@@ -567,7 +627,7 @@ class TestAdversarialDynamicCodeExecution(unittest.TestCase):
             sim = torch.mm(z, z.T) / temp
             mask = torch.eye(2 * B, dtype=torch.bool, device=z.device)
             sim.masked_fill_(mask, -1e9)
-            labels = torch.cat([torch.arange(B, 2*B), torch.arange(0, B)]).to(z.device)
+            labels = torch.cat([torch.arange(B, 2 * B), torch.arange(0, B)]).to(z.device)
             return F.cross_entropy(sim, labels)
 
         for b in [2, 5, 16]:
@@ -622,6 +682,7 @@ class TestAdversarialDynamicCodeExecution(unittest.TestCase):
 
     def test_edge_case_l13_iou_calculator(self):
         """L13: Bounding box IoU under disjoint, identical, and partial overlap."""
+
         def calc_iou(box1, box2):
             # [x1, y1, x2, y2]
             xi1 = max(box1[0], box2[0])
@@ -639,7 +700,7 @@ class TestAdversarialDynamicCodeExecution(unittest.TestCase):
         # Disjoint
         self.assertEqual(calc_iou([0, 0, 5, 5], [10, 10, 20, 20]), 0.0)
         # 50% overlap: [0, 0, 10, 10] (area 100) and [5, 0, 15, 10] (area 100), inter = 5x10 = 50, union = 150 -> 1/3
-        self.assertAlmostEqual(calc_iou([0, 0, 10, 10], [5, 0, 15, 10]), 1/3)
+        self.assertAlmostEqual(calc_iou([0, 0, 10, 10], [5, 0, 15, 10]), 1 / 3)
 
     def test_edge_case_l14_lstm_cell_mechanics(self):
         """L14: LSTM Cell gating with extreme forget gate behavior."""
@@ -653,6 +714,7 @@ class TestAdversarialDynamicCodeExecution(unittest.TestCase):
 
     def test_edge_case_l15_l16_l17_attention_masks(self):
         """L15, L16, L17: Scaled Dot-Product Attention and Causal Masking with single-token sequences."""
+
         def scaled_dot_product_attention(q, k, v, mask=None):
             d_k = q.size(-1)
             scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(d_k)
@@ -688,12 +750,17 @@ class TestAdversarialDynamicCodeExecution(unittest.TestCase):
 
     def test_edge_case_l20_bleu_edge_cases(self):
         """L20: BLEU modified precision and brevity penalty edge behaviors."""
+
         def calc_bleu(ref: str, cand: str):
             r_tokens = ref.split()
             c_tokens = cand.split()
             if not c_tokens:
                 return 0.0
-            bp = 1.0 if len(c_tokens) > len(r_tokens) else math.exp(1 - len(r_tokens) / len(c_tokens))
+            bp = (
+                1.0
+                if len(c_tokens) > len(r_tokens)
+                else math.exp(1 - len(r_tokens) / len(c_tokens))
+            )
             return bp
 
         # Shorter candidate gets penalized
@@ -718,6 +785,7 @@ class TestAdversarialDynamicCodeExecution(unittest.TestCase):
 
     def test_edge_case_l27_gae_advantage(self):
         """L27: Generalized Advantage Estimation with zero rewards, gamma=0, lambda=0, and lambda=1."""
+
         def gae(rewards, values, next_values, dones, gamma=0.99, lam=0.95):
             deltas = rewards + gamma * next_values * (1.0 - dones) - values
             gaes = torch.zeros_like(rewards)
@@ -727,7 +795,14 @@ class TestAdversarialDynamicCodeExecution(unittest.TestCase):
                 gaes[t] = running
             return gaes
 
-        zero_adv = gae(torch.zeros(5), torch.tensor([1.0, 1.0, 1.0, 1.0, 1.0]), torch.tensor([1.0, 1.0, 1.0, 1.0, 1.0]), torch.zeros(5), gamma=1.0, lam=0.95)
+        zero_adv = gae(
+            torch.zeros(5),
+            torch.tensor([1.0, 1.0, 1.0, 1.0, 1.0]),
+            torch.tensor([1.0, 1.0, 1.0, 1.0, 1.0]),
+            torch.zeros(5),
+            gamma=1.0,
+            lam=0.95,
+        )
         self.assertTrue(torch.allclose(zero_adv, torch.zeros(5)))
 
 

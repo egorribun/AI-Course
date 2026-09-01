@@ -41,6 +41,7 @@ EXPECTED_LECTURES = [
     "27-actor-critic.html",
 ]
 
+
 def check_math_balance():
     print("=== Checking LaTeX Delimiter Balance and Structure in All 28 Lectures ===")
     total_display_pairs = 0
@@ -78,10 +79,14 @@ def check_math_balance():
         # Note: in regex, negative lookbehind (?<!\\)\$ and negative lookahead (?!\$)
         single_matches = list(re.finditer(r"(?<!\\)\$(?!\$)", no_dd))
         if len(single_matches) % 2 != 0:
-            unpaired_errors.append(f"[{lec}] Odd count of inline $ delimiters ({len(single_matches)})")
+            unpaired_errors.append(
+                f"[{lec}] Odd count of inline $ delimiters ({len(single_matches)})"
+            )
             for m in single_matches:
-                line = no_dd[:m.start()].count("\n") + 1
-                snip = no_dd[max(0, m.start()-15):min(len(no_dd), m.start()+25)].replace("\n", " ")
+                line = no_dd[: m.start()].count("\n") + 1
+                snip = no_dd[max(0, m.start() - 15) : min(len(no_dd), m.start() + 25)].replace(
+                    "\n", " "
+                )
                 print(f"  [{lec}:{line}] single $ at: ...{snip}...")
         else:
             total_inline_pairs += len(single_matches) // 2
@@ -93,6 +98,7 @@ def check_math_balance():
         print(f"  ERROR: {e}")
     assert len(unpaired_errors) == 0, "Found unbalanced LaTeX delimiters!"
     print("ALL LATEX DELIMITERS ARE 100% BALANCED!")
+
 
 if __name__ == "__main__":
     check_math_balance()

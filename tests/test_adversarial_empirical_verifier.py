@@ -41,9 +41,7 @@ from tests.common import read_file
 
 
 def calculate_sm2_python_oracle(
-    prev_state: Dict[str, Any],
-    grade: float,
-    now_ts: Optional[int] = None
+    prev_state: Dict[str, Any], grade: float, now_ts: Optional[int] = None
 ) -> Dict[str, Any]:
     """
     Independent Python mathematical oracle of the SM-2 algorithm.
@@ -84,7 +82,7 @@ def calculate_sm2_python_oracle(
         "interval": new_interval,
         "easeFactor": new_ef,
         "lastReviewed": now_ts,
-        "nextReview": next_review
+        "nextReview": next_review,
     }
 
 
@@ -93,17 +91,17 @@ class TestAdversarialEmpiricalVerifier(unittest.TestCase):
 
     def test_01_execute_headless_node_adversarial_harness(self):
         """Execute the headless Node.js harness and verify 100% empirical pass rate."""
-        self.assertTrue(NODE_HARNESS_FILE.exists(), f"Node harness file missing at {NODE_HARNESS_FILE}")
+        self.assertTrue(
+            NODE_HARNESS_FILE.exists(), f"Node harness file missing at {NODE_HARNESS_FILE}"
+        )
 
         proc = subprocess.run(
-            ["node", str(NODE_HARNESS_FILE)],
-            cwd=str(COURSE_ROOT),
-            capture_output=True,
-            text=True
+            ["node", str(NODE_HARNESS_FILE)], cwd=str(COURSE_ROOT), capture_output=True, text=True
         )
         self.assertEqual(
-            proc.returncode, 0,
-            f"Node.js adversarial harness failed with exit code {proc.returncode}:\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}"
+            proc.returncode,
+            0,
+            f"Node.js adversarial harness failed with exit code {proc.returncode}:\nSTDOUT:\n{proc.stdout}\nSTDERR:\n{proc.stderr}",
         )
         self.assertIn("ALL ADVERSARIAL HARNESS TESTS PASSED EMPIRICALLY!", proc.stdout)
 
@@ -159,7 +157,11 @@ class TestAdversarialEmpiricalVerifier(unittest.TestCase):
 
         for idx, exp_int in enumerate(expected_intervals):
             state = calculate_sm2_python_oracle(state, 5)
-            self.assertEqual(state["interval"], exp_int, f"Step {idx}: expected {exp_int}, got {state['interval']}")
+            self.assertEqual(
+                state["interval"],
+                exp_int,
+                f"Step {idx}: expected {exp_int}, got {state['interval']}",
+            )
             self.assertEqual(state["box"], min(5, idx + 2))
 
     def test_05_localstorage_corrupted_payload_resilience(self):
@@ -175,7 +177,7 @@ class TestAdversarialEmpiricalVerifier(unittest.TestCase):
             "ai_course_completed_lectures",
             "ai_course_checked_qas",
             "ai_course_checked_tasks",
-            "ai_course_sm2_cards"
+            "ai_course_sm2_cards",
         ]
         for k in required_keys:
             self.assertIn(k, tracker_src, f"Key {k} must be referenced in tracker.js")
@@ -197,7 +199,9 @@ class TestAdversarialEmpiricalVerifier(unittest.TestCase):
                 tickets_found.add(t)
             self.assertGreaterEqual(len(lec.get("qas", [])), 10, f"{lec['id']} has <10 QAs")
             self.assertGreaterEqual(len(lec.get("tasks", [])), 6, f"{lec['id']} has <6 tasks")
-            self.assertGreaterEqual(len(lec.get("cheat_items", [])), 1, f"{lec['id']} missing cheat sheet")
+            self.assertGreaterEqual(
+                len(lec.get("cheat_items", [])), 1, f"{lec['id']} missing cheat sheet"
+            )
 
         for t_idx in range(1, 26):
             matches = [t for t in tickets_found if f"Билет {t_idx}" in t]

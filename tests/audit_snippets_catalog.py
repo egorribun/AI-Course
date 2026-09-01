@@ -1,6 +1,7 @@
 """
 Analyze all 36 code snippets in depth and produce a comprehensive catalog.
 """
+
 from __future__ import annotations
 
 import json
@@ -8,6 +9,7 @@ import re
 from pathlib import Path
 
 COURSE_ROOT = Path(__file__).resolve().parent.parent
+
 
 def analyze_all_snippets():
     data_path = COURSE_ROOT / ".agents" / "explorer_code_1" / "snippets_detail.json"
@@ -66,6 +68,7 @@ def analyze_all_snippets():
         json.dump(catalog, f, indent=2, ensure_ascii=False)
 
     print(f"Catalog created with {len(catalog)} items. Saved to {out_catalog}")
+
 
 if __name__ == "__main__":
     analyze_all_snippets()

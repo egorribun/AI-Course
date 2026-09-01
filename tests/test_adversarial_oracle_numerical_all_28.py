@@ -8,6 +8,7 @@ if str(COURSE_ROOT_DIR) not in sys.path:
 
 from tests.common import EXPECTED_LECTURES, LECTURES_DIR, read_file
 
+
 class TestAdversarialOracleNumericalAll28(unittest.TestCase):
     """Rigorous empirical oracle checking arithmetic and step-by-step numbers across all 28 lectures."""
 
@@ -231,5 +232,6 @@ class TestAdversarialOracleNumericalAll28(unittest.TestCase):
         self.assertIn("0.94", txt)
         self.assertIn("1.6768", txt)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

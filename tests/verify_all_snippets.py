@@ -45,7 +45,10 @@ EXPECTED_LECTURES = [
     "27-actor-critic.html",
 ]
 
-pattern = re.compile(r"<pre[^>]*>(?:<code[^>]*>)?(.*?)(?:</code>)?</pre>", re.DOTALL | re.IGNORECASE)
+pattern = re.compile(
+    r"<pre[^>]*>(?:<code[^>]*>)?(.*?)(?:</code>)?</pre>", re.DOTALL | re.IGNORECASE
+)
+
 
 def main():
     total_snippets = 0
@@ -57,7 +60,7 @@ def main():
         content = (LECTURES_DIR / lec).read_text(encoding="utf-8", errors="replace")
         for match in pattern.finditer(content):
             total_snippets += 1
-            line = content[:match.start()].count("\n") + 1
+            line = content[: match.start()].count("\n") + 1
             raw = match.group(1)
 
             # Check if there are raw < that were interpreted as HTML tags
@@ -68,9 +71,25 @@ def main():
             clean = html.unescape(clean).strip()
 
             # Python check
-            py_indicators = ["import ", "torch", "nn.", "def ", "class ", "return ", "for ", "in range", "lambda ", "model ="]
+            py_indicators = [
+                "import ",
+                "torch",
+                "nn.",
+                "def ",
+                "class ",
+                "return ",
+                "for ",
+                "in range",
+                "lambda ",
+                "model =",
+            ]
             is_py = any(ind in clean for ind in py_indicators)
-            if clean.startswith("$") or clean.startswith("# ASCII") or "+---" in clean or "|---" in clean:
+            if (
+                clean.startswith("$")
+                or clean.startswith("# ASCII")
+                or "+---" in clean
+                or "|---" in clean
+            ):
                 is_py = False
 
             snippet_status = "NON_PYTHON"
@@ -86,14 +105,16 @@ def main():
                     snippet_status = f"SYNTAX_ERROR: {e.msg} at line {e.lineno}"
                     ast_err = str(e)
 
-            all_snippets_info.append({
-                "lecture": lec,
-                "line": line,
-                "status": snippet_status,
-                "is_py": is_py,
-                "clean": clean,
-                "ast_err": ast_err,
-            })
+            all_snippets_info.append(
+                {
+                    "lecture": lec,
+                    "line": line,
+                    "status": snippet_status,
+                    "is_py": is_py,
+                    "clean": clean,
+                    "ast_err": ast_err,
+                }
+            )
 
     print(f"Total Snippets: {total_snippets}")
     print(f"Python Snippets: {python_snippets}")
@@ -105,6 +126,7 @@ def main():
             if s["ast_err"]:
                 print(f"  Error: {s['ast_err']}")
                 print("  Snippet code:\n" + s["clean"])
+
 
 if __name__ == "__main__":
     main()

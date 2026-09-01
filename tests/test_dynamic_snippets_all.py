@@ -14,6 +14,7 @@ import torch.nn.functional as F
 
 COURSE_ROOT = Path(__file__).resolve().parent.parent
 
+
 def test_all_lecture_code_snippets():
     print("=== Testing All Lecture Code Snippets Dynamically ===")
 
@@ -28,7 +29,7 @@ def test_all_lecture_code_snippets():
 
     # L02 PINN & Autograd
     x = torch.tensor([[1.0, 2.0]], requires_grad=True)
-    y = x ** 2
+    y = x**2
     y.backward(torch.ones_like(y))
     assert torch.allclose(x.grad, torch.tensor([[2.0, 4.0]]))
     print("[PASS] L02: PINN / Autograd first & second derivatives")
@@ -62,8 +63,8 @@ def test_all_lecture_code_snippets():
         sim = torch.mm(z, z.T) / temperature
         pos_indices = torch.arange(B, device=z.device)
         pos_j = torch.cat([pos_indices + B, pos_indices])
-        labels = torch.zeros(2*B, dtype=torch.long, device=z.device)
-        for i in range(2*B):
+        labels = torch.zeros(2 * B, dtype=torch.long, device=z.device)
+        for i in range(2 * B):
             labels[i] = pos_j[i]
         return F.cross_entropy(sim, labels)
 
@@ -101,7 +102,8 @@ def test_all_lecture_code_snippets():
 
     # L12 DDPM Forward
     def q_sample(x_0, t, noise=None):
-        if noise is None: noise = torch.randn_like(x_0)
+        if noise is None:
+            noise = torch.randn_like(x_0)
         alphas_bar = torch.linspace(0.99, 0.01, 1000)
         a_bar = alphas_bar[t].reshape(-1, 1, 1, 1)
         return torch.sqrt(a_bar) * x_0 + torch.sqrt(1 - a_bar) * noise
@@ -128,9 +130,11 @@ def test_all_lecture_code_snippets():
                 out, hidden = self.decoder(decoder_input, hidden)
                 pred = self.fc_out(out)
                 outputs.append(pred)
-                use_teacher = (target_seq is not None) and (np.random.random() < teacher_forcing_ratio)
+                use_teacher = (target_seq is not None) and (
+                    np.random.random() < teacher_forcing_ratio
+                )
                 if use_teacher:
-                    decoder_input = target_seq[:, t:t+1, :]
+                    decoder_input = target_seq[:, t : t + 1, :]
                 else:
                     decoder_input = pred
             return torch.cat(outputs, dim=1)
@@ -165,19 +169,22 @@ def test_all_lecture_code_snippets():
     # L20 BLEU
     def calculate_bleu(ref, cand, max_n=4):
         from collections import Counter
+
         rt, ct = ref.split(), cand.split()
-        if not ct: return 0.0
-        bp = 1.0 if len(ct) > len(rt) else math.exp(1 - len(rt)/len(ct))
+        if not ct:
+            return 0.0
+        bp = 1.0 if len(ct) > len(rt) else math.exp(1 - len(rt) / len(ct))
         lps = []
         for n in range(1, max_n + 1):
-            cng = [tuple(ct[i:i+n]) for i in range(len(ct)-n+1)]
-            rng = [tuple(rt[i:i+n]) for i in range(len(rt)-n+1)]
+            cng = [tuple(ct[i : i + n]) for i in range(len(ct) - n + 1)]
+            rng = [tuple(rt[i : i + n]) for i in range(len(rt) - n + 1)]
             cc, rc = Counter(cng), Counter(rng)
             clipped = sum(min(cnt, rc[ng]) for ng, cnt in cc.items())
             pn = clipped / max(len(cng), 1)
-            if pn == 0: return 0.0
+            if pn == 0:
+                return 0.0
             lps.append(math.log(pn))
-        return bp * math.exp(sum(lps)/max_n)
+        return bp * math.exp(sum(lps) / max_n)
 
     bleu = calculate_bleu("the cat is on the mat", "the cat is on the mat")
     assert math.isclose(bleu, 1.0)
@@ -188,13 +195,17 @@ def test_all_lecture_code_snippets():
         0: {0: [(1.0, 1, 1.0, False)], 1: [(1.0, 0, 0.0, False)]},
         1: {0: [(1.0, 1, 0.0, True)], 1: [(1.0, 1, 0.0, True)]},
     }
+
     def vi(P, n_s, n_a, gamma=0.9, theta=1e-5):
         V = np.zeros(n_s)
         while True:
             delta = 0
             for s in range(n_s):
                 v_old = V[s]
-                q_vals = [sum(prob * (r + gamma * V[ns] * (not done)) for prob, ns, r, done in P[s][a]) for a in range(n_a)]
+                q_vals = [
+                    sum(prob * (r + gamma * V[ns] * (not done)) for prob, ns, r, done in P[s][a])
+                    for a in range(n_a)
+                ]
                 V[s] = max(q_vals)
                 delta = max(delta, abs(v_old - V[s]))
             if delta < theta:
@@ -235,11 +246,17 @@ def test_all_lecture_code_snippets():
             gaes[t] = running
         return gaes
 
-    gaes = compute_gae(torch.tensor([1.0, 0.0]), torch.tensor([0.5, 0.2]), torch.tensor([0.2, 0.0]), torch.tensor([0.0, 1.0]))
+    gaes = compute_gae(
+        torch.tensor([1.0, 0.0]),
+        torch.tensor([0.5, 0.2]),
+        torch.tensor([0.2, 0.0]),
+        torch.tensor([0.0, 1.0]),
+    )
     assert gaes.shape == (2,)
     print("[PASS] L27: GAE Advantage Estimation")
 
     print("\nALL DYNAMIC TESTS EXECUTED WITH ZERO ERRORS!")
+
 
 if __name__ == "__main__":
     test_all_lecture_code_snippets()

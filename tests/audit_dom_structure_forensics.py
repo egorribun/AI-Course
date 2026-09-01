@@ -16,6 +16,7 @@ INDEX_PATH = COURSE_ROOT / "index.html"
 
 from common import EXPECTED_LECTURES, parse_lecture_structure, read_file
 
+
 def audit_dom_forensics():
     matrix = []
 
@@ -34,16 +35,18 @@ def audit_dom_forensics():
         pills = re.findall(r'<span\s+class=["\']pill["\'][^>]*>(.*?)</span>', content, re.DOTALL)
         pills_clean = [re.sub(r"<[^>]+>", "", p).strip() for p in pills]
 
-        qa_pill_m = re.search(r'(\d+)\s+вопрос', content)
-        task_pill_m = re.search(r'(\d+)\s+микро-задач', content)
-        dur_pill_m = re.search(r'(\d+)\s+мин', content)
+        qa_pill_m = re.search(r"(\d+)\s+вопрос", content)
+        task_pill_m = re.search(r"(\d+)\s+микро-задач", content)
+        dur_pill_m = re.search(r"(\d+)\s+мин", content)
 
         qa_pill = int(qa_pill_m.group(1)) if qa_pill_m else None
         task_pill = int(task_pill_m.group(1)) if task_pill_m else None
         dur_pill = int(dur_pill_m.group(1)) if dur_pill_m else None
 
         # QA Blocks
-        qa_matches = re.findall(r'<details\s+class=["\']qa["\'][^>]*>(.*?)</details>', content, re.DOTALL)
+        qa_matches = re.findall(
+            r'<details\s+class=["\']qa["\'][^>]*>(.*?)</details>', content, re.DOTALL
+        )
         qa_count = struct.qa_count
         empty_qa_summaries = 0
         empty_qa_bodies = 0
@@ -132,10 +135,15 @@ def audit_dom_forensics():
     print(f"DOM Forensics Matrix created with {len(matrix)} lectures. Saved to {out_matrix}")
 
     # Print summary table
-    print(f"{'#':<3} | {'Lecture':<25} | {'QA':<4} | {'Q-Pill':<6} | {'Tasks':<5} | {'T-Pill':<6} | {'Sol':<4} | {'Dur':<4} | {'Cheat':<5} | {'Backlink':<8} | {'NavSeq':<6}")
+    print(
+        f"{'#':<3} | {'Lecture':<25} | {'QA':<4} | {'Q-Pill':<6} | {'Tasks':<5} | {'T-Pill':<6} | {'Sol':<4} | {'Dur':<4} | {'Cheat':<5} | {'Backlink':<8} | {'NavSeq':<6}"
+    )
     print("-" * 95)
     for r in matrix:
-        print(f"{r['index']:<3} | {r['filename']:<25} | {r['qa_count']:<4} | {str(r['qa_pill']):<6} | {r['task_count']:<5} | {str(r['task_pill']):<6} | {r['sol_count']:<4} | {str(r['dur_pill']) + 'm':<4} | {'PASS' if r['cheat_pass'] else 'FAIL':<5} | {'PASS' if r['backlink_ok'] else 'FAIL':<8} | {'PASS' if r['nav_ok'] else 'FAIL':<6}")
+        print(
+            f"{r['index']:<3} | {r['filename']:<25} | {r['qa_count']:<4} | {str(r['qa_pill']):<6} | {r['task_count']:<5} | {str(r['task_pill']):<6} | {r['sol_count']:<4} | {str(r['dur_pill']) + 'm':<4} | {'PASS' if r['cheat_pass'] else 'FAIL':<5} | {'PASS' if r['backlink_ok'] else 'FAIL':<8} | {'PASS' if r['nav_ok'] else 'FAIL':<6}"
+        )
+
 
 if __name__ == "__main__":
     if hasattr(sys.stdout, "reconfigure"):

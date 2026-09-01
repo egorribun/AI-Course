@@ -37,10 +37,26 @@ class TestAll28LecturesHTMLConformance(unittest.TestCase):
             lec_path = LECTURES_DIR / lec_name
             content = read_file(lec_path)
 
-            self.assertIn('<link rel="stylesheet" href="../style.css">', content, f"{lec_name}: Missing style.css")
-            self.assertIn('<script src="../js/tracker.js"></script>', content, f"{lec_name}: Missing tracker.js")
-            self.assertIn('<script src="../js/lecture.js"></script>', content, f"{lec_name}: Missing lecture.js")
-            self.assertNotIn("<style>", content, f"{lec_name}: Embedded <style> tag should be removed (DRY violation)")
+            self.assertIn(
+                '<link rel="stylesheet" href="../style.css">',
+                content,
+                f"{lec_name}: Missing style.css",
+            )
+            self.assertIn(
+                '<script src="../js/tracker.js"></script>',
+                content,
+                f"{lec_name}: Missing tracker.js",
+            )
+            self.assertIn(
+                '<script src="../js/lecture.js"></script>',
+                content,
+                f"{lec_name}: Missing lecture.js",
+            )
+            self.assertNotIn(
+                "<style>",
+                content,
+                f"{lec_name}: Embedded <style> tag should be removed (DRY violation)",
+            )
 
     def test_03_all_lectures_have_backlinks_and_navrow(self):
         """Verify every lecture has a top backlink to index.html and a bottom navrow."""
@@ -48,8 +64,12 @@ class TestAll28LecturesHTMLConformance(unittest.TestCase):
             lec_path = LECTURES_DIR / lec_name
             content = read_file(lec_path)
 
-            self.assertIn('href="../index.html"', content, f"{lec_name}: Missing backlink to ../index.html")
-            self.assertIn('class="navrow"', content, f"{lec_name}: Missing .navrow footer navigation")
+            self.assertIn(
+                'href="../index.html"', content, f"{lec_name}: Missing backlink to ../index.html"
+            )
+            self.assertIn(
+                'class="navrow"', content, f"{lec_name}: Missing .navrow footer navigation"
+            )
 
     def test_04_all_lectures_have_exact_section_distribution(self):
         """Verify every lecture has >= 10 QA details and >= 6 task divs with solutions."""
@@ -60,8 +80,12 @@ class TestAll28LecturesHTMLConformance(unittest.TestCase):
             qa_count = len(re.findall(r'<details\s+class=["\']qa["\']', content))
             task_count = len(re.findall(r'<div\s+class=["\']task["\']', content))
 
-            self.assertGreaterEqual(qa_count, 10, f"{lec_name}: Has {qa_count} QAs (expected >= 10)")
-            self.assertGreaterEqual(task_count, 6, f"{lec_name}: Has {task_count} tasks (expected >= 6)")
+            self.assertGreaterEqual(
+                qa_count, 10, f"{lec_name}: Has {qa_count} QAs (expected >= 10)"
+            )
+            self.assertGreaterEqual(
+                task_count, 6, f"{lec_name}: Has {task_count} tasks (expected >= 6)"
+            )
 
 
 if __name__ == "__main__":

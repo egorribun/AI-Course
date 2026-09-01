@@ -48,7 +48,10 @@ class TestR5SummaryStyling(unittest.TestCase):
             "style.css: 'list-style-type: none' missing in .task details summary",
         )
         self.assertTrue(
-            re.search(r"\.task\s+details\s+summary::-webkit-details-marker\s*\{\s*display:\s*none;?\s*\}", content),
+            re.search(
+                r"\.task\s+details\s+summary::-webkit-details-marker\s*\{\s*display:\s*none;?\s*\}",
+                content,
+            ),
             "style.css: '::-webkit-details-marker' display:none missing in .task details summary",
         )
         self.assertTrue(
@@ -60,7 +63,9 @@ class TestR5SummaryStyling(unittest.TestCase):
             "style.css: closed arrow '▸ ' pseudo-element missing in .task details summary::before",
         )
         self.assertTrue(
-            re.search(r'\.task\s+details\[open\]\s+summary::before\s*\{[^}]*content:\s*"▾ "', content),
+            re.search(
+                r'\.task\s+details\[open\]\s+summary::before\s*\{[^}]*content:\s*"▾ "', content
+            ),
             "style.css: open arrow '▾ ' pseudo-element missing in .task details[open] summary::before",
         )
 
@@ -74,7 +79,9 @@ class TestR5SummaryStyling(unittest.TestCase):
             "style.css: 'list-style-type: none' missing in .qa > summary",
         )
         self.assertTrue(
-            re.search(r"\.qa\s*>\s*summary::-webkit-details-marker\s*\{\s*display:\s*none;?\s*\}", content),
+            re.search(
+                r"\.qa\s*>\s*summary::-webkit-details-marker\s*\{\s*display:\s*none;?\s*\}", content
+            ),
             "style.css: '::-webkit-details-marker' display:none missing in .qa > summary",
         )
         self.assertTrue(
@@ -90,12 +97,22 @@ class TestR5SummaryStyling(unittest.TestCase):
         """Verify no hardcoded arrow characters remain in task <summary> across all 28 lectures."""
         for fpath in self.lecture_paths:
             content = read_file(fpath)
-            task_summaries = re.findall(r"""<div\s+class=["']task["'].*?<summary>(.*?)</summary>""", content, flags=re.DOTALL)
+            task_summaries = re.findall(
+                r"""<div\s+class=["']task["'].*?<summary>(.*?)</summary>""",
+                content,
+                flags=re.DOTALL,
+            )
             self.assertGreater(len(task_summaries), 0, f"No task summaries found in {fpath.name}")
             for s in task_summaries:
-                self.assertEqual(s.strip(), "Решение", f"{fpath.name}: Unexpected task summary content '{s}'")
+                self.assertEqual(
+                    s.strip(), "Решение", f"{fpath.name}: Unexpected task summary content '{s}'"
+                )
                 for arrow in ["▸", "▶", "▾", "►", "▼", "❯", "›"]:
-                    self.assertNotIn(arrow, s, f"{fpath.name}: Literal arrow '{arrow}' found in task summary '{s}'")
+                    self.assertNotIn(
+                        arrow,
+                        s,
+                        f"{fpath.name}: Literal arrow '{arrow}' found in task summary '{s}'",
+                    )
 
     def test_03_total_tasks_solution_count_integrity(self):
         """Verify all 170 task solutions across all 28 lectures have uniform <summary>Решение</summary>."""
@@ -104,15 +121,31 @@ class TestR5SummaryStyling(unittest.TestCase):
             content = read_file(fpath)
             sols = re.findall(r"<summary>Решение</summary>", content)
             total_tasks += len(sols)
-        self.assertEqual(total_tasks, 170, f"Expected exactly 170 standardized task solutions, found {total_tasks}")
+        self.assertEqual(
+            total_tasks,
+            170,
+            f"Expected exactly 170 standardized task solutions, found {total_tasks}",
+        )
 
     def test_04_all_lectures_have_stylesheet_link(self):
         """Verify all 28 lectures correctly link to external style.css and shared JS."""
         for fpath in self.lecture_paths:
             content = read_file(fpath)
-            self.assertIn('<link rel="stylesheet" href="../style.css">', content, f"{fpath.name} missing style.css link")
-            self.assertIn('<script src="../js/tracker.js"></script>', content, f"{fpath.name} missing tracker.js")
-            self.assertIn('<script src="../js/lecture.js"></script>', content, f"{fpath.name} missing lecture.js")
+            self.assertIn(
+                '<link rel="stylesheet" href="../style.css">',
+                content,
+                f"{fpath.name} missing style.css link",
+            )
+            self.assertIn(
+                '<script src="../js/tracker.js"></script>',
+                content,
+                f"{fpath.name} missing tracker.js",
+            )
+            self.assertIn(
+                '<script src="../js/lecture.js"></script>',
+                content,
+                f"{fpath.name} missing lecture.js",
+            )
 
     def test_05_qa_summaries_no_duplicate_arrows(self):
         """Verify none of the 296 QA question summaries have hardcoded leading arrows."""
@@ -133,7 +166,9 @@ class TestR5SummaryStyling(unittest.TestCase):
                         s_clean.startswith(arrow),
                         f"{fpath.name}: QA summary begins with literal arrow '{arrow}': {s_clean[:40]}",
                     )
-        self.assertEqual(total_qa, 296, f"Expected 296 QA blocks across all lectures, found {total_qa}")
+        self.assertEqual(
+            total_qa, 296, f"Expected 296 QA blocks across all lectures, found {total_qa}"
+        )
 
     def test_06_qa_open_marker_rotation_rule(self):
         """Verify transform: rotate(90deg) is present on .qa[open] > summary::before in style.css."""
@@ -161,14 +196,33 @@ class TestR5SummaryStyling(unittest.TestCase):
                 summary_count,
                 f"{fpath.name}: Mismatch between <details> ({details_count}) and <summary> ({summary_count})",
             )
-        self.assertEqual(total_details, 466, f"Expected 466 total details tags, found {total_details}")
-        self.assertEqual(total_summaries, 466, f"Expected 466 total summary tags, found {total_summaries}")
+        self.assertEqual(
+            total_details, 466, f"Expected 466 total details tags, found {total_details}"
+        )
+        self.assertEqual(
+            total_summaries, 466, f"Expected 466 total summary tags, found {total_summaries}"
+        )
 
     def test_08_strict_html_tag_nesting_in_all_files(self):
         """Verify strict HTML tag balance and nesting across all 28 lectures and index.html."""
         from html.parser import HTMLParser
 
-        void_tags = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"}
+        void_tags = {
+            "area",
+            "base",
+            "br",
+            "col",
+            "embed",
+            "hr",
+            "img",
+            "input",
+            "link",
+            "meta",
+            "param",
+            "source",
+            "track",
+            "wbr",
+        }
 
         class StrictParser(HTMLParser):
             def __init__(self):
@@ -185,7 +239,9 @@ class TestR5SummaryStyling(unittest.TestCase):
                 if tag in void_tags:
                     return
                 if not self.stack:
-                    self.errors.append(f"Unexpected </{tag}> with empty stack at line {self.getpos()[0]}")
+                    self.errors.append(
+                        f"Unexpected </{tag}> with empty stack at line {self.getpos()[0]}"
+                    )
                     return
                 last_tag, pos = self.stack[-1]
                 if last_tag == tag:
@@ -196,9 +252,13 @@ class TestR5SummaryStyling(unittest.TestCase):
                         idx = len(stack_tags) - 1 - stack_tags[::-1].index(tag)
                         popped = self.stack[idx:]
                         self.stack = self.stack[:idx]
-                        self.errors.append(f"Line {self.getpos()[0]}: Closing </{tag}> auto-closed unclosed tags: {[t for t, p in popped]}")
+                        self.errors.append(
+                            f"Line {self.getpos()[0]}: Closing </{tag}> auto-closed unclosed tags: {[t for t, p in popped]}"
+                        )
                     else:
-                        self.errors.append(f"Line {self.getpos()[0]}: Unexpected closing tag </{tag}> (expected </{last_tag}> from line {pos[0]})")
+                        self.errors.append(
+                            f"Line {self.getpos()[0]}: Unexpected closing tag </{tag}> (expected </{last_tag}> from line {pos[0]})"
+                        )
 
         all_files = [self.index_path] + self.lecture_paths
         for fpath in all_files:
@@ -206,33 +266,137 @@ class TestR5SummaryStyling(unittest.TestCase):
             parser = StrictParser()
             parser.feed(content)
             unclosed = [t for t, pos in parser.stack if t not in ("html", "body", "head")]
-            self.assertEqual(len(unclosed), 0, f"{fpath.name}: Unclosed HTML tags at EOF: {unclosed}")
-            self.assertEqual(len(parser.errors), 0, f"{fpath.name}: HTML structural errors: {parser.errors}")
+            self.assertEqual(
+                len(unclosed), 0, f"{fpath.name}: Unclosed HTML tags at EOF: {unclosed}"
+            )
+            self.assertEqual(
+                len(parser.errors), 0, f"{fpath.name}: HTML structural errors: {parser.errors}"
+            )
 
     def test_09_no_unescaped_pseudo_tags_in_math_or_text(self):
         """Verify no unescaped angle brackets form pseudo-tags like <t inside LaTeX or HTML text."""
         valid_html_tags = {
-            "a", "abbr", "address", "area", "article", "aside", "audio", "b", "base", "bdi", "bdo", "blockquote",
-            "body", "br", "button", "canvas", "caption", "cite", "code", "col", "colgroup", "data", "datalist",
-            "dd", "del", "details", "dfn", "dialog", "div", "dl", "dt", "em", "embed", "fieldset", "figcaption",
-            "figure", "footer", "form", "h1", "h2", "h3", "h4", "h5", "h6", "head", "header", "hgroup", "hr",
-            "html", "i", "iframe", "img", "input", "ins", "kbd", "label", "legend", "li", "link", "main", "map",
-            "mark", "meta", "meter", "nav", "noscript", "object", "ol", "optgroup", "option", "output", "p",
-            "param", "picture", "pre", "progress", "q", "rp", "rt", "ruby", "s", "samp", "script", "section",
-            "select", "small", "source", "span", "strong", "style", "sub", "summary", "sup", "table", "tbody",
-            "td", "template", "textarea", "tfoot", "th", "thead", "time", "title", "tr", "track", "u", "ul",
-            "var", "video", "wbr"
+            "a",
+            "abbr",
+            "address",
+            "area",
+            "article",
+            "aside",
+            "audio",
+            "b",
+            "base",
+            "bdi",
+            "bdo",
+            "blockquote",
+            "body",
+            "br",
+            "button",
+            "canvas",
+            "caption",
+            "cite",
+            "code",
+            "col",
+            "colgroup",
+            "data",
+            "datalist",
+            "dd",
+            "del",
+            "details",
+            "dfn",
+            "dialog",
+            "div",
+            "dl",
+            "dt",
+            "em",
+            "embed",
+            "fieldset",
+            "figcaption",
+            "figure",
+            "footer",
+            "form",
+            "h1",
+            "h2",
+            "h3",
+            "h4",
+            "h5",
+            "h6",
+            "head",
+            "header",
+            "hgroup",
+            "hr",
+            "html",
+            "i",
+            "iframe",
+            "img",
+            "input",
+            "ins",
+            "kbd",
+            "label",
+            "legend",
+            "li",
+            "link",
+            "main",
+            "map",
+            "mark",
+            "meta",
+            "meter",
+            "nav",
+            "noscript",
+            "object",
+            "ol",
+            "optgroup",
+            "option",
+            "output",
+            "p",
+            "param",
+            "picture",
+            "pre",
+            "progress",
+            "q",
+            "rp",
+            "rt",
+            "ruby",
+            "s",
+            "samp",
+            "script",
+            "section",
+            "select",
+            "small",
+            "source",
+            "span",
+            "strong",
+            "style",
+            "sub",
+            "summary",
+            "sup",
+            "table",
+            "tbody",
+            "td",
+            "template",
+            "textarea",
+            "tfoot",
+            "th",
+            "thead",
+            "time",
+            "title",
+            "tr",
+            "track",
+            "u",
+            "ul",
+            "var",
+            "video",
+            "wbr",
         }
         all_files = [self.index_path] + self.lecture_paths
         for fpath in all_files:
             content = read_file(fpath)
-            matches = re.finditer(r'<([a-zA-Z][a-zA-Z0-9_-]*)', content)
+            matches = re.finditer(r"<([a-zA-Z][a-zA-Z0-9_-]*)", content)
             for m in matches:
                 tagname = m.group(1).lower()
                 self.assertIn(
                     tagname,
                     valid_html_tags,
-                    f"{fpath.name}: Found invalid pseudo-tag <{tagname}> at index {m.start()}: {content[max(0, m.start()-15):min(len(content), m.end()+25)]}",
+                    f"{fpath.name}: Found invalid pseudo-tag <{tagname}> at index {m.start()}: {content[max(0, m.start() - 15) : min(len(content), m.end() + 25)]}",
                 )
 
 

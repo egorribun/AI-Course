@@ -106,7 +106,10 @@ class TestDynamicPyTorchExecutionRandomized(unittest.TestCase):
                         self.assertTrue(torch.isfinite(x.grad).all())
                         for name, param in model.named_parameters():
                             self.assertIsNotNone(param.grad, f"Param {name} gradient is None")
-                            self.assertTrue(torch.isfinite(param.grad).all(), f"Param {name} gradient is not finite")
+                            self.assertTrue(
+                                torch.isfinite(param.grad).all(),
+                                f"Param {name} gradient is not finite",
+                            )
 
     def test_02_conv2d_randomized_dynamic_execution(self):
         """Conv2D forward & backward verifying analytical dimension formula on randomized shapes."""
@@ -191,7 +194,9 @@ class TestDynamicPyTorchExecutionRandomized(unittest.TestCase):
 
             for name, p in pinn_net.named_parameters():
                 self.assertIsNotNone(p.grad, f"PINN parameter {name} gradient is None")
-                self.assertTrue(torch.isfinite(p.grad).all(), f"PINN parameter {name} gradient is not finite")
+                self.assertTrue(
+                    torch.isfinite(p.grad).all(), f"PINN parameter {name} gradient is not finite"
+                )
 
     def test_04_vae_elbo_and_reparameterization_randomized(self):
         """VAE Reparameterization trick, analytical KL non-negativity, and ELBO autograd."""
@@ -228,7 +233,9 @@ class TestDynamicPyTorchExecutionRandomized(unittest.TestCase):
                     kld = kl_divergence(mu, logvar)
                     self.assertEqual(kld.shape, (B,))
                     # KL is strictly non-negative
-                    self.assertTrue((kld >= -1e-5).all(), f"KL divergence negative: {kld.min().item()}")
+                    self.assertTrue(
+                        (kld >= -1e-5).all(), f"KL divergence negative: {kld.min().item()}"
+                    )
 
                     # Exact standard normal check
                     mu_zero = torch.zeros(B, Dz)
@@ -315,7 +322,9 @@ class TestDynamicPyTorchExecutionRandomized(unittest.TestCase):
         self.assertAlmostEqual(alphas_bar[0].item(), 1.0 - 1e-4, places=4)
         self.assertLess(alphas_bar[-1].item(), 0.01)
 
-        def q_sample(x_0: torch.Tensor, t: torch.Tensor, noise: torch.Tensor | None = None) -> torch.Tensor:
+        def q_sample(
+            x_0: torch.Tensor, t: torch.Tensor, noise: torch.Tensor | None = None
+        ) -> torch.Tensor:
             if noise is None:
                 noise = torch.randn_like(x_0)
             a_bar = alphas_bar[t].view(-1, 1, 1, 1)
@@ -372,7 +381,9 @@ class TestDynamicPyTorchExecutionRandomized(unittest.TestCase):
                     nn.Linear(d_ff, d_model),
                 )
 
-            def forward(self, x: torch.Tensor, mask: torch.Tensor | None = None) -> Tuple[torch.Tensor, torch.Tensor]:
+            def forward(
+                self, x: torch.Tensor, mask: torch.Tensor | None = None
+            ) -> Tuple[torch.Tensor, torch.Tensor]:
                 B, T, D = x.shape
                 norm_x = self.ln1(x)
 
@@ -397,7 +408,7 @@ class TestDynamicPyTorchExecutionRandomized(unittest.TestCase):
 
         configs = [
             # (B, T, d_model, num_heads, d_ff)
-            (1, 1, 16, 2, 32),    # single-token generation start
+            (1, 1, 16, 2, 32),  # single-token generation start
             (2, 8, 32, 4, 64),
             (4, 16, 64, 8, 128),
             (3, 32, 64, 4, 128),
@@ -428,7 +439,9 @@ class TestDynamicPyTorchExecutionRandomized(unittest.TestCase):
             self.assertTrue(torch.isfinite(x.grad).all())
             for name, p in block.named_parameters():
                 self.assertIsNotNone(p.grad, f"Transformer param {name} grad is None")
-                self.assertTrue(torch.isfinite(p.grad).all(), f"Transformer param {name} grad not finite")
+                self.assertTrue(
+                    torch.isfinite(p.grad).all(), f"Transformer param {name} grad not finite"
+                )
 
     def test_08_actor_critic_gae_and_policy_gradient_randomized(self):
         """Actor-Critic Policy Gradient, Value Critic, and Generalized Advantage Estimation."""
@@ -467,7 +480,9 @@ class TestDynamicPyTorchExecutionRandomized(unittest.TestCase):
             next_values = torch.cat([values[1:], torch.tensor([0.0])])
 
             # GAE computation
-            adv = compute_gae(rewards, values.detach(), next_values.detach(), dones, gamma=0.99, lam=0.95)
+            adv = compute_gae(
+                rewards, values.detach(), next_values.detach(), dones, gamma=0.99, lam=0.95
+            )
             self.assertEqual(adv.shape, (B,))
             self.assertTrue(torch.isfinite(adv).all())
 
@@ -522,13 +537,14 @@ class TestLatexBalanceAndASTCheckingExhaustive(unittest.TestCase):
             # Verify double dollar parity
             all_dd_markers = list(re.finditer(r"\$\$", masked))
             self.assertEqual(
-                len(all_dd_markers) % 2, 0,
-                f"[{lec}] Odd number of $$ display delimiters: {len(all_dd_markers)}"
+                len(all_dd_markers) % 2,
+                0,
+                f"[{lec}] Odd number of $$ display delimiters: {len(all_dd_markers)}",
             )
 
             for m in dd_matches:
                 math_text = m.group(1).strip()
-                line_no = masked[:m.start()].count("\n") + 1
+                line_no = masked[: m.start()].count("\n") + 1
                 total_display += 1
                 total_math_expressions += 1
 
@@ -537,19 +553,24 @@ class TestLatexBalanceAndASTCheckingExhaustive(unittest.TestCase):
                     syntax_errors.append(f"[{lec}:{line_no}] (Display) {e}")
 
             # Mask out display math to isolate inline math
-            no_display = re.sub(r"\$\$(.*?)\$\$", lambda m: " " * len(m.group(0)), masked, flags=re.DOTALL)
+            no_display = re.sub(
+                r"\$\$(.*?)\$\$", lambda m: " " * len(m.group(0)), masked, flags=re.DOTALL
+            )
 
             # 2. Inline math $...$
             all_single_dollars = list(re.finditer(r"(?<!\\)\$(?!\$)", no_display))
             self.assertEqual(
-                len(all_single_dollars) % 2, 0,
-                f"[{lec}] Odd number of inline $ delimiters: {len(all_single_dollars)}"
+                len(all_single_dollars) % 2,
+                0,
+                f"[{lec}] Odd number of inline $ delimiters: {len(all_single_dollars)}",
             )
 
-            inline_matches = list(re.finditer(r"(?<!\\)\$(?!\$)(.*?)(?<!\\)\$", no_display, flags=re.DOTALL))
+            inline_matches = list(
+                re.finditer(r"(?<!\\)\$(?!\$)(.*?)(?<!\\)\$", no_display, flags=re.DOTALL)
+            )
             for m in inline_matches:
                 math_text = m.group(1).strip()
-                line_no = no_display[:m.start()].count("\n") + 1
+                line_no = no_display[: m.start()].count("\n") + 1
                 if math_text and "\n\n" not in math_text:
                     total_inline += 1
                     total_math_expressions += 1
@@ -560,12 +581,14 @@ class TestLatexBalanceAndASTCheckingExhaustive(unittest.TestCase):
 
         # Assert substantial math content across course
         self.assertGreaterEqual(
-            total_math_expressions, 2000,
-            f"Expected at least 2000 math expressions across 28 lectures, found {total_math_expressions}"
+            total_math_expressions,
+            2000,
+            f"Expected at least 2000 math expressions across 28 lectures, found {total_math_expressions}",
         )
         self.assertEqual(
-            len(syntax_errors), 0,
-            f"Found {len(syntax_errors)} LaTeX syntax error(s):\n" + "\n".join(syntax_errors[:20])
+            len(syntax_errors),
+            0,
+            f"Found {len(syntax_errors)} LaTeX syntax error(s):\n" + "\n".join(syntax_errors[:20]),
         )
 
     def _validate_latex_ast(self, raw_latex: str) -> List[str]:
@@ -600,7 +623,9 @@ class TestLatexBalanceAndASTCheckingExhaustive(unittest.TestCase):
             i += 1
 
         if brace_count > 0:
-            errors.append(f"Unclosed opening brace '{{' (deficit {brace_count}) in: {raw_latex[:60]}")
+            errors.append(
+                f"Unclosed opening brace '{{' (deficit {brace_count}) in: {raw_latex[:60]}"
+            )
 
         # 3. Environment matching \begin{env} ... \end{env}
         begins = re.findall(r"\\begin\{([a-zA-Z*]+)\}", raw_latex)
@@ -612,7 +637,9 @@ class TestLatexBalanceAndASTCheckingExhaustive(unittest.TestCase):
         left_count = len(re.findall(r"\\left(?:\(|\[|\\\{|\||\.)", raw_latex))
         right_count = len(re.findall(r"\\right(?:\)|\]|\\\}|\||\.)", raw_latex))
         if left_count != right_count:
-            errors.append(f"Mismatched \\left ({left_count}) and \\right ({right_count}) in: {raw_latex[:60]}")
+            errors.append(
+                f"Mismatched \\left ({left_count}) and \\right ({right_count}) in: {raw_latex[:60]}"
+            )
 
         return errors
 
@@ -636,8 +663,9 @@ class TestServiceWorkerPrecacheResolution(unittest.TestCase):
         ]
 
         self.assertGreaterEqual(
-            len(asset_paths), 35,
-            f"STATIC_ASSETS contains only {len(asset_paths)} items, expected >= 35"
+            len(asset_paths),
+            35,
+            f"STATIC_ASSETS contains only {len(asset_paths)} items, expected >= 35",
         )
 
         missing_files = []
@@ -658,8 +686,14 @@ class TestServiceWorkerPrecacheResolution(unittest.TestCase):
             elif resolved_path.is_file() and resolved_path.stat().st_size == 0:
                 empty_files.append(f"{asset} -> file is empty (0 bytes)")
 
-        self.assertEqual(len(missing_files), 0, "SW precache references missing files:\n" + "\n".join(missing_files))
-        self.assertEqual(len(empty_files), 0, "SW precache references empty files:\n" + "\n".join(empty_files))
+        self.assertEqual(
+            len(missing_files),
+            0,
+            "SW precache references missing files:\n" + "\n".join(missing_files),
+        )
+        self.assertEqual(
+            len(empty_files), 0, "SW precache references empty files:\n" + "\n".join(empty_files)
+        )
 
         # Check required core assets
         core_required = [
@@ -678,7 +712,7 @@ class TestServiceWorkerPrecacheResolution(unittest.TestCase):
             self.assertIn(
                 req.resolve(),
                 resolved_files,
-                f"Core asset {req.name} missing from Service Worker STATIC_ASSETS precache"
+                f"Core asset {req.name} missing from Service Worker STATIC_ASSETS precache",
             )
 
         # Check all 28 lectures
@@ -687,7 +721,7 @@ class TestServiceWorkerPrecacheResolution(unittest.TestCase):
             self.assertIn(
                 lec_file,
                 resolved_files,
-                f"Lecture {lec} missing from Service Worker STATIC_ASSETS precache"
+                f"Lecture {lec} missing from Service Worker STATIC_ASSETS precache",
             )
 
 

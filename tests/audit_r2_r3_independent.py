@@ -50,9 +50,11 @@ EXPECTED_LECTURES = [
     "27-actor-critic.html",
 ]
 
+
 def read_lecture(name: str) -> str:
     path = LECTURES_DIR / name
     return path.read_text(encoding="utf-8", errors="replace")
+
 
 def audit_latex_syntax():
     print("=== AUDIT 1: LaTeX Syntax, Delimiters, and Braces across all 28 lectures ===")
@@ -69,22 +71,30 @@ def audit_latex_syntax():
             return "\n" * m.group(0).count("\n")
 
         masked = re.sub(r"<!--.*?-->", replace_ws, content, flags=re.DOTALL)
-        masked = re.sub(r"<script[^>]*>.*?</script>", replace_ws, masked, flags=re.DOTALL | re.IGNORECASE)
-        masked = re.sub(r"<style[^>]*>.*?</style>", replace_ws, masked, flags=re.DOTALL | re.IGNORECASE)
+        masked = re.sub(
+            r"<script[^>]*>.*?</script>", replace_ws, masked, flags=re.DOTALL | re.IGNORECASE
+        )
+        masked = re.sub(
+            r"<style[^>]*>.*?</style>", replace_ws, masked, flags=re.DOTALL | re.IGNORECASE
+        )
         masked = re.sub(r"<pre[^>]*>.*?</pre>", replace_ws, masked, flags=re.DOTALL | re.IGNORECASE)
-        masked = re.sub(r"<code[^>]*>.*?</code>", replace_ws, masked, flags=re.DOTALL | re.IGNORECASE)
+        masked = re.sub(
+            r"<code[^>]*>.*?</code>", replace_ws, masked, flags=re.DOTALL | re.IGNORECASE
+        )
 
         # Check $$ ... $$
         display_matches = list(re.finditer(r"\$\$(.*?)\$\$", masked, re.DOTALL))
         total_display += len(display_matches)
         for m in display_matches:
             raw = m.group(1).strip()
-            line = masked[:m.start()].count("\n") + 1
+            line = masked[: m.start()].count("\n") + 1
             # Check brace balance
             b_open = raw.count("{") - raw.count(r"\{")
             b_close = raw.count("}") - raw.count(r"\}")
             if b_open != b_close:
-                all_errors.append(f"[{lec}:{line}] Display math unbalanced braces (open={b_open}, close={b_close}): {raw[:60]}")
+                all_errors.append(
+                    f"[{lec}:{line}] Display math unbalanced braces (open={b_open}, close={b_close}): {raw[:60]}"
+                )
             # Check for raw HTML entities
             if re.search(r"&(?:lt|gt|amp|quot);", raw):
                 all_errors.append(f"[{lec}:{line}] Raw HTML entity inside display math: {raw[:60]}")
@@ -92,10 +102,14 @@ def audit_latex_syntax():
             begins = re.findall(r"\\begin\{([a-zA-Z*]+)\}", raw)
             ends = re.findall(r"\\end\{([a-zA-Z*]+)\}", raw)
             if sorted(begins) != sorted(ends):
-                all_errors.append(f"[{lec}:{line}] Mismatched LaTeX env in display math: \\begin={begins} vs \\end={ends}")
+                all_errors.append(
+                    f"[{lec}:{line}] Mismatched LaTeX env in display math: \\begin={begins} vs \\end={ends}"
+                )
 
         # Mask display math
-        no_display = re.sub(r"\$\$.*?\$\$", lambda m: " " * len(m.group(0)), masked, flags=re.DOTALL)
+        no_display = re.sub(
+            r"\$\$.*?\$\$", lambda m: " " * len(m.group(0)), masked, flags=re.DOTALL
+        )
 
         # Check inline math $ ... $
         inline_matches = list(re.finditer(r"(?<!\\)\$(?!\$)(.*?)(?<!\\)\$", no_display, re.DOTALL))
@@ -104,11 +118,13 @@ def audit_latex_syntax():
             raw = m.group(1).strip()
             if not raw or "\n\n" in raw:
                 continue
-            line = no_display[:m.start()].count("\n") + 1
+            line = no_display[: m.start()].count("\n") + 1
             b_open = raw.count("{") - raw.count(r"\{")
             b_close = raw.count("}") - raw.count(r"\}")
             if b_open != b_close:
-                all_errors.append(f"[{lec}:{line}] Inline math unbalanced braces (open={b_open}, close={b_close}): {raw[:60]}")
+                all_errors.append(
+                    f"[{lec}:{line}] Inline math unbalanced braces (open={b_open}, close={b_close}): {raw[:60]}"
+                )
             if re.search(r"&(?:lt|gt|amp|quot);", raw):
                 all_errors.append(f"[{lec}:{line}] Raw HTML entity inside inline math: {raw[:60]}")
 
@@ -121,43 +137,154 @@ def audit_latex_syntax():
         print(f"  ERROR: {err}")
     return all_errors
 
+
 def audit_math_derivations():
     print("\n=== AUDIT 2: Mathematical Derivations and Correctness in all 28 Lectures ===")
     topics = [
         ("00-intro-ml.html", ["MSE", "gradient", "градиент"], "Foundations of ML"),
-        ("01-fcnn.html", [r"\delta", r"\partial W", r"\partial b", "sigmoid", "ReLU"], "Backpropagation 4 equations & Activations"),
-        ("02-autodiff-pinn.html", ["autograd", "невязк", "PDE", "производн"], "Autodiff DAG & PINN Residuals"),
-        ("03-losses-mle.html", ["MSE", "MAE", "правдоподоби", "L2", "кросс-энтропи", "log p("], "MLE/NLL Derivations (Gaussian/Laplace) & Loss Functions"),
-        ("04-cnn-layers.html", ["BatchNorm", "stride", "padding", "свёртк", "пулинг"], "CNN Layers & Dimension Formulas"),
-        ("05-cnn-architectures.html", ["ResNet", "skip", "gradient", "transfer learning"], "CNN Architectures & ResNet Gradient Flow"),
-        ("06-optimizers.html", ["SGD", "Momentum", "Adam", "RMSProp", "AdamW", "матричн"], "Optimization Algorithms & Matrix Calculus"),
-        ("07-hyperparams.html", ["Байесовск", "аугментац", "Hyperband", "Grid"], "Hyperparameters & Bayesian Optimization"),
-        ("08-metric-learning.html", ["contrastive", "triplet", "margin", "сиамск", "ArcFace"], "Metric Learning, Margin Losses, Siamese Nets"),
-        ("09-contrastive-ssl.html", ["InfoNCE", "SimCLR", "MoCo", "self-supervised", "NT-Xent"], "Contrastive SSL & InfoNCE"),
-        ("10-vae.html", ["ELBO", "KL", "репараметризац", "q(z", r"\sigma"], "VAE ELBO Derivation & Reparameterization Trick"),
-        ("11-gan.html", ["minimax", "дискриминатор", "генератор", "JSD", "WGAN"], "GAN Minimax Objective & Optimal Discriminator"),
-        ("12-diffusion.html", ["DDPM", "q(x_t", "alpha", "beta", "шум"], "Diffusion Forward/Reverse Processes & DDPM"),
-        ("13-cv-tasks.html", ["IoU", "Dice", "mAP", "сегментац", "детекция"], "CV Tasks, Metrics & Architectures"),
-        ("14-rnn-lstm.html", ["LSTM", "BPTT", "градиент", "cell", "gate"], "RNN, LSTM Gates, Vanishing Gradients"),
-        ("15-attention-seq2seq.html", ["Bahdanau", "Luong", "attention", "выравниван", "контекст"], "Seq2Seq Attention Mechanisms"),
-        ("16-transformers.html", ["Multi-Head", "трансформер", "LayerNorm", "энкодер", "декодер"], "Transformer Architecture"),
-        ("17-self-attention.html", ["Query", "Key", "Value", "sqrt{d", "маск"], "Self-Attention Mechanics & Scaling Factor Variance"),
-        ("18-lstm-vs-transformer.html", ["памят", "параллелизм", "сложност", "T^2"], "LSTM vs Transformer Comparative Analysis"),
-        ("19-text-word2vec.html", ["word2vec", "Skip-gram", "CBOW", "Negative Sampling", "токен"], "Word2Vec, SGNS & Tokenization"),
-        ("20-mt-bleu.html", ["BLEU", "beam search", "Brevity Penalty", "n-gram"], "Machine Translation & BLEU Metric"),
-        ("21-enc-dec.html", ["BERT", "GPT", "T5", "энкодер", "декодер"], "Transformer Archetypes (BERT, GPT, T5)"),
-        ("22-rl-intro.html", ["MDP", "агент", "наград", "полезност", "стратеги"], "RL Foundations & Markov Decision Process"),
-        ("23-bellman.html", ["Беллман", "V(s)", "Q(s, a)", "gamma", "оптимальност"], "Bellman Expectation & Optimality Equations"),
-        ("24-vi-pi-mc.html", ["Value Iteration", "Policy Iteration", "Монте-Карло"], "Dynamic Programming & Monte Carlo in RL"),
-        ("25-td-qlearning.html", ["TD", "SARSA", "Q-learning", "DQN", "replay"], "TD Learning, SARSA, Q-learning, DQN"),
-        ("26-policy-gradient.html", ["Policy Gradient", "REINFORCE", "baseline", "PPO", "clip"], "Policy Gradient Theorem & PPO-Clip"),
-        ("27-actor-critic.html", ["Actor-Critic", "Advantage", "GAE", "SAC", "энтропи"], "Actor-Critic, GAE & Soft Actor-Critic (SAC)"),
+        (
+            "01-fcnn.html",
+            [r"\delta", r"\partial W", r"\partial b", "sigmoid", "ReLU"],
+            "Backpropagation 4 equations & Activations",
+        ),
+        (
+            "02-autodiff-pinn.html",
+            ["autograd", "невязк", "PDE", "производн"],
+            "Autodiff DAG & PINN Residuals",
+        ),
+        (
+            "03-losses-mle.html",
+            ["MSE", "MAE", "правдоподоби", "L2", "кросс-энтропи", "log p("],
+            "MLE/NLL Derivations (Gaussian/Laplace) & Loss Functions",
+        ),
+        (
+            "04-cnn-layers.html",
+            ["BatchNorm", "stride", "padding", "свёртк", "пулинг"],
+            "CNN Layers & Dimension Formulas",
+        ),
+        (
+            "05-cnn-architectures.html",
+            ["ResNet", "skip", "gradient", "transfer learning"],
+            "CNN Architectures & ResNet Gradient Flow",
+        ),
+        (
+            "06-optimizers.html",
+            ["SGD", "Momentum", "Adam", "RMSProp", "AdamW", "матричн"],
+            "Optimization Algorithms & Matrix Calculus",
+        ),
+        (
+            "07-hyperparams.html",
+            ["Байесовск", "аугментац", "Hyperband", "Grid"],
+            "Hyperparameters & Bayesian Optimization",
+        ),
+        (
+            "08-metric-learning.html",
+            ["contrastive", "triplet", "margin", "сиамск", "ArcFace"],
+            "Metric Learning, Margin Losses, Siamese Nets",
+        ),
+        (
+            "09-contrastive-ssl.html",
+            ["InfoNCE", "SimCLR", "MoCo", "self-supervised", "NT-Xent"],
+            "Contrastive SSL & InfoNCE",
+        ),
+        (
+            "10-vae.html",
+            ["ELBO", "KL", "репараметризац", "q(z", r"\sigma"],
+            "VAE ELBO Derivation & Reparameterization Trick",
+        ),
+        (
+            "11-gan.html",
+            ["minimax", "дискриминатор", "генератор", "JSD", "WGAN"],
+            "GAN Minimax Objective & Optimal Discriminator",
+        ),
+        (
+            "12-diffusion.html",
+            ["DDPM", "q(x_t", "alpha", "beta", "шум"],
+            "Diffusion Forward/Reverse Processes & DDPM",
+        ),
+        (
+            "13-cv-tasks.html",
+            ["IoU", "Dice", "mAP", "сегментац", "детекция"],
+            "CV Tasks, Metrics & Architectures",
+        ),
+        (
+            "14-rnn-lstm.html",
+            ["LSTM", "BPTT", "градиент", "cell", "gate"],
+            "RNN, LSTM Gates, Vanishing Gradients",
+        ),
+        (
+            "15-attention-seq2seq.html",
+            ["Bahdanau", "Luong", "attention", "выравниван", "контекст"],
+            "Seq2Seq Attention Mechanisms",
+        ),
+        (
+            "16-transformers.html",
+            ["Multi-Head", "трансформер", "LayerNorm", "энкодер", "декодер"],
+            "Transformer Architecture",
+        ),
+        (
+            "17-self-attention.html",
+            ["Query", "Key", "Value", "sqrt{d", "маск"],
+            "Self-Attention Mechanics & Scaling Factor Variance",
+        ),
+        (
+            "18-lstm-vs-transformer.html",
+            ["памят", "параллелизм", "сложност", "T^2"],
+            "LSTM vs Transformer Comparative Analysis",
+        ),
+        (
+            "19-text-word2vec.html",
+            ["word2vec", "Skip-gram", "CBOW", "Negative Sampling", "токен"],
+            "Word2Vec, SGNS & Tokenization",
+        ),
+        (
+            "20-mt-bleu.html",
+            ["BLEU", "beam search", "Brevity Penalty", "n-gram"],
+            "Machine Translation & BLEU Metric",
+        ),
+        (
+            "21-enc-dec.html",
+            ["BERT", "GPT", "T5", "энкодер", "декодер"],
+            "Transformer Archetypes (BERT, GPT, T5)",
+        ),
+        (
+            "22-rl-intro.html",
+            ["MDP", "агент", "наград", "полезност", "стратеги"],
+            "RL Foundations & Markov Decision Process",
+        ),
+        (
+            "23-bellman.html",
+            ["Беллман", "V(s)", "Q(s, a)", "gamma", "оптимальност"],
+            "Bellman Expectation & Optimality Equations",
+        ),
+        (
+            "24-vi-pi-mc.html",
+            ["Value Iteration", "Policy Iteration", "Монте-Карло"],
+            "Dynamic Programming & Monte Carlo in RL",
+        ),
+        (
+            "25-td-qlearning.html",
+            ["TD", "SARSA", "Q-learning", "DQN", "replay"],
+            "TD Learning, SARSA, Q-learning, DQN",
+        ),
+        (
+            "26-policy-gradient.html",
+            ["Policy Gradient", "REINFORCE", "baseline", "PPO", "clip"],
+            "Policy Gradient Theorem & PPO-Clip",
+        ),
+        (
+            "27-actor-critic.html",
+            ["Actor-Critic", "Advantage", "GAE", "SAC", "энтропи"],
+            "Actor-Critic, GAE & Soft Actor-Critic (SAC)",
+        ),
     ]
 
     missing_derivations = []
     for lec, keywords, topic_desc in topics:
         content = read_lecture(lec)
-        missing_kw = [kw for kw in keywords if kw.lower() not in content.lower() and kw not in content]
+        missing_kw = [
+            kw for kw in keywords if kw.lower() not in content.lower() and kw not in content
+        ]
         if missing_kw:
             missing_derivations.append(f"[{lec} - {topic_desc}] Missing keywords: {missing_kw}")
         else:
@@ -168,6 +295,7 @@ def audit_math_derivations():
         print(f"  WARNING: {gap}")
     return missing_derivations
 
+
 def audit_code_snippets_and_execution():
     print("\n=== AUDIT 3: Code Snippet Extraction, HTML Entities, AST Syntax & Execution ===")
 
@@ -176,7 +304,9 @@ def audit_code_snippets_and_execution():
     entity_anomalies = []
     runtime_errors = []
 
-    pattern = re.compile(r"<pre[^>]*>(?:<code[^>]*>)?(.*?)(?:</code>)?</pre>", re.DOTALL | re.IGNORECASE)
+    pattern = re.compile(
+        r"<pre[^>]*>(?:<code[^>]*>)?(.*?)(?:</code>)?</pre>", re.DOTALL | re.IGNORECASE
+    )
 
     for lec in EXPECTED_LECTURES:
         content = read_lecture(lec)
@@ -190,11 +320,26 @@ def audit_code_snippets_and_execution():
             # Let's check for tags inside raw:
             tags = re.findall(r"<(/?[a-zA-Z][^>]*)>", raw)
             # Valid tags might be span, code, b, em, mark, etc.
-            allowed_tags = {"span", "/span", "code", "/code", "b", "/b", "em", "/em", "mark", "/mark", "strong", "/strong"}
+            allowed_tags = {
+                "span",
+                "/span",
+                "code",
+                "/code",
+                "b",
+                "/b",
+                "em",
+                "/em",
+                "mark",
+                "/mark",
+                "strong",
+                "/strong",
+            }
             for t in tags:
                 tag_name = t.split()[0].lower()
                 if tag_name not in allowed_tags:
-                    entity_anomalies.append(f"[{lec}:{line}] Unexpected HTML tag <{t}> inside code block (possible unescaped operator)")
+                    entity_anomalies.append(
+                        f"[{lec}:{line}] Unexpected HTML tag <{t}> inside code block (possible unescaped operator)"
+                    )
 
             # Clean code
             clean = re.sub(r"<[^>]+>", "", raw)
@@ -203,25 +348,38 @@ def audit_code_snippets_and_execution():
             if not clean:
                 continue
 
-            py_indicators = ["import ", "torch", "nn.", "def ", "class ", "return ", "for ", "in range", "lambda "]
+            py_indicators = [
+                "import ",
+                "torch",
+                "nn.",
+                "def ",
+                "class ",
+                "return ",
+                "for ",
+                "in range",
+                "lambda ",
+            ]
             is_py = any(ind in clean for ind in py_indicators)
-            if clean.startswith("$") or clean.startswith("# ASCII") or "+---" in clean or "|---" in clean:
+            if (
+                clean.startswith("$")
+                or clean.startswith("# ASCII")
+                or "+---" in clean
+                or "|---" in clean
+            ):
                 is_py = False
 
-            extracted_blocks.append({
-                "lecture": lec,
-                "line": line,
-                "raw": raw,
-                "clean": clean,
-                "is_py": is_py
-            })
+            extracted_blocks.append(
+                {"lecture": lec, "line": line, "raw": raw, "clean": clean, "is_py": is_py}
+            )
 
             if is_py:
                 # AST parse test
                 try:
                     tree = ast.parse(clean)
                 except SyntaxError as e:
-                    syntax_errors.append(f"[{lec}:{line}] SyntaxError: {e.msg} at line {e.lineno}, col {e.offset}\nSnippet:\n{clean[:100]}")
+                    syntax_errors.append(
+                        f"[{lec}:{line}] SyntaxError: {e.msg} at line {e.lineno}, col {e.offset}\nSnippet:\n{clean[:100]}"
+                    )
 
     print(f"Total extracted code blocks: {len(extracted_blocks)}")
     py_count = sum(1 for b in extracted_blocks if b["is_py"])
@@ -269,8 +427,11 @@ def audit_code_snippets_and_execution():
             # print(f"  [EXEC INFO] {err_str}")
             exec_failed += 1
 
-    print(f"Exec results: {exec_success} executed cleanly, {exec_failed} required environment/inputs, 0 crashes on syntax.")
+    print(
+        f"Exec results: {exec_success} executed cleanly, {exec_failed} required environment/inputs, 0 crashes on syntax."
+    )
     return syntax_errors, entity_anomalies
+
 
 if __name__ == "__main__":
     latex_errs = audit_latex_syntax()

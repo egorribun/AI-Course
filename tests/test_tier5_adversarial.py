@@ -30,8 +30,12 @@ class TestTier5Adversarial(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.tracker_js = read_file(JS_DIR / "tracker.js") if (JS_DIR / "tracker.js").exists() else ""
-        cls.simulator_js = read_file(JS_DIR / "simulator.js") if (JS_DIR / "simulator.js").exists() else ""
+        cls.tracker_js = (
+            read_file(JS_DIR / "tracker.js") if (JS_DIR / "tracker.js").exists() else ""
+        )
+        cls.simulator_js = (
+            read_file(JS_DIR / "simulator.js") if (JS_DIR / "simulator.js").exists() else ""
+        )
 
     def test_01_search_input_fuzzing_and_xss_resilience(self):
         """
@@ -58,15 +62,24 @@ class TestTier5Adversarial(unittest.TestCase):
             "?+*",
             "(?=.*a)",
             "🧠👁️🚀💥",
-            "\u200B\u200C\u200D\uFEFF",  # Zero-width spaces
+            "\u200b\u200c\u200d\ufeff",  # Zero-width spaces
             "مرحبا بالعالم",  # Arabic RTL
             "A" * 10000,  # 10k long string
         ]
 
         sample_dataset = [
-            {"title": "Полносвязные нейронные сети", "text": "Прямое и обратное распространение ошибки backprop."},
-            {"title": "Автоматическое дифференцирование и PINN", "text": "Физически информированные нейросети."},
-            {"title": "Внимание и Трансформеры", "text": "Scaled Dot-Product Attention и Multi-Head."},
+            {
+                "title": "Полносвязные нейронные сети",
+                "text": "Прямое и обратное распространение ошибки backprop.",
+            },
+            {
+                "title": "Автоматическое дифференцирование и PINN",
+                "text": "Физически информированные нейросети.",
+            },
+            {
+                "title": "Внимание и Трансформеры",
+                "text": "Scaled Dot-Product Attention и Multi-Head.",
+            },
         ]
 
         def search_filter(query: str, items: List[Dict[str, str]]) -> List[Dict[str, str]]:
@@ -85,7 +98,9 @@ class TestTier5Adversarial(unittest.TestCase):
                 res = search_filter(payload, sample_dataset)
                 self.assertIsInstance(res, list)
             except Exception as e:
-                self.fail(f"Search filter raised unexpected exception on payload {payload[:30]!r}: {e}")
+                self.fail(
+                    f"Search filter raised unexpected exception on payload {payload[:30]!r}: {e}"
+                )
 
     def test_02_localstorage_corruption_recovery_simulation(self):
         """
@@ -120,10 +135,14 @@ class TestTier5Adversarial(unittest.TestCase):
 
         for corrupt in corrupted_inputs:
             recovered_list = mock_safe_get_json(corrupt, default_val=[])
-            self.assertIsInstance(recovered_list, list, f"Failed recovery for corrupt payload: {corrupt}")
+            self.assertIsInstance(
+                recovered_list, list, f"Failed recovery for corrupt payload: {corrupt}"
+            )
 
             recovered_dict = mock_safe_get_json(corrupt, default_val={})
-            self.assertIsInstance(recovered_dict, dict, f"Failed recovery for dict default on: {corrupt}")
+            self.assertIsInstance(
+                recovered_dict, dict, f"Failed recovery for dict default on: {corrupt}"
+            )
 
     def test_03_sm2_card_data_adversarial_recovery(self):
         """Verify SM-2 engine handles corrupted card parameters without crashing."""
@@ -140,7 +159,9 @@ class TestTier5Adversarial(unittest.TestCase):
             reps = max(0, card["reps"])
             interval = max(1, card["interval"])
 
-            next_state = SM2ReferenceEngine.calc_next_review(quality=4, repetitions=reps, ease_factor=ef, interval=interval)
+            next_state = SM2ReferenceEngine.calc_next_review(
+                quality=4, repetitions=reps, ease_factor=ef, interval=interval
+            )
             self.assertGreaterEqual(next_state["ease_factor"], 1.3)
             self.assertGreaterEqual(next_state["interval"], 1)
 
@@ -183,12 +204,16 @@ class TestTier5Adversarial(unittest.TestCase):
         self.assertFalse(torch.isinf(loss).item(), "Cross-entropy produced Inf on extreme logits")
 
         # 2. InfoNCE Contrastive loss stability
-        def safe_infonce(query: torch.Tensor, pos: torch.Tensor, negs: torch.Tensor, temp: float = 0.07) -> torch.Tensor:
+        def safe_infonce(
+            query: torch.Tensor, pos: torch.Tensor, negs: torch.Tensor, temp: float = 0.07
+        ) -> torch.Tensor:
             pos_sim = (query * pos).sum(dim=-1, keepdim=True) / temp
             neg_sim = torch.matmul(query, negs.T) / temp
             all_sim = torch.cat([pos_sim, neg_sim], dim=-1)
             max_sim, _ = torch.max(all_sim, dim=-1, keepdim=True)
-            log_denom = max_sim + torch.log(torch.sum(torch.exp(all_sim - max_sim), dim=-1, keepdim=True))
+            log_denom = max_sim + torch.log(
+                torch.sum(torch.exp(all_sim - max_sim), dim=-1, keepdim=True)
+            )
             return torch.mean(log_denom - pos_sim)
 
         q = torch.tensor([[10.0, 0.0]], dtype=torch.float32)

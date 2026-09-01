@@ -115,7 +115,9 @@ class TestSM2SpacedRepetitionMath(unittest.TestCase):
                 ease_factor=state["easeFactor"],
                 box=state["box"],
             )
-            self.assertGreaterEqual(state["easeFactor"], 1.30, "Ease Factor must never fall below 1.3")
+            self.assertGreaterEqual(
+                state["easeFactor"], 1.30, "Ease Factor must never fall below 1.3"
+            )
             self.assertEqual(state["repetitions"], 0, "Failed grade must reset repetitions to 0")
             self.assertEqual(state["interval"], 1, "Failed grade must reset interval to 1 day")
             self.assertEqual(state["box"], 1, "Failed grade must reset Leitner box to 1")
@@ -250,11 +252,15 @@ class TestExamSimulatorFeatures(unittest.TestCase):
         self.assertIn("window.EXAM_DATA =", self.exam_data_js)
         start_idx = self.exam_data_js.find("[")
         end_idx = self.exam_data_js.rfind("]")
-        self.assertTrue(start_idx != -1 and end_idx != -1, "EXAM_DATA array markers '[' and ']' not found")
+        self.assertTrue(
+            start_idx != -1 and end_idx != -1, "EXAM_DATA array markers '[' and ']' not found"
+        )
         data = json.loads(self.exam_data_js[start_idx : end_idx + 1])
 
         self.assertIsInstance(data, list)
-        self.assertEqual(len(data), 28, f"EXAM_DATA must contain exactly 28 lectures, found {len(data)}")
+        self.assertEqual(
+            len(data), 28, f"EXAM_DATA must contain exactly 28 lectures, found {len(data)}"
+        )
 
         # Verify tickets 1 to 25 exist
         ticket_nums = {item.get("ticket") for item in data if item.get("ticket")}
@@ -311,7 +317,9 @@ class TestExamSimulatorFeatures(unittest.TestCase):
         self.assertIn("warn", self.sim_js, "Timer must add 'warn' class near expiration (<= 30s)")
         self.assertIn("danger", self.sim_js, "Timer must add 'danger' class upon expiration (0s)")
         self.assertTrue(
-            "AudioContext" in self.sim_js or "webkitAudioContext" in self.sim_js or "playBeep" in self.sim_js,
+            "AudioContext" in self.sim_js
+            or "webkitAudioContext" in self.sim_js
+            or "playBeep" in self.sim_js,
             "Timer must generate an audio beep or gong upon completion",
         )
 

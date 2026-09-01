@@ -71,7 +71,9 @@ class TestMilestone1PwaWebPlatform(unittest.TestCase):
         # Ensure all 28 lectures are in STATIC_ASSETS
         for i in range(28):
             lec_pattern = f"{i:02d}-"
-            self.assertIn(lec_pattern, self.sw_text, f"Lecture {i:02d} missing from sw.js STATIC_ASSETS")
+            self.assertIn(
+                lec_pattern, self.sw_text, f"Lecture {i:02d} missing from sw.js STATIC_ASSETS"
+            )
 
         # Ensure core static resources are precached
         self.assertIn("style.css", self.sw_text)
@@ -89,7 +91,9 @@ class TestMilestone1PwaWebPlatform(unittest.TestCase):
         self.assertIn("clients.claim", self.sw_text)
 
         # Network-First strategy for local same-origin assets
-        self.assertIn("fetch(req)", self.sw_text, "sw.js must use fetch(req) first for local assets")
+        self.assertIn(
+            "fetch(req)", self.sw_text, "sw.js must use fetch(req) first for local assets"
+        )
         self.assertIn("caches.match(req)", self.sw_text, "sw.js must fallback to caches.match(req)")
 
     # -------------------------------------------------------------
@@ -108,9 +112,15 @@ class TestMilestone1PwaWebPlatform(unittest.TestCase):
         # Verify #global-progress-hub specifics for R1
         start_idx = self.index_text.find('id="global-progress-hub"')
         end_idx = self.index_text.find('id="exam-simulator-container"', start_idx)
-        hub_text = self.index_text[start_idx:end_idx] if end_idx != -1 else self.index_text[start_idx:start_idx + 1500]
+        hub_text = (
+            self.index_text[start_idx:end_idx]
+            if end_idx != -1
+            else self.index_text[start_idx : start_idx + 1500]
+        )
 
-        self.assertNotIn("💾 Экспорт", hub_text, "💾 Экспорт must be removed from #global-progress-hub")
+        self.assertNotIn(
+            "💾 Экспорт", hub_text, "💾 Экспорт must be removed from #global-progress-hub"
+        )
         self.assertIn("🔄 Сброс", hub_text, "🔄 Сброс must be preserved in #global-progress-hub")
         self.assertIn('id="stat-lecs-val"', hub_text)
         self.assertIn('id="stat-qas-val"', hub_text)
@@ -143,9 +153,9 @@ class TestMilestone1PwaWebPlatform(unittest.TestCase):
         self.assertIn("startBlitzSession", self.sim_text)
         self.assertIn("renderBlitzActiveQuestion", self.sim_text)
         self.assertIn("renderBlitzResults", self.sim_text)
-        self.assertIn("role=\"tablist\"", self.sim_text)
-        self.assertIn("role=\"tab\"", self.sim_text)
-        self.assertIn("role=\"tabpanel\"", self.sim_text)
+        self.assertIn('role="tablist"', self.sim_text)
+        self.assertIn('role="tab"', self.sim_text)
+        self.assertIn('role="tabpanel"', self.sim_text)
         self.assertIn("aria-selected", self.sim_text)
 
     # -------------------------------------------------------------

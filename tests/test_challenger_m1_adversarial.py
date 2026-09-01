@@ -30,7 +30,9 @@ class TestChallengerM1ServiceWorker(unittest.TestCase):
         match = re.search(r"const\s+CACHE_NAME\s*=\s*['\"]([^'\"]+)['\"];", self.sw_content)
         self.assertIsNotNone(match, "CACHE_NAME definition not found in sw.js")
         cache_name = match.group(1)
-        self.assertEqual(cache_name, "ai-course-v3", f"Expected CACHE_NAME='ai-course-v3', found '{cache_name}'")
+        self.assertEqual(
+            cache_name, "ai-course-v3", f"Expected CACHE_NAME='ai-course-v3', found '{cache_name}'"
+        )
 
     def test_02_all_static_assets_exist_on_filesystem(self):
         """Verify every single asset in STATIC_ASSETS exists on disk and is non-empty."""
@@ -39,19 +41,19 @@ class TestChallengerM1ServiceWorker(unittest.TestCase):
 
         raw_assets = match.group(1)
         assets = [
-            item.strip().strip("'\"")
-            for item in raw_assets.split(",")
-            if item.strip().strip("'\"")
+            item.strip().strip("'\"") for item in raw_assets.split(",") if item.strip().strip("'\"")
         ]
 
-        self.assertGreaterEqual(len(assets), 35, f"Expected at least 35 assets, found {len(assets)}")
+        self.assertGreaterEqual(
+            len(assets), 35, f"Expected at least 35 assets, found {len(assets)}"
+        )
 
         # Check all 28 lectures
         for i in range(28):
             lec_pad = f"{i:02d}-"
             self.assertTrue(
                 any(lec_pad in a for a in assets),
-                f"Lecture {lec_pad} missing from sw.js precache list"
+                f"Lecture {lec_pad} missing from sw.js precache list",
             )
 
         # Check existence on filesystem
@@ -110,20 +112,36 @@ class TestChallengerM1DOMAndUI(unittest.TestCase):
         start_idx = self.index_content.find('id="global-progress-hub"')
         self.assertNotEqual(start_idx, -1, "global-progress-hub must exist")
         end_idx = self.index_content.find('id="exam-simulator-container"', start_idx)
-        hub_html = self.index_content[start_idx:end_idx] if end_idx != -1 else self.index_content[start_idx:start_idx + 1500]
+        hub_html = (
+            self.index_content[start_idx:end_idx]
+            if end_idx != -1
+            else self.index_content[start_idx : start_idx + 1500]
+        )
 
         # R1: 💾 Экспорт must be completely absent from header
         self.assertNotIn("💾 Экспорт", hub_html, "Export button must not exist in progress hub")
-        self.assertNotIn("exportProgressJSON", hub_html, "exportProgressJSON onclick must not exist in progress hub")
+        self.assertNotIn(
+            "exportProgressJSON",
+            hub_html,
+            "exportProgressJSON onclick must not exist in progress hub",
+        )
 
     def test_06_global_progress_hub_preserves_reset_and_stats(self):
         """Verify #global-progress-hub preserves reset button and stat card IDs."""
         start_idx = self.index_content.find('id="global-progress-hub"')
         end_idx = self.index_content.find('id="exam-simulator-container"', start_idx)
-        hub_html = self.index_content[start_idx:end_idx] if end_idx != -1 else self.index_content[start_idx:start_idx + 1500]
+        hub_html = (
+            self.index_content[start_idx:end_idx]
+            if end_idx != -1
+            else self.index_content[start_idx : start_idx + 1500]
+        )
 
         self.assertIn("🔄 Сброс", hub_html, "Reset button must remain in progress hub")
-        self.assertIn("CourseTracker.resetProgress()", hub_html, "CourseTracker.resetProgress() must be invoked by reset button")
+        self.assertIn(
+            "CourseTracker.resetProgress()",
+            hub_html,
+            "CourseTracker.resetProgress() must be invoked by reset button",
+        )
         self.assertIn('id="global-progress-fill"', hub_html, "global-progress-fill must exist")
         self.assertIn('id="stat-lecs-val"', hub_html, "stat-lecs-val must exist")
         self.assertIn('id="stat-qas-val"', hub_html, "stat-qas-val must exist")
@@ -151,11 +169,12 @@ class TestChallengerM1NodeHarnessExecution(unittest.TestCase):
             cwd=str(COURSE_ROOT),
             capture_output=True,
             text=True,
-            timeout=15
+            timeout=15,
         )
         self.assertEqual(
-            result.returncode, 0,
-            f"Adversarial SW harness failed with output:\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}"
+            result.returncode,
+            0,
+            f"Adversarial SW harness failed with output:\nSTDOUT:\n{result.stdout}\nSTDERR:\n{result.stderr}",
         )
         self.assertIn("Challenger M1 Results: 11 passed, 0 failed", result.stdout)
 

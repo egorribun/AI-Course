@@ -110,10 +110,12 @@ def extract_lecture_data(html_path: Path) -> dict[str, Any]:
             q_raw,
             flags=re.DOTALL,
         )
-        qas.append({
-            "question": clean_html_text(q_clean),
-            "answer": clean_html_text(a_raw),
-        })
+        qas.append(
+            {
+                "question": clean_html_text(q_clean),
+                "answer": clean_html_text(a_raw),
+            }
+        )
 
     # Extract Micro-tasks
     tasks: list[dict[str, str]] = []
@@ -135,14 +137,18 @@ def extract_lecture_data(html_path: Path) -> dict[str, Any]:
         det_pos = task_body.find("<details")
         prob_part = task_body[:det_pos] if det_pos != -1 else task_body
         prob_part = re.sub(r"""<div\s+class=["']tt["'].*?</div>""", "", prob_part, flags=re.DOTALL)
-        prob_part = re.sub(r"""<span\s+class=["']item-check["'].*?</span>""", "", prob_part, flags=re.DOTALL)
+        prob_part = re.sub(
+            r"""<span\s+class=["']item-check["'].*?</span>""", "", prob_part, flags=re.DOTALL
+        )
         problem = clean_html_text(prob_part)
 
-        tasks.append({
-            "title": title_task,
-            "problem": problem,
-            "solution": solution,
-        })
+        tasks.append(
+            {
+                "title": title_task,
+                "problem": problem,
+                "solution": solution,
+            }
+        )
 
     # Extract Cheat outline
     cheat_match = re.search(
@@ -205,25 +211,29 @@ def build_js_content(dataset: list[dict[str, Any]]) -> str:
         tickets_map[ticket_name]["tasks_count"] += len(lec["tasks"])
 
         for q_idx, qa in enumerate(lec["qas"]):
-            questions.append({
-                "id": f"l{lec_id}_qa{q_idx}",
-                "lecture_id": lec_id,
-                "ticket": ticket_name,
-                "module": module,
-                "question": qa["question"],
-                "answer": qa["answer"],
-            })
+            questions.append(
+                {
+                    "id": f"l{lec_id}_qa{q_idx}",
+                    "lecture_id": lec_id,
+                    "ticket": ticket_name,
+                    "module": module,
+                    "question": qa["question"],
+                    "answer": qa["answer"],
+                }
+            )
 
         for t_idx, t in enumerate(lec["tasks"]):
-            tasks.append({
-                "id": f"l{lec_id}_t{t_idx}",
-                "lecture_id": lec_id,
-                "ticket": ticket_name,
-                "module": module,
-                "title": t["title"],
-                "problem": t["problem"],
-                "solution": t["solution"],
-            })
+            tasks.append(
+                {
+                    "id": f"l{lec_id}_t{t_idx}",
+                    "lecture_id": lec_id,
+                    "ticket": ticket_name,
+                    "module": module,
+                    "title": t["title"],
+                    "problem": t["problem"],
+                    "solution": t["solution"],
+                }
+            )
 
     json_lectures = json.dumps(dataset, ensure_ascii=False, indent=2)
 
@@ -292,7 +302,9 @@ def main(argv: list[str] | None = None) -> int:
                 f"  [{l['id']}] Block {l['module']}: {l['title']} | "
                 f"Q&As: {len(l['qas'])}, Tasks: {len(l['tasks'])}, Cheats: {len(l['cheat_items'])}"
             )
-        print(f"Total metrics: {len(dataset)} lectures, {total_qas} Q&As, {total_tasks} tasks, {total_cheats} cheats")
+        print(
+            f"Total metrics: {len(dataset)} lectures, {total_qas} Q&As, {total_tasks} tasks, {total_cheats} cheats"
+        )
 
     js_content = build_js_content(dataset)
 
@@ -302,19 +314,25 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         current_content = args.output.read_text(encoding="utf-8")
         if current_content != js_content:
-            sys.stderr.write(f"Check failed: {args.output} is outdated. Run build_exam_data.py to update.\n")
+            sys.stderr.write(
+                f"Check failed: {args.output} is outdated. Run build_exam_data.py to update.\n"
+            )
             return 1
         if args.verbose:
             print(f"Check passed: {args.output} is up-to-date.")
         return 0
 
     if args.dry_run:
-        print(f"Dry-run successful: Parsed {len(dataset)} lectures ({total_qas} Q&As, {total_tasks} tasks). No files written.")
+        print(
+            f"Dry-run successful: Parsed {len(dataset)} lectures ({total_qas} Q&As, {total_tasks} tasks). No files written."
+        )
         return 0
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(js_content, encoding="utf-8")
-    print(f"Generated {args.output} ({len(dataset)} lectures, {total_qas} Q&As, {total_tasks} tasks).")
+    print(
+        f"Generated {args.output} ({len(dataset)} lectures, {total_qas} Q&As, {total_tasks} tasks)."
+    )
     return 0
 
 

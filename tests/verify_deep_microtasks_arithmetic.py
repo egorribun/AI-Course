@@ -39,9 +39,13 @@ class TestDeepMicrotasksForensics(unittest.TestCase):
             for idx, task in enumerate(d["tasks"]):
                 prob = task["problem"]
                 sol = task["solution"]
-                self.assertTrue(len(prob) > 10, f"{fname} Task {idx+1}: Problem statement too short: '{prob}'")
-                self.assertTrue(task["has_sol"], f"{fname} Task {idx+1}: Missing solution block")
-                self.assertTrue(len(sol) > 10, f"{fname} Task {idx+1}: Solution text too short: '{sol}'")
+                self.assertTrue(
+                    len(prob) > 10, f"{fname} Task {idx + 1}: Problem statement too short: '{prob}'"
+                )
+                self.assertTrue(task["has_sol"], f"{fname} Task {idx + 1}: Missing solution block")
+                self.assertTrue(
+                    len(sol) > 10, f"{fname} Task {idx + 1}: Solution text too short: '{sol}'"
+                )
 
                 # Check for unresolved placeholders
                 self.assertNotIn("TODO", prob)
@@ -56,8 +60,8 @@ class TestDeepMicrotasksForensics(unittest.TestCase):
             for idx, qa in enumerate(d["qas"]):
                 q = qa["summary"]
                 a = qa["body"]
-                self.assertTrue(len(q) > 5, f"{fname} QA {idx+1}: Question too short: '{q}'")
-                self.assertTrue(len(a) > 20, f"{fname} QA {idx+1}: Answer too short: '{a}'")
+                self.assertTrue(len(q) > 5, f"{fname} QA {idx + 1}: Question too short: '{q}'")
+                self.assertTrue(len(a) > 20, f"{fname} QA {idx + 1}: Answer too short: '{a}'")
                 self.assertNotIn("TODO", q)
                 self.assertNotIn("TODO", a)
 
@@ -87,7 +91,7 @@ class TestDeepMicrotasksForensics(unittest.TestCase):
         # Conv2D: Input 224x224, Kernel 7x7, Stride 2, Padding 3
         # Out = floor((224 + 2*3 - 7) / 2) + 1 = floor((230 - 7)/2) + 1 = floor(223/2) + 1 = 111 + 1 = 112
         h_in, k, s, p = 224, 7, 2, 3
-        h_out = math.floor((h_in + 2*p - k) / s) + 1
+        h_out = math.floor((h_in + 2 * p - k) / s) + 1
         self.assertEqual(h_out, 112)
 
         # Dilated Conv: Input 64x64, Kernel 3x3, Dilation 2, Stride 1, Padding 2
@@ -95,7 +99,7 @@ class TestDeepMicrotasksForensics(unittest.TestCase):
         # Out = (64 + 2*2 - 5)/1 + 1 = 63 + 1 = 64 (preserves dimension!)
         eff_k = 2 * (3 - 1) + 1
         self.assertEqual(eff_k, 5)
-        h_out_dilated = (64 + 2*2 - eff_k) // 1 + 1
+        h_out_dilated = (64 + 2 * 2 - eff_k) // 1 + 1
         self.assertEqual(h_out_dilated, 64)
 
     def test_domain_06_optimizers_momentum_and_adam(self):
@@ -140,7 +144,7 @@ class TestDeepMicrotasksForensics(unittest.TestCase):
         # Clipped matches: "the" (min(2,2)=2), "cat" (1), "sat" (0), "on" (1), "mat" (1) => 5 / 6
         p1 = 5.0 / 6.0
         self.assertAlmostEqual(p1, 0.8333, places=3)
-        bp = 1.0 # c == r
+        bp = 1.0  # c == r
         self.assertEqual(bp, 1.0)
 
     def test_domain_23_25_rl_bellman_and_td_error(self):

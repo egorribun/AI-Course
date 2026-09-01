@@ -113,7 +113,9 @@ class TestAdversarialChallenges(unittest.TestCase):
         u_relu = F.relu(x_relu)
         grad_relu = torch.autograd.grad(u_relu.sum(), x_relu, create_graph=True)[0]
         grad2_relu = torch.autograd.grad(grad_relu.sum(), x_relu)[0]
-        self.assertTrue(torch.all(grad2_relu == 0.0), "ReLU 2nd derivative is 0 everywhere away from origin")
+        self.assertTrue(
+            torch.all(grad2_relu == 0.0), "ReLU 2nd derivative is 0 everywhere away from origin"
+        )
 
     # =========================================================================
     # L03: Losses & MLE, Log Underflow in CrossEntropy
@@ -122,7 +124,9 @@ class TestAdversarialChallenges(unittest.TestCase):
         """Verify cross entropy log-sum-exp numerical stability vs naive log(softmax)."""
         content = self.lectures["03-losses-mle.html"]
         self.assertTrue(
-            "cross_entropy" in content or "кросс-энтропи" in content.lower() or "nll" in content.lower()
+            "cross_entropy" in content
+            or "кросс-энтропи" in content.lower()
+            or "nll" in content.lower()
         )
 
         # Extreme logits where naive softmax underflows to 0.0
@@ -269,7 +273,9 @@ class TestAdversarialChallenges(unittest.TestCase):
     def test_l09_infonce_temperature_extremes(self):
         """Verify InfoNCE behavior under temperature limits tau -> 0 and tau -> inf."""
         content = self.lectures["09-contrastive-ssl.html"]
-        self.assertTrue("infonce" in content.lower() or "simclr" in content.lower() or "moco" in content.lower())
+        self.assertTrue(
+            "infonce" in content.lower() or "simclr" in content.lower() or "moco" in content.lower()
+        )
 
         sims = torch.tensor([[0.9, 0.4, 0.2]])
         target = torch.tensor([0])
@@ -289,7 +295,9 @@ class TestAdversarialChallenges(unittest.TestCase):
         """Verify analytical Gaussian KL divergence non-negativity and zero-point at standard normal."""
         content = self.lectures["10-vae.html"]
         self.assertIn("ELBO", content)
-        self.assertTrue("reparameterization" in content.lower() or "репараметризац" in content.lower())
+        self.assertTrue(
+            "reparameterization" in content.lower() or "репараметризац" in content.lower()
+        )
 
         # Formula: KL = -0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
         mu = torch.zeros(5)
@@ -334,7 +342,9 @@ class TestAdversarialChallenges(unittest.TestCase):
     def test_l13_cv_iou_dice_smoothing(self):
         """Verify IoU and Dice loss stability when intersection and union are zero (empty masks)."""
         content = self.lectures["13-cv-tasks.html"]
-        self.assertTrue("iou" in content.lower() or "dice" in content.lower() or "map" in content.lower())
+        self.assertTrue(
+            "iou" in content.lower() or "dice" in content.lower() or "map" in content.lower()
+        )
 
         pred = torch.zeros(1, 1, 10, 10)
         target = torch.zeros(1, 1, 10, 10)
@@ -366,7 +376,11 @@ class TestAdversarialChallenges(unittest.TestCase):
     def test_l15_attention_weight_distribution(self):
         """Verify Seq2Seq attention weights sum strictly to 1.0 across source tokens."""
         content = self.lectures["15-attention-seq2seq.html"]
-        self.assertTrue("bahdanau" in content.lower() or "luong" in content.lower() or "attention" in content.lower())
+        self.assertTrue(
+            "bahdanau" in content.lower()
+            or "luong" in content.lower()
+            or "attention" in content.lower()
+        )
 
         scores = torch.randn(2, 10)
         weights = F.softmax(scores, dim=-1)
@@ -387,11 +401,15 @@ class TestAdversarialChallenges(unittest.TestCase):
         k = torch.randn(num_samples, d_k)
         dot_raw = (q * k).sum(dim=-1)
         var_raw = dot_raw.var().item()
-        self.assertTrue(450 < var_raw < 580, f"Raw dot product variance {var_raw} should be near {d_k}")
+        self.assertTrue(
+            450 < var_raw < 580, f"Raw dot product variance {var_raw} should be near {d_k}"
+        )
 
         dot_scaled = dot_raw / math.sqrt(d_k)
         var_scaled = dot_scaled.var().item()
-        self.assertTrue(0.9 < var_scaled < 1.1, f"Scaled dot product variance {var_scaled} should be near 1.0")
+        self.assertTrue(
+            0.9 < var_scaled < 1.1, f"Scaled dot product variance {var_scaled} should be near 1.0"
+        )
 
         # Causal mask test: upper triangular elements must receive -inf and result in exact 0.0 softmax prob
         seq_len = 4
@@ -409,7 +427,11 @@ class TestAdversarialChallenges(unittest.TestCase):
     def test_l18_complexity_invariants(self):
         """Verify comparative complexity invariants (O(1) sequential ops for Transformer vs O(n) for LSTM)."""
         content = self.lectures["18-lstm-vs-transformer.html"]
-        self.assertTrue("параллел" in content.lower() or "памят" in content.lower() or "сложност" in content.lower())
+        self.assertTrue(
+            "параллел" in content.lower()
+            or "памят" in content.lower()
+            or "сложност" in content.lower()
+        )
 
     # =========================================================================
     # L19: Tokenization & Word2Vec: SGNS Sigmoid Loss
@@ -417,7 +439,11 @@ class TestAdversarialChallenges(unittest.TestCase):
     def test_l19_word2vec_sgns_loss_boundaries(self):
         """Verify Skip-Gram with Negative Sampling (SGNS) objective bounds."""
         content = self.lectures["19-text-word2vec.html"]
-        self.assertTrue("skip-gram" in content.lower() or "cbow" in content.lower() or "negative" in content.lower())
+        self.assertTrue(
+            "skip-gram" in content.lower()
+            or "cbow" in content.lower()
+            or "negative" in content.lower()
+        )
 
         pos_dot = torch.tensor([20.0])
         neg_dots = torch.tensor([-20.0, -20.0])
@@ -433,7 +459,11 @@ class TestAdversarialChallenges(unittest.TestCase):
         """Verify BLEU Brevity Penalty formula BP = exp(min(0, 1 - r/c))."""
         content = self.lectures["20-mt-bleu.html"]
         self.assertIn("BLEU", content)
-        self.assertTrue("brevity" in content.lower() or "penalty" in content.lower() or "краткост" in content.lower())
+        self.assertTrue(
+            "brevity" in content.lower()
+            or "penalty" in content.lower()
+            or "краткост" in content.lower()
+        )
 
         # Case 1: candidate length c >= reference length r -> BP = 1.0
         c, r = 15, 10
@@ -495,7 +525,9 @@ class TestAdversarialChallenges(unittest.TestCase):
     def test_l24_policy_iteration_and_mc(self):
         """Verify Policy Iteration and Monte Carlo evaluation mechanisms."""
         content = self.lectures["24-vi-pi-mc.html"]
-        self.assertTrue("policy iteration" in content.lower() or "value iteration" in content.lower())
+        self.assertTrue(
+            "policy iteration" in content.lower() or "value iteration" in content.lower()
+        )
         self.assertTrue("монте-карло" in content.lower() or "monte carlo" in content.lower())
 
     # =========================================================================

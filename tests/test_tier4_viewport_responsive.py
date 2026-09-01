@@ -52,7 +52,9 @@ class TestTier4ViewportResponsive(unittest.TestCase):
         - .wrap container has max-width and fluid padding
         - Images and embedded media have max-width: 100%
         """
-        self.assertIn("box-sizing: border-box", self.style_css, "Global box-sizing must be border-box")
+        self.assertIn(
+            "box-sizing: border-box", self.style_css, "Global box-sizing must be border-box"
+        )
         self.assertTrue(
             "max-width: 100%" in self.style_css or "max-width:100%" in self.style_css,
             "CSS must enforce max-width: 100% on wide containers / formulas",

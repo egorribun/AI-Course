@@ -98,7 +98,8 @@ class TestR3CodeExec(unittest.TestCase):
         self.assertEqual(
             syntax_failures,
             [],
-            f"Found {len(syntax_failures)} Python syntax failure(s):\n" + "\n".join(syntax_failures),
+            f"Found {len(syntax_failures)} Python syntax failure(s):\n"
+            + "\n".join(syntax_failures),
         )
 
     def test_03_pytorch_fcnn_and_autograd_execution(self):
@@ -125,9 +126,7 @@ class TestR3CodeExec(unittest.TestCase):
         u = torch.sin(2 * math.pi * t)
 
         # First derivative du/dt
-        du_dt = torch.autograd.grad(
-            u, t, grad_outputs=torch.ones_like(u), create_graph=True
-        )[0]
+        du_dt = torch.autograd.grad(u, t, grad_outputs=torch.ones_like(u), create_graph=True)[0]
         self.assertEqual(du_dt.shape, (10, 1))
 
         # Second derivative d^2u/dt^2
@@ -138,15 +137,18 @@ class TestR3CodeExec(unittest.TestCase):
 
         # Harmonic oscillator PDE residual: d2u/dt2 + (2*pi)^2 * u = 0
         residual = d2u_dt2 + (2 * math.pi) ** 2 * u
-        pde_loss = torch.mean(residual ** 2)
+        pde_loss = torch.mean(residual**2)
         self.assertLess(pde_loss.item(), 1e-4)
 
     def test_05_loss_functions_execution(self):
         """Verify mathematical execution and gradient flow of contrastive, triplet, and InfoNCE losses."""
+
         # 1. Contrastive Loss
         def contrastive_loss(x1, x2, y, margin=1.0):
             d = F.pairwise_distance(x1, x2)
-            loss = y * 0.5 * torch.pow(d, 2) + (1 - y) * 0.5 * torch.pow(torch.clamp(margin - d, min=0.0), 2)
+            loss = y * 0.5 * torch.pow(d, 2) + (1 - y) * 0.5 * torch.pow(
+                torch.clamp(margin - d, min=0.0), 2
+            )
             return loss.mean()
 
         z1 = torch.randn(8, 16, requires_grad=True)
@@ -187,6 +189,7 @@ class TestR3CodeExec(unittest.TestCase):
 
     def test_06_cnn_and_resnet_block_execution(self):
         """Verify CNN layers and ResNet residual skip connections."""
+
         class ResidualBlock(nn.Module):
             def __init__(self, channels):
                 super().__init__()
@@ -216,6 +219,7 @@ class TestR3CodeExec(unittest.TestCase):
 
     def test_07_vae_reparameterization_and_elbo_execution(self):
         """Verify VAE reparameterization trick and ELBO loss calculation."""
+
         def reparameterize(mu, logvar):
             std = torch.exp(0.5 * logvar)
             eps = torch.randn_like(std)
@@ -242,6 +246,7 @@ class TestR3CodeExec(unittest.TestCase):
 
     def test_08_transformer_scaled_dot_product_attention_execution(self):
         """Verify Scaled Dot-Product Attention with causal masking."""
+
         def scaled_dot_product_attention(q, k, v, mask=None):
             d_k = q.size(-1)
             scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(d_k)

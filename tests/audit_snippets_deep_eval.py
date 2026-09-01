@@ -17,6 +17,7 @@ import torch.nn.functional as F
 
 COURSE_ROOT = Path(__file__).resolve().parent.parent
 
+
 def test_all_snippets_in_depth():
     data_path = COURSE_ROOT / ".agents" / "explorer_code_1" / "snippets_detail.json"
     with open(data_path, "r", encoding="utf-8") as f:
@@ -80,11 +81,21 @@ def test_all_snippets_in_depth():
                             try:
                                 inst = v()
                                 # Test forward with dummy input
-                                dummy_in = torch.randn(2, 10, 1) if "GRU" in k or "RNN" in k or "Seq2Seq" in k else torch.randn(2, 16, 8, 8) if "Res" in k or "Conv" in k else torch.randn(2, 10)
+                                dummy_in = (
+                                    torch.randn(2, 10, 1)
+                                    if "GRU" in k or "RNN" in k or "Seq2Seq" in k
+                                    else torch.randn(2, 16, 8, 8)
+                                    if "Res" in k or "Conv" in k
+                                    else torch.randn(2, 10)
+                                )
                                 out = inst(dummy_in)
-                                res["verified_properties"].append(f"Instantiated {k}, forward shape: {out.shape if hasattr(out, 'shape') else type(out)}")
+                                res["verified_properties"].append(
+                                    f"Instantiated {k}, forward shape: {out.shape if hasattr(out, 'shape') else type(out)}"
+                                )
                             except Exception as ex:
-                                res["verified_properties"].append(f"Defined class {k} (requires specific init args: {ex})")
+                                res["verified_properties"].append(
+                                    f"Defined class {k} (requires specific init args: {ex})"
+                                )
                 elif "def " in code:
                     exec(test_code, scope)
                     res["verified_properties"].append("Function definition validated")
@@ -102,7 +113,10 @@ def test_all_snippets_in_depth():
 
     print("DEEP EVAL COMPLETE! Results saved to", out_eval)
     for r in eval_results:
-        print(f"[{r['lecture']}:{r['line']}] py={r['is_python']} err={r['execution_error']} props={r['verified_properties']}")
+        print(
+            f"[{r['lecture']}:{r['line']}] py={r['is_python']} err={r['execution_error']} props={r['verified_properties']}"
+        )
+
 
 if __name__ == "__main__":
     if hasattr(sys.stdout, "reconfigure"):

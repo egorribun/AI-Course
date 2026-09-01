@@ -19,15 +19,36 @@ COURSE_ROOT = Path(__file__).resolve().parent.parent
 LECTURES_DIR = COURSE_ROOT / "lectures"
 
 LECTURE_NAMES = [
-    "00-intro-ml.html", "01-fcnn.html", "02-autodiff-pinn.html", "03-losses-mle.html",
-    "04-cnn-layers.html", "05-cnn-architectures.html", "06-optimizers.html", "07-hyperparams.html",
-    "08-metric-learning.html", "09-contrastive-ssl.html", "10-vae.html", "11-gan.html",
-    "12-diffusion.html", "13-cv-tasks.html", "14-rnn-lstm.html", "15-attention-seq2seq.html",
-    "16-transformers.html", "17-self-attention.html", "18-lstm-vs-transformer.html",
-    "19-text-word2vec.html", "20-mt-bleu.html", "21-enc-dec.html", "22-rl-intro.html",
-    "23-bellman.html", "24-vi-pi-mc.html", "25-td-qlearning.html", "26-policy-gradient.html",
-    "27-actor-critic.html"
+    "00-intro-ml.html",
+    "01-fcnn.html",
+    "02-autodiff-pinn.html",
+    "03-losses-mle.html",
+    "04-cnn-layers.html",
+    "05-cnn-architectures.html",
+    "06-optimizers.html",
+    "07-hyperparams.html",
+    "08-metric-learning.html",
+    "09-contrastive-ssl.html",
+    "10-vae.html",
+    "11-gan.html",
+    "12-diffusion.html",
+    "13-cv-tasks.html",
+    "14-rnn-lstm.html",
+    "15-attention-seq2seq.html",
+    "16-transformers.html",
+    "17-self-attention.html",
+    "18-lstm-vs-transformer.html",
+    "19-text-word2vec.html",
+    "20-mt-bleu.html",
+    "21-enc-dec.html",
+    "22-rl-intro.html",
+    "23-bellman.html",
+    "24-vi-pi-mc.html",
+    "25-td-qlearning.html",
+    "26-policy-gradient.html",
+    "27-actor-critic.html",
 ]
+
 
 def load_lecture(fname: str) -> str:
     path = LECTURES_DIR / fname
@@ -47,7 +68,9 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         for name, html_text in self.lectures.items():
             qa_matches = re.findall(r'<details\s+class=["\'][^"\']*?\bqa\b[^"\']*?["\']', html_text)
             task_matches = re.findall(r'<div\s+class=["\'][^"\']*?\btask\b[^"\']*?["\']', html_text)
-            sol_matches = re.findall(r'<details(?:\s+class=["\']sol["\'])?[^>]*?>\s*<summary>\s*Решение', html_text)
+            sol_matches = re.findall(
+                r'<details(?:\s+class=["\']sol["\'])?[^>]*?>\s*<summary>\s*Решение', html_text
+            )
 
             qa_cnt = len(qa_matches)
             task_cnt = len(task_matches)
@@ -55,7 +78,9 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
 
             self.assertGreaterEqual(qa_cnt, 10, f"{name}: QA count {qa_cnt} < 10")
             self.assertGreaterEqual(task_cnt, 6, f"{name}: Task count {task_cnt} < 6")
-            self.assertEqual(task_cnt, sol_cnt, f"{name}: Task count {task_cnt} != Solution count {sol_cnt}")
+            self.assertEqual(
+                task_cnt, sol_cnt, f"{name}: Task count {task_cnt} != Solution count {sol_cnt}"
+            )
 
             total_qas += qa_cnt
             total_tasks += task_cnt
@@ -77,7 +102,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         # Empirical test: Gradient Descent Step
         theta = torch.tensor([0.0], requires_grad=True)
         # L(theta) = (theta - 3)^2
-        loss = (theta - 3.0)**2
+        loss = (theta - 3.0) ** 2
         loss.backward()
         # theta_1 = theta_0 - 0.1 * grad = 0 - 0.1 * (-6) = 0.6
         eta = 0.1
@@ -87,10 +112,14 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
     def test_l01_fcnn_backprop_derivations(self):
         """L01: 4 Fundamental Backprop equations, Xavier/He initialization formulas."""
         text = self.lectures["01-fcnn.html"]
-        self.assertTrue(re.search(r'\\delta\^\{(?:L|\(L\))\}', text) or r"\delta^L" in text)
-        self.assertTrue(re.search(r'\\delta\^\{(?:l|\(l\))\}', text) or r"\delta^l" in text)
-        self.assertTrue(r"\frac{\partial L}{\partial W" in text or r"\partial L / \partial W" in text)
-        self.assertTrue(r"\frac{\partial L}{\partial b" in text or r"\partial L / \partial b" in text)
+        self.assertTrue(re.search(r"\\delta\^\{(?:L|\(L\))\}", text) or r"\delta^L" in text)
+        self.assertTrue(re.search(r"\\delta\^\{(?:l|\(l\))\}", text) or r"\delta^l" in text)
+        self.assertTrue(
+            r"\frac{\partial L}{\partial W" in text or r"\partial L / \partial W" in text
+        )
+        self.assertTrue(
+            r"\frac{\partial L}{\partial b" in text or r"\partial L / \partial b" in text
+        )
 
         # Empirical check: Toy 2-layer MLP exact backprop step
         torch.manual_seed(42)
@@ -103,7 +132,7 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         z1 = x @ W1 + b1
         a1 = torch.sigmoid(z1)
         z2 = a1 @ W2 + b2
-        loss = 0.5 * (z2 - 1.0)**2
+        loss = 0.5 * (z2 - 1.0) ** 2
         loss.backward()
 
         self.assertTrue(torch.isfinite(W1.grad).all())
@@ -115,12 +144,18 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         """L02: Dual numbers autodiff, PINN total loss structure."""
         text = self.lectures["02-autodiff-pinn.html"]
         self.assertIn("PINN", text)
-        self.assertTrue(r"\mathcal{L}_{\text{data}}" in text or r"L_{\text{data}}" in text or "data" in text)
-        self.assertTrue(r"\mathcal{L}_{\text{PDE}}" in text or r"L_{\text{PDE}}" in text or "pde" in text.lower())
+        self.assertTrue(
+            r"\mathcal{L}_{\text{data}}" in text or r"L_{\text{data}}" in text or "data" in text
+        )
+        self.assertTrue(
+            r"\mathcal{L}_{\text{PDE}}" in text
+            or r"L_{\text{PDE}}" in text
+            or "pde" in text.lower()
+        )
 
         x_val = 3.0
-        val = x_val**3 + 2*x_val
-        der = 3*(x_val**2) + 2
+        val = x_val**3 + 2 * x_val
+        der = 3 * (x_val**2) + 2
         self.assertEqual(val, 33.0)
         self.assertEqual(der, 29.0)
 
@@ -134,16 +169,20 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         gamma = 2.0
         pt_easy = torch.tensor([0.9])
         pt_hard = torch.tensor([0.1])
-        fl_easy = -(1 - pt_easy)**gamma * torch.log(pt_easy)
-        fl_hard = -(1 - pt_hard)**gamma * torch.log(pt_hard)
+        fl_easy = -((1 - pt_easy) ** gamma) * torch.log(pt_easy)
+        fl_hard = -((1 - pt_hard) ** gamma) * torch.log(pt_hard)
         self.assertLess(fl_easy.item() / (-torch.log(pt_easy)).item(), 0.02)
         self.assertGreater(fl_hard.item() / (-torch.log(pt_hard)).item(), 0.8)
 
     def test_l04_cnn_spatial_and_receptive_field_arithmetic(self):
         """L04: Conv2D dimension formula, Dilated convolutions, Receptive Field tracking."""
         text = self.lectures["04-cnn-layers.html"]
-        self.assertTrue(r"\lfloor" in text or r"stride" in text.lower() or "padding" in text.lower())
-        self.assertTrue("receptive" in text.lower() or "поле восприятия" in text.lower() or "rf" in text.lower())
+        self.assertTrue(
+            r"\lfloor" in text or r"stride" in text.lower() or "padding" in text.lower()
+        )
+        self.assertTrue(
+            "receptive" in text.lower() or "поле восприятия" in text.lower() or "rf" in text.lower()
+        )
 
         rf = 1
         j = 1
@@ -187,7 +226,12 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
     def test_l07_hyperparameters_and_scaling_laws(self):
         """L07: Learning rate warmup, Cosine decay, Linear batch size scaling."""
         text = self.lectures["07-hyperparams.html"]
-        self.assertTrue("cosine" in text.lower() or "косинус" in text.lower() or "warmup" in text.lower() or "lr" in text.lower())
+        self.assertTrue(
+            "cosine" in text.lower()
+            or "косинус" in text.lower()
+            or "warmup" in text.lower()
+            or "lr" in text.lower()
+        )
         self.assertTrue("dropout" in text.lower())
 
         p = 0.3
@@ -238,7 +282,9 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
 
         kl_analytical = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
 
-        p = torch.distributions.Normal(torch.tensor(0.0, dtype=torch.float64), torch.tensor(1.0, dtype=torch.float64))
+        p = torch.distributions.Normal(
+            torch.tensor(0.0, dtype=torch.float64), torch.tensor(1.0, dtype=torch.float64)
+        )
         q = torch.distributions.Normal(mu, sigma)
         kl_dist = torch.distributions.kl_divergence(q, p).sum()
         self.assertTrue(torch.allclose(kl_analytical, kl_dist, atol=1e-5))
@@ -246,7 +292,9 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
     def test_l11_gan_minimax_and_wgan_gp(self):
         """L11: Minimax game, Optimal discriminator D*(x), WGAN-GP gradient penalty."""
         text = self.lectures["11-gan.html"]
-        self.assertTrue("минимакс" in text.lower() or "minimax" in text.lower() or "d(x)" in text.lower())
+        self.assertTrue(
+            "минимакс" in text.lower() or "minimax" in text.lower() or "d(x)" in text.lower()
+        )
         self.assertTrue("wasserstein" in text.lower() or "wgan" in text.lower())
 
         p_data = 0.8
@@ -257,7 +305,12 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
     def test_l12_diffusion_ddpm_forward_jump(self):
         """L12: DDPM q(x_t|x_0) analytical jump, alpha_bar product, reverse drift."""
         text = self.lectures["12-diffusion.html"]
-        self.assertTrue(r"\bar{\alpha}_t" in text or r"\alpha_t" in text or "ddpm" in text.lower() or "диффузи" in text.lower())
+        self.assertTrue(
+            r"\bar{\alpha}_t" in text
+            or r"\alpha_t" in text
+            or "ddpm" in text.lower()
+            or "диффузи" in text.lower()
+        )
 
         betas = torch.tensor([0.1, 0.1, 0.1], dtype=torch.float64)
         alphas = 1.0 - betas
@@ -270,7 +323,9 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         """L13: IoU, Dice coefficient relation, YOLO bounding box parametrization."""
         text = self.lectures["13-cv-tasks.html"]
         self.assertTrue("iou" in text.lower())
-        self.assertTrue("dice" in text.lower() or "map" in text.lower() or "детекци" in text.lower())
+        self.assertTrue(
+            "dice" in text.lower() or "map" in text.lower() or "детекци" in text.lower()
+        )
 
         iou = 2.0 / 6.0
         dice = (2.0 * 2.0) / (4.0 + 4.0)
@@ -297,8 +352,12 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
     def test_l15_attention_seq2seq_additive_vs_multiplicative(self):
         """L15: Bahdanau additive vs Luong multiplicative attention scores."""
         text = self.lectures["15-attention-seq2seq.html"]
-        self.assertTrue("bahdanau" in text.lower() or "багданау" in text.lower() or "внимани" in text.lower())
-        self.assertTrue("luong" in text.lower() or "луонг" in text.lower() or "seq2seq" in text.lower())
+        self.assertTrue(
+            "bahdanau" in text.lower() or "багданау" in text.lower() or "внимани" in text.lower()
+        )
+        self.assertTrue(
+            "luong" in text.lower() or "луонг" in text.lower() or "seq2seq" in text.lower()
+        )
 
         scores = torch.tensor([[2.0, 1.0, 0.0]])
         weights = F.softmax(scores, dim=-1)
@@ -308,15 +367,13 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         """L16: Transformer block, FFN parameters 2*d_model*d_ff + d_ff + d_model (d_ff = 4*d_model)."""
         text = self.lectures["16-transformers.html"]
         self.assertTrue("transformer" in text.lower() or "трансформер" in text.lower())
-        self.assertTrue("feed-forward" in text.lower() or "ffn" in text.lower() or "слой" in text.lower())
+        self.assertTrue(
+            "feed-forward" in text.lower() or "ffn" in text.lower() or "слой" in text.lower()
+        )
 
         d_model = 512
         d_ff = 2048
-        ffn = nn.Sequential(
-            nn.Linear(d_model, d_ff),
-            nn.ReLU(),
-            nn.Linear(d_ff, d_model)
-        )
+        ffn = nn.Sequential(nn.Linear(d_model, d_ff), nn.ReLU(), nn.Linear(d_ff, d_model))
         ffn_params = sum(p.numel() for p in ffn.parameters())
         expected = (d_model * d_ff + d_ff) + (d_ff * d_model + d_model)
         self.assertEqual(ffn_params, expected)
@@ -358,7 +415,9 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         """L20: BLEU metric formula, Brevity Penalty BP = min(1, exp(1 - r/c))."""
         text = self.lectures["20-mt-bleu.html"]
         self.assertTrue("bleu" in text.lower())
-        self.assertTrue("brevity" in text.lower() or "краткост" in text.lower() or "bp" in text.lower())
+        self.assertTrue(
+            "brevity" in text.lower() or "краткост" in text.lower() or "bp" in text.lower()
+        )
 
         c_short, r = 8, 10
         bp_short = math.exp(1.0 - r / c_short)
@@ -380,7 +439,9 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
     def test_l22_rl_foundations_mdp_and_returns(self):
         """L22: MDP (S, A, P, R, gamma), Return G_t = sum gamma^k R_{t+k+1}."""
         text = self.lectures["22-rl-intro.html"]
-        self.assertTrue("mdp" in text.lower() or "марковск" in text.lower() or "агент" in text.lower())
+        self.assertTrue(
+            "mdp" in text.lower() or "марковск" in text.lower() or "агент" in text.lower()
+        )
 
         gamma = 0.9
         r = 1.0
@@ -397,10 +458,13 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
         gamma = 0.9
         V = torch.tensor([0.0, 0.0], dtype=torch.float64)
         for _ in range(200):
-            V_next = torch.tensor([
-                max(1.0 + gamma * V[0].item(), 0.0 + gamma * V[1].item()),
-                max(2.0 + gamma * V[1].item(), 0.0 + gamma * V[0].item())
-            ], dtype=torch.float64)
+            V_next = torch.tensor(
+                [
+                    max(1.0 + gamma * V[0].item(), 0.0 + gamma * V[1].item()),
+                    max(2.0 + gamma * V[1].item(), 0.0 + gamma * V[0].item()),
+                ],
+                dtype=torch.float64,
+            )
             V = V_next
         self.assertAlmostEqual(V[0].item(), 18.0, places=2)
         self.assertAlmostEqual(V[1].item(), 20.0, places=2)
@@ -428,7 +492,11 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
     def test_l26_policy_gradient_reinforce_and_ppo(self):
         """L26: Policy Gradient Theorem, Log-derivative trick, REINFORCE baseline, PPO clipped objective."""
         text = self.lectures["26-policy-gradient.html"]
-        self.assertTrue("reinforce" in text.lower() or "policy gradient" in text.lower() or "стратеги" in text.lower())
+        self.assertTrue(
+            "reinforce" in text.lower()
+            or "policy gradient" in text.lower()
+            or "стратеги" in text.lower()
+        )
         self.assertTrue("ppo" in text.lower())
 
         eps = 0.2
@@ -446,7 +514,11 @@ class TestChallenger1MicroTasksAndQAs(unittest.TestCase):
     def test_l27_actor_critic_gae_and_sac(self):
         """L27: Actor-Critic, GAE formula, Soft Actor-Critic (SAC) Maximum Entropy objective."""
         text = self.lectures["27-actor-critic.html"]
-        self.assertTrue("actor-critic" in text.lower() or "актор-критик" in text.lower() or "критик" in text.lower())
+        self.assertTrue(
+            "actor-critic" in text.lower()
+            or "актор-критик" in text.lower()
+            or "критик" in text.lower()
+        )
         self.assertTrue("gae" in text.lower() or "sac" in text.lower())
 
         deltas = [1.0, 2.0, 0.5]
@@ -476,7 +548,9 @@ class TestSyllabusTicketAlignmentGUU26(unittest.TestCase):
     def test_ticket_02a_autodiff_and_pinn(self):
         """Билет 2: Автоматическое дифференцирование. PINN."""
         l = self.lectures["02-autodiff-pinn.html"]
-        self.assertTrue("автоматическ" in l.lower() or "autodiff" in l.lower() or "autograd" in l.lower())
+        self.assertTrue(
+            "автоматическ" in l.lower() or "autodiff" in l.lower() or "autograd" in l.lower()
+        )
         self.assertTrue("pinn" in l.lower() or "физическ" in l.lower())
 
     def test_ticket_02b_losses_mle_and_l2(self):
@@ -497,13 +571,22 @@ class TestSyllabusTicketAlignmentGUU26(unittest.TestCase):
         """Билет 4: Архитектуры CNN. Transfer Learning."""
         l = self.lectures["05-cnn-architectures.html"]
         self.assertTrue("resnet" in l.lower() or "vgg" in l.lower())
-        self.assertTrue("transfer learning" in l.lower() or "перенос" in l.lower() or "fine-tuning" in l.lower())
+        self.assertTrue(
+            "transfer learning" in l.lower() or "перенос" in l.lower() or "fine-tuning" in l.lower()
+        )
 
     def test_ticket_05_optimization_sgd_momentum_adam_matrix_derivatives(self):
         """Билет 5: Оптимизация: SGD, Momentum, Adam, RMSProp. Матричные производные."""
         l = self.lectures["06-optimizers.html"]
-        self.assertTrue("sgd" in l.lower() and "momentum" in l.lower() and "adam" in l.lower() and "rmsprop" in l.lower())
-        self.assertTrue("матричн" in l.lower() or "якобиан" in l.lower() or "производн" in l.lower())
+        self.assertTrue(
+            "sgd" in l.lower()
+            and "momentum" in l.lower()
+            and "adam" in l.lower()
+            and "rmsprop" in l.lower()
+        )
+        self.assertTrue(
+            "матричн" in l.lower() or "якобиан" in l.lower() or "производн" in l.lower()
+        )
 
     def test_ticket_06_hyperparameters_bayesian_optimization(self):
         """Билет 6: Аугментация, выбор гиперпараметров, Байесовская оптимизация."""
@@ -516,7 +599,9 @@ class TestSyllabusTicketAlignmentGUU26(unittest.TestCase):
         l = self.lectures["08-metric-learning.html"]
         self.assertTrue("метрическ" in l.lower() or "metric learning" in l.lower())
         self.assertTrue("сиамск" in l.lower() or "siamese" in l.lower())
-        self.assertTrue("triplet" in l.lower() or "contrastive" in l.lower() or "arcface" in l.lower())
+        self.assertTrue(
+            "triplet" in l.lower() or "contrastive" in l.lower() or "arcface" in l.lower()
+        )
 
     def test_ticket_08_contrastive_ssl(self):
         """Билет 8: Контрастивное обучение и self-supervised learning."""
@@ -634,13 +719,17 @@ class TestSyllabusTicketAlignmentGUU26(unittest.TestCase):
         """Билет 24: Алгоритмы по стратегии: Cross-entropy метод, Policy gradient."""
         l = self.lectures["26-policy-gradient.html"]
         self.assertTrue("policy gradient" in l.lower() or "градиент стратегии" in l.lower())
-        self.assertTrue("cross-entropy" in l.lower() or "кросс-энтропи" in l.lower() or "cem" in l.lower())
+        self.assertTrue(
+            "cross-entropy" in l.lower() or "кросс-энтропи" in l.lower() or "cem" in l.lower()
+        )
 
     def test_ticket_25_value_vs_policy_actor_critic(self):
         """Билет 25: Value-based vs Policy-based. Actor-Critic."""
         l = self.lectures["27-actor-critic.html"]
         self.assertTrue("actor-critic" in l.lower() or "актор-критик" in l.lower())
-        self.assertTrue("advantage" in l.lower() or "преимущество" in l.lower() or "gae" in l.lower())
+        self.assertTrue(
+            "advantage" in l.lower() or "преимущество" in l.lower() or "gae" in l.lower()
+        )
 
 
 if __name__ == "__main__":

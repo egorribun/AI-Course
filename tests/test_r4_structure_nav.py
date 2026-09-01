@@ -75,7 +75,8 @@ class TestR4StructureNav(unittest.TestCase):
         self.assertEqual(
             qa_deficits,
             [],
-            f"Found {len(qa_deficits)} lecture(s) with fewer than 10 QA blocks:\n" + "\n".join(qa_deficits),
+            f"Found {len(qa_deficits)} lecture(s) with fewer than 10 QA blocks:\n"
+            + "\n".join(qa_deficits),
         )
 
     def test_02_all_lectures_have_at_least_6_tasks_with_solutions(self):
@@ -93,7 +94,8 @@ class TestR4StructureNav(unittest.TestCase):
         self.assertEqual(
             task_deficits,
             [],
-            f"Found {len(task_deficits)} lecture(s) failing task requirements:\n" + "\n".join(task_deficits),
+            f"Found {len(task_deficits)} lecture(s) failing task requirements:\n"
+            + "\n".join(task_deficits),
         )
 
     def test_03_all_lectures_have_cheat_sheet_block(self):
@@ -123,15 +125,19 @@ class TestR4StructureNav(unittest.TestCase):
 
             # Backlink check
             if not st.backlinks:
-                missing_elements.append(f"{lec}: missing <a class=\"backlink\">")
+                missing_elements.append(f'{lec}: missing <a class="backlink">')
             else:
                 backlink = st.backlinks[0]
                 if not ("index.html" in backlink or backlink == "../"):
-                    missing_elements.append(f"{lec}: backlink '{backlink}' does not point to index.html")
+                    missing_elements.append(
+                        f"{lec}: backlink '{backlink}' does not point to index.html"
+                    )
 
             # Pills check
             if len(st.pills) < 2:
-                missing_elements.append(f"{lec}: found only {len(st.pills)} .pill badges (expected >= 2)")
+                missing_elements.append(
+                    f"{lec}: found only {len(st.pills)} .pill badges (expected >= 2)"
+                )
 
         self.assertEqual(
             missing_elements,
@@ -145,7 +151,9 @@ class TestR4StructureNav(unittest.TestCase):
 
         all_pages = [("index.html", COURSE_ROOT / "index.html", self.index_structure)]
         for lec in EXPECTED_LECTURES:
-            all_pages.append((f"lectures/{lec}", LECTURES_DIR / lec, self.lecture_structures.get(lec)))
+            all_pages.append(
+                (f"lectures/{lec}", LECTURES_DIR / lec, self.lecture_structures.get(lec))
+            )
 
         for page_name, page_path, structure in all_pages:
             if not structure:
@@ -185,7 +193,9 @@ class TestR4StructureNav(unittest.TestCase):
                     # Same page anchor: #fragment
                     if fragment not in structure.element_ids:
                         # Check regex in content in case parser missed
-                        content = self.lecture_contents.get(Path(page_name).name, self.index_content)
+                        content = self.lecture_contents.get(
+                            Path(page_name).name, self.index_content
+                        )
                         id_pattern = re.compile(rf'id=["\']{re.escape(fragment)}["\']')
                         if not id_pattern.search(content):
                             broken_links.append(
@@ -216,13 +226,17 @@ class TestR4StructureNav(unittest.TestCase):
                 # Next must be 01-fcnn.html
                 next_expected = EXPECTED_LECTURES[1]
                 if not any(next_expected in h for h in hrefs):
-                    chain_errors.append(f"{lec}: next link does not point to '{next_expected}' (found {hrefs})")
+                    chain_errors.append(
+                        f"{lec}: next link does not point to '{next_expected}' (found {hrefs})"
+                    )
             # Last lecture (27)
             elif i == len(EXPECTED_LECTURES) - 1:
                 # Prev must be 26-policy-gradient.html
                 prev_expected = EXPECTED_LECTURES[i - 1]
                 if not any(prev_expected in h for h in hrefs):
-                    chain_errors.append(f"{lec}: prev link does not point to '{prev_expected}' (found {hrefs})")
+                    chain_errors.append(
+                        f"{lec}: prev link does not point to '{prev_expected}' (found {hrefs})"
+                    )
             # Middle lectures (01 to 26)
             else:
                 prev_expected = EXPECTED_LECTURES[i - 1]
@@ -232,9 +246,13 @@ class TestR4StructureNav(unittest.TestCase):
                 has_next = any(next_expected in h for h in hrefs)
 
                 if not has_prev:
-                    chain_errors.append(f"{lec}: prev link missing or does not point to '{prev_expected}'")
+                    chain_errors.append(
+                        f"{lec}: prev link missing or does not point to '{prev_expected}'"
+                    )
                 if not has_next:
-                    chain_errors.append(f"{lec}: next link missing or does not point to '{next_expected}'")
+                    chain_errors.append(
+                        f"{lec}: next link missing or does not point to '{next_expected}'"
+                    )
 
         self.assertEqual(
             chain_errors,
@@ -252,18 +270,22 @@ class TestR4StructureNav(unittest.TestCase):
             content = self.lecture_contents.get(lec, "")
 
             # QA pill check
-            qa_pill_match = re.search(r'(\d+)\s+вопрос', content)
+            qa_pill_match = re.search(r"(\d+)\s+вопрос", content)
             if qa_pill_match:
                 qa_pill_num = int(qa_pill_match.group(1))
                 if qa_pill_num != st.qa_count:
-                    mismatches.append(f"{lec}: QA pill badge says {qa_pill_num}, but actual QA count is {st.qa_count}")
+                    mismatches.append(
+                        f"{lec}: QA pill badge says {qa_pill_num}, but actual QA count is {st.qa_count}"
+                    )
 
             # Task pill check
-            task_pill_match = re.search(r'(\d+)\s+микро-задач', content)
+            task_pill_match = re.search(r"(\d+)\s+микро-задач", content)
             if task_pill_match:
                 task_pill_num = int(task_pill_match.group(1))
                 if task_pill_num != st.task_count:
-                    mismatches.append(f"{lec}: Task pill badge says {task_pill_num}, but actual task count is {st.task_count}")
+                    mismatches.append(
+                        f"{lec}: Task pill badge says {task_pill_num}, but actual task count is {st.task_count}"
+                    )
 
         self.assertEqual(
             mismatches,

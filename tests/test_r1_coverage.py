@@ -47,11 +47,15 @@ class TestR1Coverage(unittest.TestCase):
                 empty_files.append(f"{lec} (size: {lec_path.stat().st_size}b)")
 
         self.assertEqual(missing, [], f"Missing {len(missing)} lecture files: {missing}")
-        self.assertEqual(empty_files, [], f"Lectures with insufficient content (<1000b): {empty_files}")
+        self.assertEqual(
+            empty_files, [], f"Lectures with insufficient content (<1000b): {empty_files}"
+        )
 
     def test_02_syllabus_source_materials_exist(self):
         """Source syllabus materials in dl_guu-dl_26/ must exist and be accessible."""
-        self.assertTrue(DL_GUU_DIR.is_dir(), f"Reference directory dl_guu-dl_26 not found: {DL_GUU_DIR}")
+        self.assertTrue(
+            DL_GUU_DIR.is_dir(), f"Reference directory dl_guu-dl_26 not found: {DL_GUU_DIR}"
+        )
 
         required_files = ["вопросы.txt", "вопросы_ответы.md", "экзамен_важные_темы.md"]
         for fname in required_files:
@@ -66,9 +70,13 @@ class TestR1Coverage(unittest.TestCase):
         content = read_file(voprosy_path)
 
         # Lines starting with digits
-        ticket_lines = [line.strip() for line in content.splitlines() if re.match(r"^\d+\.", line.strip())]
+        ticket_lines = [
+            line.strip() for line in content.splitlines() if re.match(r"^\d+\.", line.strip())
+        ]
         self.assertGreaterEqual(
-            len(ticket_lines), 25, f"Expected at least 25 ticket entries in вопросы.txt, found {len(ticket_lines)}"
+            len(ticket_lines),
+            25,
+            f"Expected at least 25 ticket entries in вопросы.txt, found {len(ticket_lines)}",
         )
 
     def test_04_index_html_mapping_table_covers_all_25_tickets(self):
@@ -121,7 +129,11 @@ class TestR1Coverage(unittest.TestCase):
 
             coverage_report[ticket_num] = missing_keywords
 
-        failed_tickets = {t: kws for t, kws in coverage_report.items() if len(kws) > len(TICKETS_METADATA[t]["keywords"]) // 2}
+        failed_tickets = {
+            t: kws
+            for t, kws in coverage_report.items()
+            if len(kws) > len(TICKETS_METADATA[t]["keywords"]) // 2
+        }
         self.assertEqual(
             failed_tickets,
             {},

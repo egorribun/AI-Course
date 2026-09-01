@@ -67,11 +67,15 @@ class TestTier2StaticAST(unittest.TestCase):
 
             # Quantitative check: >= 10 Q&As
             if parser.qa_count < 10:
-                failures.append(f"{lec_name}: has only {parser.qa_count} Q&As (minimum 10 required)")
+                failures.append(
+                    f"{lec_name}: has only {parser.qa_count} Q&As (minimum 10 required)"
+                )
 
             # Quantitative check: >= 6 tasks with solutions
             if parser.task_count < 6:
-                failures.append(f"{lec_name}: has only {parser.task_count} tasks (minimum 6 required)")
+                failures.append(
+                    f"{lec_name}: has only {parser.task_count} tasks (minimum 6 required)"
+                )
             if parser.sol_count < parser.task_count:
                 failures.append(
                     f"{lec_name}: task solutions count ({parser.sol_count}) < task count ({parser.task_count})"
@@ -86,7 +90,9 @@ class TestTier2StaticAST(unittest.TestCase):
             if not val["valid"]:
                 failures.append(f"{lec_name}: missing 8-step sections: {val['missing_steps']}")
 
-        self.assertEqual(len(failures), 0, "8-Step High-Yield structure failures:\n" + "\n".join(failures))
+        self.assertEqual(
+            len(failures), 0, "8-Step High-Yield structure failures:\n" + "\n".join(failures)
+        )
 
     def test_03_desprintization_zero_occurrences_in_lectures(self):
         """
@@ -130,7 +136,11 @@ class TestTier2StaticAST(unittest.TestCase):
                 if matches:
                     violations.append(f"{file_path.name}: found sprint term {matches[:3]}")
 
-        self.assertEqual(len(violations), 0, "De-sprintization violations found in codebase:\n" + "\n".join(violations))
+        self.assertEqual(
+            len(violations),
+            0,
+            "De-sprintization violations found in codebase:\n" + "\n".join(violations),
+        )
 
     def test_04_python_code_blocks_ast_validity(self):
         """
@@ -150,8 +160,12 @@ class TestTier2StaticAST(unittest.TestCase):
                     except SyntaxError as e:
                         ast_errors.append(f"{lec_name}:{block.line_number} SyntaxError: {e}")
 
-        self.assertGreaterEqual(total_py_blocks, 15, "Expected >= 15 Python code snippets across lectures")
-        self.assertEqual(len(ast_errors), 0, "AST syntax errors in lecture snippets:\n" + "\n".join(ast_errors))
+        self.assertGreaterEqual(
+            total_py_blocks, 15, "Expected >= 15 Python code snippets across lectures"
+        )
+        self.assertEqual(
+            len(ast_errors), 0, "AST syntax errors in lecture snippets:\n" + "\n".join(ast_errors)
+        )
 
     def test_05_latex_math_balance_and_syntax(self):
         """
@@ -172,8 +186,12 @@ class TestTier2StaticAST(unittest.TestCase):
                 for err in errs:
                     latex_errors.append(f"{lec_name}:{mb.line_number} {err}")
 
-        self.assertGreaterEqual(total_math_blocks, 300, f"Expected >= 300 math blocks, found {total_math_blocks}")
-        self.assertEqual(len(latex_errors), 0, "LaTeX syntax errors:\n" + "\n".join(latex_errors[:20]))
+        self.assertGreaterEqual(
+            total_math_blocks, 300, f"Expected >= 300 math blocks, found {total_math_blocks}"
+        )
+        self.assertEqual(
+            len(latex_errors), 0, "LaTeX syntax errors:\n" + "\n".join(latex_errors[:20])
+        )
 
     def test_06_verification_of_10_core_mathematical_derivations(self):
         """
@@ -220,12 +238,15 @@ class TestTier2StaticAST(unittest.TestCase):
                 if sym.lower() not in content_lower and sym not in content:
                     clean_sym = sym.replace("\\", "")
                     if clean_sym.lower() not in content_lower:
-                        missing_derivations.append(f"{lec_file}: missing derivation element '{sym}'")
+                        missing_derivations.append(
+                            f"{lec_file}: missing derivation element '{sym}'"
+                        )
 
         self.assertEqual(
             len(missing_derivations),
             0,
-            "10 Core Mathematical Derivations verification failed:\n" + "\n".join(missing_derivations),
+            "10 Core Mathematical Derivations verification failed:\n"
+            + "\n".join(missing_derivations),
         )
 
     def test_07_html_conformance_and_tag_nesting(self):
@@ -242,12 +263,14 @@ class TestTier2StaticAST(unittest.TestCase):
                 html_errors.append(f"{lec_name}: missing <!DOCTYPE html>")
             if 'charset="UTF-8"' not in content and 'charset="utf-8"' not in content:
                 html_errors.append(f"{lec_name}: missing UTF-8 charset meta")
-            if 'name="viewport"' not in content and "name=\"viewport\"" not in content:
+            if 'name="viewport"' not in content and 'name="viewport"' not in content:
                 html_errors.append(f"{lec_name}: missing viewport meta tag")
             if "style.css" not in content:
                 html_errors.append(f"{lec_name}: missing stylesheet link to style.css")
 
-            details_tags = re.findall(r"<details[^>]*>(.*?)</details>", content, re.DOTALL | re.IGNORECASE)
+            details_tags = re.findall(
+                r"<details[^>]*>(.*?)</details>", content, re.DOTALL | re.IGNORECASE
+            )
             for det in details_tags:
                 if "<summary>" not in det:
                     html_errors.append(f"{lec_name}: <details> element missing <summary>")
@@ -283,7 +306,11 @@ class TestTier2StaticAST(unittest.TestCase):
                 if matches:
                     violations.append(f"{file_path.name}: found legacy anki term {matches[:3]}")
 
-        self.assertEqual(len(violations), 0, "Legacy Anki references found in active files:\n" + "\n".join(violations))
+        self.assertEqual(
+            len(violations),
+            0,
+            "Legacy Anki references found in active files:\n" + "\n".join(violations),
+        )
 
 
 if __name__ == "__main__":

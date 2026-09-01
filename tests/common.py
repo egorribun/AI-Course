@@ -222,7 +222,13 @@ TICKETS_METADATA = {
     22: {
         "title": "Уравнение Беллмана, Итерации по полезностям/стратегиям, Монте-Карло",
         "lectures": ["23-bellman.html", "24-vi-pi-mc.html"],
-        "keywords": ["Беллман", "оптимальност", "Value Iteration", "Policy Iteration", "Монте-Карло"],
+        "keywords": [
+            "Беллман",
+            "оптимальност",
+            "Value Iteration",
+            "Policy Iteration",
+            "Монте-Карло",
+        ],
     },
     23: {
         "title": "Базовые алгоритмы RL: TD, Q-learning",
@@ -244,9 +250,19 @@ TICKETS_METADATA = {
 # Standard 7 Target Viewports for Responsive Layout Testing
 STANDARD_VIEWPORTS = [
     {"name": "320px (iPhone SE / Ultra-compact)", "width": 320, "height": 568, "is_mobile": True},
-    {"name": "375px (iPhone 13 mini / Standard Mobile)", "width": 375, "height": 667, "is_mobile": True},
+    {
+        "name": "375px (iPhone 13 mini / Standard Mobile)",
+        "width": 375,
+        "height": 667,
+        "is_mobile": True,
+    },
     {"name": "414px (iPhone Plus / Max / Android)", "width": 414, "height": 896, "is_mobile": True},
-    {"name": "768px (iPad Mini / Portrait Tablet)", "width": 768, "height": 1024, "is_mobile": False},
+    {
+        "name": "768px (iPad Mini / Portrait Tablet)",
+        "width": 768,
+        "height": 1024,
+        "is_mobile": False,
+    },
     {"name": "1024px (iPad Pro / Small Laptop)", "width": 1024, "height": 768, "is_mobile": False},
     {"name": "1440px (Desktop / MacBook Pro)", "width": 1440, "height": 900, "is_mobile": False},
     {"name": "2560px (Ultrawide 4K Monitor)", "width": 2560, "height": 1440, "is_mobile": False},
@@ -281,7 +297,9 @@ def extract_code_blocks(html_content: str, filename: str = "") -> List[CodeBlock
     Determines if block represents Python code.
     """
     blocks: List[CodeBlock] = []
-    pattern = re.compile(r"<pre[^>]*>(?:<code[^>]*>)?(.*?)(?:</code>)?</pre>", re.DOTALL | re.IGNORECASE)
+    pattern = re.compile(
+        r"<pre[^>]*>(?:<code[^>]*>)?(.*?)(?:</code>)?</pre>", re.DOTALL | re.IGNORECASE
+    )
 
     for match in pattern.finditer(html_content):
         start_pos = match.start()
@@ -316,7 +334,12 @@ def extract_code_blocks(html_content: str, filename: str = "") -> List[CodeBlock
         ]
         is_py = any(kw in clean for kw in py_keywords)
 
-        if clean.startswith("$ ") or clean.startswith("# ASCII") or "+---" in clean or "|---" in clean:
+        if (
+            clean.startswith("$ ")
+            or clean.startswith("# ASCII")
+            or "+---" in clean
+            or "|---" in clean
+        ):
             is_py = False
 
         blocks.append(
@@ -351,10 +374,21 @@ def extract_math_blocks(html_content: str, filename: str = "") -> List[MathBlock
         return "\n" * match.group(0).count("\n")
 
     masked = re.sub(r"<!--.*?-->", replace_with_whitespace, masked, flags=re.DOTALL)
-    masked = re.sub(r"<script[^>]*>.*?</script>", replace_with_whitespace, masked, flags=re.DOTALL | re.IGNORECASE)
-    masked = re.sub(r"<style[^>]*>.*?</style>", replace_with_whitespace, masked, flags=re.DOTALL | re.IGNORECASE)
-    masked = re.sub(r"<pre[^>]*>.*?</pre>", replace_with_whitespace, masked, flags=re.DOTALL | re.IGNORECASE)
-    masked = re.sub(r"<code[^>]*>.*?</code>", replace_with_whitespace, masked, flags=re.DOTALL | re.IGNORECASE)
+    masked = re.sub(
+        r"<script[^>]*>.*?</script>",
+        replace_with_whitespace,
+        masked,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+    masked = re.sub(
+        r"<style[^>]*>.*?</style>", replace_with_whitespace, masked, flags=re.DOTALL | re.IGNORECASE
+    )
+    masked = re.sub(
+        r"<pre[^>]*>.*?</pre>", replace_with_whitespace, masked, flags=re.DOTALL | re.IGNORECASE
+    )
+    masked = re.sub(
+        r"<code[^>]*>.*?</code>", replace_with_whitespace, masked, flags=re.DOTALL | re.IGNORECASE
+    )
 
     blocks: List[MathBlock] = []
 
@@ -363,7 +397,11 @@ def extract_math_blocks(html_content: str, filename: str = "") -> List[MathBlock
     for m in display_pattern.finditer(masked):
         start = m.start()
         line = masked[:start].count("\n") + 1
-        blocks.append(MathBlock(filename=filename, line_number=line, raw_latex=m.group(1).strip(), is_display=True))
+        blocks.append(
+            MathBlock(
+                filename=filename, line_number=line, raw_latex=m.group(1).strip(), is_display=True
+            )
+        )
 
     # Mask display math so inline search doesn't match inner parts
     no_display = display_pattern.sub(lambda m: " " * len(m.group(0)), masked)
@@ -375,7 +413,9 @@ def extract_math_blocks(html_content: str, filename: str = "") -> List[MathBlock
         line = no_display[:start].count("\n") + 1
         content = m.group(1).strip()
         if content and "\n\n" not in content:
-            blocks.append(MathBlock(filename=filename, line_number=line, raw_latex=content, is_display=False))
+            blocks.append(
+                MathBlock(filename=filename, line_number=line, raw_latex=content, is_display=False)
+            )
 
     return blocks
 
@@ -426,7 +466,9 @@ def validate_latex_syntax(raw_latex: str) -> List[str]:
     left_count = len(re.findall(r"\\left(?:\(|\[|\\\{|\||\.)", raw_latex))
     right_count = len(re.findall(r"\\right(?:\)|\]|\\\}|\||\.)", raw_latex))
     if left_count != right_count:
-        errors.append(f"Mismatched \\left ({left_count}) and \\right ({right_count}) in: {raw_latex[:60]}")
+        errors.append(
+            f"Mismatched \\left ({left_count}) and \\right ({right_count}) in: {raw_latex[:60]}"
+        )
 
     return errors
 
@@ -561,14 +603,120 @@ def parse_lecture_structure(html_content: str) -> CourseStructureParser:
 # --- High-Yield 8-Step Structure Validator ---
 
 MANDATORY_8_STEPS = [
-    {"num": 1, "name": "Интуиция и мотивация", "keywords": ["интуици", "мотиваци", "постановк", "суть", "зачем", "введение", "лестниц", "концепц", "базов"]},
-    {"num": 2, "name": "Архитектура и схема", "keywords": ["архитектур", "схем", "пайплайн", "граф", "диаграмм", "слои", "структур", "модель", "детекци", "сегментац", "трансформер", "блок"]},
-    {"num": 3, "name": "Математический аппарат", "keywords": ["математик", "математическ", "формул", "аппарат", "вывод", "дифференциал", "уравнен", "loss", "функци", "градиент", "iou", "nms", "map", "attention", "декодер"]},
-    {"num": 4, "name": "Пошаговый числовой пример", "keywords": ["числовой", "пример", "расчет", "расчёт", "шаг", "алгоритм", "forward", "backward", "вычислени", "итераци", "проход", "ручной"]},
-    {"num": 5, "name": "Преимущества, недостатки и применимость", "keywords": ["плюс", "минус", "преимуществ", "недостатк", "применим", "сравнен", "границ", "когда", "сводн", "таблиц", "trade-off", "ограничен"]},
-    {"num": 6, "name": "🎯 Препод спросит", "keywords": ["препод", "спрос", "вопрос", "defense", "q&a", "каверзн"]},
-    {"num": 7, "name": "📝 Микро-задачи с решениями", "keywords": ["микро-задач", "задач", "практик", "расчетн", "упражнен"]},
-    {"num": 8, "name": "⚡ Скелет ответа по билету", "keywords": ["скелет", "билет", "шпаргалк", "ответ", "тезис", "конспект", "3 минут", "три минут"]},
+    {
+        "num": 1,
+        "name": "Интуиция и мотивация",
+        "keywords": [
+            "интуици",
+            "мотиваци",
+            "постановк",
+            "суть",
+            "зачем",
+            "введение",
+            "лестниц",
+            "концепц",
+            "базов",
+        ],
+    },
+    {
+        "num": 2,
+        "name": "Архитектура и схема",
+        "keywords": [
+            "архитектур",
+            "схем",
+            "пайплайн",
+            "граф",
+            "диаграмм",
+            "слои",
+            "структур",
+            "модель",
+            "детекци",
+            "сегментац",
+            "трансформер",
+            "блок",
+        ],
+    },
+    {
+        "num": 3,
+        "name": "Математический аппарат",
+        "keywords": [
+            "математик",
+            "математическ",
+            "формул",
+            "аппарат",
+            "вывод",
+            "дифференциал",
+            "уравнен",
+            "loss",
+            "функци",
+            "градиент",
+            "iou",
+            "nms",
+            "map",
+            "attention",
+            "декодер",
+        ],
+    },
+    {
+        "num": 4,
+        "name": "Пошаговый числовой пример",
+        "keywords": [
+            "числовой",
+            "пример",
+            "расчет",
+            "расчёт",
+            "шаг",
+            "алгоритм",
+            "forward",
+            "backward",
+            "вычислени",
+            "итераци",
+            "проход",
+            "ручной",
+        ],
+    },
+    {
+        "num": 5,
+        "name": "Преимущества, недостатки и применимость",
+        "keywords": [
+            "плюс",
+            "минус",
+            "преимуществ",
+            "недостатк",
+            "применим",
+            "сравнен",
+            "границ",
+            "когда",
+            "сводн",
+            "таблиц",
+            "trade-off",
+            "ограничен",
+        ],
+    },
+    {
+        "num": 6,
+        "name": "🎯 Препод спросит",
+        "keywords": ["препод", "спрос", "вопрос", "defense", "q&a", "каверзн"],
+    },
+    {
+        "num": 7,
+        "name": "📝 Микро-задачи с решениями",
+        "keywords": ["микро-задач", "задач", "практик", "расчетн", "упражнен"],
+    },
+    {
+        "num": 8,
+        "name": "⚡ Скелет ответа по билету",
+        "keywords": [
+            "скелет",
+            "билет",
+            "шпаргалк",
+            "ответ",
+            "тезис",
+            "конспект",
+            "3 минут",
+            "три минут",
+        ],
+    },
 ]
 
 
@@ -594,15 +742,26 @@ def validate_8step_structure(html_content: str) -> Dict[str, Any]:
 
         # 2. Check in structural tags and classes
         if not matched:
-            if step["num"] == 1 and ('class="box idea"' in content_lower or 'class="sub"' in content_lower):
+            if step["num"] == 1 and (
+                'class="box idea"' in content_lower or 'class="sub"' in content_lower
+            ):
                 matched = True
-            elif step["num"] == 2 and ('class="scheme"' in content_lower or 'class="diagram"' in content_lower):
+            elif step["num"] == 2 and (
+                'class="scheme"' in content_lower or 'class="diagram"' in content_lower
+            ):
                 matched = True
-            elif step["num"] == 3 and ('class="formula"' in content_lower or '$$' in html_content):
+            elif step["num"] == 3 and ('class="formula"' in content_lower or "$$" in html_content):
                 matched = True
-            elif step["num"] == 4 and ('числовой' in content_lower or 'пример' in content_lower or parser.task_count >= 1):
+            elif step["num"] == 4 and (
+                "числовой" in content_lower or "пример" in content_lower or parser.task_count >= 1
+            ):
                 matched = True
-            elif step["num"] == 5 and ('<table' in content_lower or 'плюс' in content_lower or 'преимуществ' in content_lower or 'сравнен' in content_lower):
+            elif step["num"] == 5 and (
+                "<table" in content_lower
+                or "плюс" in content_lower
+                or "преимуществ" in content_lower
+                or "сравнен" in content_lower
+            ):
                 matched = True
             elif step["num"] == 6 and parser.qa_count >= 10:
                 matched = True
@@ -629,11 +788,14 @@ def validate_8step_structure(html_content: str) -> Dict[str, Any]:
 
 # --- SM-2 Spaced Repetition Reference Engine ---
 
+
 class SM2ReferenceEngine:
     """Authoritative reference implementation of SuperMemo SM-2 algorithm."""
 
     @staticmethod
-    def calc_next_review(quality: int, repetitions: int, ease_factor: float, interval: int) -> Dict[str, Any]:
+    def calc_next_review(
+        quality: int, repetitions: int, ease_factor: float, interval: int
+    ) -> Dict[str, Any]:
         quality = max(0, min(5, quality))
         new_ef = ease_factor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
         new_ef = max(1.3, new_ef)
@@ -659,6 +821,7 @@ class SM2ReferenceEngine:
 
 # --- DOM & Viewport Box-Model Emulator ---
 
+
 @dataclass
 class EmulatedElement:
     tag: str
@@ -682,7 +845,9 @@ class DOMViewportEmulator:
     """Simulates viewport geometry and layout checks across 7 standard screen widths."""
 
     @staticmethod
-    def verify_viewport_overflow(page_max_content_width: float, viewport_width: int, has_overflow_wrap: bool) -> bool:
+    def verify_viewport_overflow(
+        page_max_content_width: float, viewport_width: int, has_overflow_wrap: bool
+    ) -> bool:
         if has_overflow_wrap:
             return True
         return page_max_content_width <= viewport_width

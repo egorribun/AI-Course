@@ -23,7 +23,10 @@ LECTURES_DIR = COURSE_ROOT / "lectures"
 
 from common import EXPECTED_LECTURES
 
-pattern = re.compile(r"<pre[^>]*>(?:<code[^>]*>)?(.*?)(?:</code>)?</pre>", re.DOTALL | re.IGNORECASE)
+pattern = re.compile(
+    r"<pre[^>]*>(?:<code[^>]*>)?(.*?)(?:</code>)?</pre>", re.DOTALL | re.IGNORECASE
+)
+
 
 def run_snippet_audit():
     all_snippets = []
@@ -43,20 +46,40 @@ def run_snippet_audit():
             clean = html.unescape(clean).strip()
 
             # Context: 200 chars before and 200 chars after
-            ctx_before = re.sub(r"<[^>]+>", " ", content[max(0, start - 300):start]).strip()
-            ctx_after = re.sub(r"<[^>]+>", " ", content[end:min(len(content), end + 300)]).strip()
+            ctx_before = re.sub(r"<[^>]+>", " ", content[max(0, start - 300) : start]).strip()
+            ctx_after = re.sub(r"<[^>]+>", " ", content[end : min(len(content), end + 300)]).strip()
 
             # Determine type
             is_bash = clean.startswith("$") or clean.startswith("pip install")
             is_ascii = "+---" in clean or "|---" in clean or "# ASCII" in clean or "=== " in clean
 
             py_indicators = [
-                "import torch", "import numpy", "import math", "import nn", "from torch",
-                "nn.Module", "def ", "class ", "torch.tensor", "torch.zeros", "torch.randn",
-                "return ", "self.", "in range(", "torch.optim", "torch.autograd", "F.relu",
-                "F.cross_entropy", "q_table", "model ="
+                "import torch",
+                "import numpy",
+                "import math",
+                "import nn",
+                "from torch",
+                "nn.Module",
+                "def ",
+                "class ",
+                "torch.tensor",
+                "torch.zeros",
+                "torch.randn",
+                "return ",
+                "self.",
+                "in range(",
+                "torch.optim",
+                "torch.autograd",
+                "F.relu",
+                "F.cross_entropy",
+                "q_table",
+                "model =",
             ]
-            is_py = (not is_bash) and (not is_ascii) and (any(k in clean for k in py_indicators) or "=" in clean or "print(" in clean)
+            is_py = (
+                (not is_bash)
+                and (not is_ascii)
+                and (any(k in clean for k in py_indicators) or "=" in clean or "print(" in clean)
+            )
 
             snippet_data = {
                 "lecture": lec,
@@ -96,13 +119,16 @@ def run_snippet_audit():
                     # Capture stdout
                     import io
                     from contextlib import redirect_stdout
+
                     buf = io.StringIO()
                     with redirect_stdout(buf):
                         exec(clean, exec_globals)
                     snippet_data["exec_status"] = "SUCCESS_STANDALONE"
                     snippet_data["exec_output"] = buf.getvalue()[:200]
                 except Exception as e:
-                    snippet_data["exec_status"] = f"REQUIRES_CONTEXT_OR_INPUTS ({type(e).__name__}: {str(e)[:80]})"
+                    snippet_data["exec_status"] = (
+                        f"REQUIRES_CONTEXT_OR_INPUTS ({type(e).__name__}: {str(e)[:80]})"
+                    )
 
             lec_blocks.append(snippet_data)
             all_snippets.append(snippet_data)
@@ -112,18 +138,30 @@ def run_snippet_audit():
     summary = {
         "total_extracted_blocks": len(all_snippets),
         "python_blocks": sum(1 for s in all_snippets if s["is_python"]),
-        "ast_valid_python_blocks": sum(1 for s in all_snippets if s["is_python"] and s["ast_valid"]),
+        "ast_valid_python_blocks": sum(
+            1 for s in all_snippets if s["is_python"] and s["ast_valid"]
+        ),
         "ast_syntax_errors": sum(1 for s in all_snippets if s["is_python"] and not s["ast_valid"]),
-        "standalone_executed_cleanly": sum(1 for s in all_snippets if s["exec_status"] == "SUCCESS_STANDALONE"),
-        "context_dependent_snippets": sum(1 for s in all_snippets if s["is_python"] and s["exec_status"] != "SUCCESS_STANDALONE"),
+        "standalone_executed_cleanly": sum(
+            1 for s in all_snippets if s["exec_status"] == "SUCCESS_STANDALONE"
+        ),
+        "context_dependent_snippets": sum(
+            1 for s in all_snippets if s["is_python"] and s["exec_status"] != "SUCCESS_STANDALONE"
+        ),
     }
 
     out_file = COURSE_ROOT / ".agents" / "explorer_code_1" / "snippets_detail.json"
     with open(out_file, "w", encoding="utf-8") as f:
-        json.dump({"summary": summary, "by_lecture": by_lecture, "all_snippets": all_snippets}, f, indent=2, ensure_ascii=False)
+        json.dump(
+            {"summary": summary, "by_lecture": by_lecture, "all_snippets": all_snippets},
+            f,
+            indent=2,
+            ensure_ascii=False,
+        )
 
     print("SNIPPET AUDIT COMPLETE! Saved to", out_file)
     print("Summary:", json.dumps(summary, indent=2))
+
 
 if __name__ == "__main__":
     if hasattr(sys.stdout, "reconfigure"):

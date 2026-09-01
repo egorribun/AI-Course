@@ -54,7 +54,9 @@ class TestR2MathLatex(unittest.TestCase):
             if len(blocks) < 3:
                 empty_math.append(f"{lec} (only {len(blocks)} math blocks found)")
 
-        self.assertEqual(empty_math, [], f"Lectures lacking sufficient mathematical content: {empty_math}")
+        self.assertEqual(
+            empty_math, [], f"Lectures lacking sufficient mathematical content: {empty_math}"
+        )
 
     def test_02_latex_delimiter_and_brace_balance_across_all_lectures(self):
         """Validates that all LaTeX expressions in all 28 lectures have balanced braces and valid syntax."""
@@ -111,19 +113,29 @@ class TestR2MathLatex(unittest.TestCase):
     def test_05_verify_l02_pinn_loss_and_residuals(self):
         """L02 (PINN) must contain PDE residual loss formulation."""
         content = read_file(LECTURES_DIR / "02-autodiff-pinn.html")
-        self.assertTrue("PDE" in content or r"\mathcal{F}" in content or "невязк" in content.lower(), "L02 missing PDE loss formulation")
         self.assertTrue(
-            "autograd" in content.lower() or "autodiff" in content.lower(), "L02 missing autograd/autodiff discussion"
+            "PDE" in content or r"\mathcal{F}" in content or "невязк" in content.lower(),
+            "L02 missing PDE loss formulation",
+        )
+        self.assertTrue(
+            "autograd" in content.lower() or "autodiff" in content.lower(),
+            "L02 missing autograd/autodiff discussion",
         )
 
     def test_06_verify_l03_mle_and_loss_derivations(self):
         """L03 (Losses & MLE) must contain Gaussian/Laplace MLE and Cross-Entropy formulations."""
         content = read_file(LECTURES_DIR / "03-losses-mle.html")
         self.assertTrue(
-            r"\log p(" in content or r"\ln p(" in content or "MLE" in content or "правдоподоби" in content.lower(),
+            r"\log p(" in content
+            or r"\ln p(" in content
+            or "MLE" in content
+            or "правдоподоби" in content.lower(),
             "L03 missing log-likelihood formulation",
         )
-        self.assertTrue("MSE" in content and ("MAE" in content or "L1" in content), "L03 missing MSE / MAE comparisons")
+        self.assertTrue(
+            "MSE" in content and ("MAE" in content or "L1" in content),
+            "L03 missing MSE / MAE comparisons",
+        )
 
     def test_07_verify_l04_l05_cnn_math_and_skip_connections(self):
         """L04 & L05 must contain receptive field / conv dimension formulas and ResNet gradient proof."""
@@ -132,7 +144,10 @@ class TestR2MathLatex(unittest.TestCase):
 
         # Conv dimension formula in L04
         self.assertTrue(
-            "H_{out}" in l04 or "W_{out}" in l04 or "stride" in l04.lower() or "padding" in l04.lower(),
+            "H_{out}" in l04
+            or "W_{out}" in l04
+            or "stride" in l04.lower()
+            or "padding" in l04.lower(),
             "L04 missing convolution dimension output formula",
         )
         # Skip connection in L05
@@ -159,7 +174,10 @@ class TestR2MathLatex(unittest.TestCase):
         """L11 (GAN) must contain the Minimax game objective and JSD connection."""
         content = read_file(LECTURES_DIR / "11-gan.html")
         self.assertTrue(
-            r"\min_G \max_D" in content or r"\max_D \min_G" in content or r"V(D, G)" in content or "minimax" in content.lower(),
+            r"\min_G \max_D" in content
+            or r"\max_D \min_G" in content
+            or r"V(D, G)" in content
+            or "minimax" in content.lower(),
             "L11 missing Minimax game objective",
         )
         self.assertTrue(
@@ -171,7 +189,11 @@ class TestR2MathLatex(unittest.TestCase):
         """L12 (Diffusion) must contain forward q(x_t|x_0) and reverse denoising formulas."""
         content = read_file(LECTURES_DIR / "12-diffusion.html")
         self.assertTrue(
-            r"q(x_t" in content or r"q(x_t|x_0)" in content or r"\alpha_t" in content or r"\beta_t" in content or "DDPM" in content,
+            r"q(x_t" in content
+            or r"q(x_t|x_0)" in content
+            or r"\alpha_t" in content
+            or r"\beta_t" in content
+            or "DDPM" in content,
             "L12 missing forward diffusion transition formula",
         )
 
@@ -182,7 +204,9 @@ class TestR2MathLatex(unittest.TestCase):
         combined = l16 + l17
 
         self.assertTrue(
-            r"\frac{QK^T}{\sqrt{d" in combined or r"\text{softmax}" in combined.lower() or r"\text{Softmax}" in combined,
+            r"\frac{QK^T}{\sqrt{d" in combined
+            or r"\text{softmax}" in combined.lower()
+            or r"\text{Softmax}" in combined,
             "L16/L17 missing Scaled Dot-Product Attention formula",
         )
 
@@ -214,7 +238,11 @@ class TestR2MathLatex(unittest.TestCase):
         )
         # L27 Actor-Critic & Advantage
         self.assertTrue(
-            r"A(s, a)" in l27 or r"A^\pi" in l27 or "advantage" in l27.lower() or "GAE" in l27 or "SAC" in l27,
+            r"A(s, a)" in l27
+            or r"A^\pi" in l27
+            or "advantage" in l27.lower()
+            or "GAE" in l27
+            or "SAC" in l27,
             "L27 missing Advantage / Actor-Critic formulation",
         )
 

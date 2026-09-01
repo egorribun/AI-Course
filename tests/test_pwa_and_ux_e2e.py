@@ -37,16 +37,32 @@ class TestPwaManifestAndServiceWorker(unittest.TestCase):
             self.fail(f"manifest.json is malformed JSON: {err}")
 
         # Required W3C / PWA fields
-        required_fields = ["name", "short_name", "start_url", "display", "background_color", "theme_color", "icons"]
+        required_fields = [
+            "name",
+            "short_name",
+            "start_url",
+            "display",
+            "background_color",
+            "theme_color",
+            "icons",
+        ]
         for field in required_fields:
             self.assertIn(field, data, f"manifest.json must contain '{field}'")
             self.assertTrue(data[field], f"manifest.json field '{field}' must not be empty")
 
         # Specific values
         self.assertEqual(data["display"], "standalone", "manifest display must be 'standalone'")
-        self.assertIn(data["start_url"], [".", "./", "index.html", "./index.html", "/"], "start_url must point to root/index")
-        self.assertTrue(data["theme_color"].startswith("#"), "theme_color must be a valid hex color")
-        self.assertTrue(data["background_color"].startswith("#"), "background_color must be a valid hex color")
+        self.assertIn(
+            data["start_url"],
+            [".", "./", "index.html", "./index.html", "/"],
+            "start_url must point to root/index",
+        )
+        self.assertTrue(
+            data["theme_color"].startswith("#"), "theme_color must be a valid hex color"
+        )
+        self.assertTrue(
+            data["background_color"].startswith("#"), "background_color must be a valid hex color"
+        )
 
         # Icons list
         self.assertIsInstance(data["icons"], list, "icons must be an array")
@@ -66,7 +82,9 @@ class TestPwaManifestAndServiceWorker(unittest.TestCase):
             if src.startswith("data:"):
                 continue  # inline data URI is self-contained
             icon_path = COURSE_ROOT / src.lstrip("/")
-            self.assertTrue(icon_path.exists(), f"Referenced icon file does not exist on disk: {icon_path}")
+            self.assertTrue(
+                icon_path.exists(), f"Referenced icon file does not exist on disk: {icon_path}"
+            )
 
     def test_03_service_worker_structure_and_lifecycle_events(self):
         """Verify sw.js defines cache versioning, install, activate, and fetch lifecycle handlers."""
@@ -75,7 +93,9 @@ class TestPwaManifestAndServiceWorker(unittest.TestCase):
 
         # Cache name / versioning
         self.assertTrue(
-            re.search(r"CACHE_NAME|CACHE_VERSION|CACHE_KEY|const\s+CACHE\s*=", sw_code, re.IGNORECASE),
+            re.search(
+                r"CACHE_NAME|CACHE_VERSION|CACHE_KEY|const\s+CACHE\s*=", sw_code, re.IGNORECASE
+            ),
             "sw.js must define a cache name or cache version constant",
         )
         self.assertIn("ai-course-v3", sw_code, "sw.js must define CACHE_NAME as 'ai-course-v3'")
@@ -121,7 +141,9 @@ class TestPwaManifestAndServiceWorker(unittest.TestCase):
         sw_code = read_file(SW_FILE)
 
         # Cache matching and network-first
-        self.assertIn("caches.match", sw_code, "sw.js must use caches.match for cache retrieval / fallback")
+        self.assertIn(
+            "caches.match", sw_code, "sw.js must use caches.match for cache retrieval / fallback"
+        )
         self.assertIn("fetch(req)", sw_code, "sw.js must initiate network fetch for local assets")
 
         # Dynamic / CDN fetch handling or offline fallback
@@ -173,7 +195,9 @@ class TestKeyboardShortcutsAndInteraction(unittest.TestCase):
 
     def test_07_keyboard_shortcut_listeners_registered(self):
         """Verify keydown event listeners are registered for navigation, theme, search, and spoilers."""
-        self.assertIn("keydown", self.combined_js, "Global keydown event listener must be registered in JS")
+        self.assertIn(
+            "keydown", self.combined_js, "Global keydown event listener must be registered in JS"
+        )
 
         # Shortcuts required by R2: [, ], T, /, Alt+O
         self.assertTrue(
@@ -181,7 +205,9 @@ class TestKeyboardShortcutsAndInteraction(unittest.TestCase):
             "Navigation shortcuts '[' and ']' must be handled in JS",
         )
         self.assertTrue(
-            "e.key === 't'" in self.combined_js.lower() or "key === 't'" in self.combined_js.lower() or "key.tolowercase() === 't'" in self.combined_js.lower(),
+            "e.key === 't'" in self.combined_js.lower()
+            or "key === 't'" in self.combined_js.lower()
+            or "key.tolowercase() === 't'" in self.combined_js.lower(),
             "Theme toggle shortcut 'T' / 't' must be handled in JS",
         )
         self.assertTrue(
@@ -196,13 +222,20 @@ class TestKeyboardShortcutsAndInteraction(unittest.TestCase):
     def test_08_keyboard_shortcuts_input_guarding_safety(self):
         """Verify keyboard shortcuts do not trigger while user types in input, textarea, or select."""
         self.assertTrue(
-            re.search(r"tagName\s*===\s*['\"]INPUT['\"]|INPUT|TEXTAREA|SELECT|isContentEditable", self.combined_js),
+            re.search(
+                r"tagName\s*===\s*['\"]INPUT['\"]|INPUT|TEXTAREA|SELECT|isContentEditable",
+                self.combined_js,
+            ),
             "Keyboard shortcut dispatcher must check active element / target to prevent hijacking input fields",
         )
 
     def test_09_search_focus_shortcut_prevents_default(self):
         """Verify '/' search shortcut calls preventDefault() to avoid typing '/' into input."""
-        self.assertIn("preventDefault", self.combined_js, "Search shortcut handler must call e.preventDefault()")
+        self.assertIn(
+            "preventDefault",
+            self.combined_js,
+            "Search shortcut handler must call e.preventDefault()",
+        )
 
     def test_10_spoiler_toggle_alt_o_manipulates_details_open(self):
         """Verify Alt+O shortcut toggles 'open' attribute across all <details> elements."""
@@ -224,9 +257,15 @@ class TestAccessibilityAndPrintCSS(unittest.TestCase):
 
     def test_11_focus_visible_rules_in_style_css(self):
         """Verify :focus-visible rules exist for keyboard accessibility on interactive elements."""
-        self.assertIn(":focus-visible", self.style_css, "style.css must define :focus-visible rules for WCAG 2.1 AA")
+        self.assertIn(
+            ":focus-visible",
+            self.style_css,
+            "style.css must define :focus-visible rules for WCAG 2.1 AA",
+        )
         self.assertTrue(
-            "outline:" in self.style_css or "outline-color:" in self.style_css or "box-shadow:" in self.style_css,
+            "outline:" in self.style_css
+            or "outline-color:" in self.style_css
+            or "box-shadow:" in self.style_css,
             "Focus visible rules must define high-contrast focus rings",
         )
 
@@ -249,8 +288,14 @@ class TestAccessibilityAndPrintCSS(unittest.TestCase):
 
     def test_13_code_copy_button_and_visual_feedback(self):
         """Verify code snippet copy buttons use clipboard API with visual confirmation and fallback."""
-        self.assertIn("copy-btn", self.lecture_js, "lecture.js must attach .copy-btn to code blocks")
-        self.assertIn("navigator.clipboard", self.lecture_js, "Copy button must utilize navigator.clipboard API")
+        self.assertIn(
+            "copy-btn", self.lecture_js, "lecture.js must attach .copy-btn to code blocks"
+        )
+        self.assertIn(
+            "navigator.clipboard",
+            self.lecture_js,
+            "Copy button must utilize navigator.clipboard API",
+        )
         self.assertTrue(
             "Скопировано" in self.lecture_js or "copied" in self.lecture_js,
             "Copy button must provide immediate visual feedback upon copying",
@@ -260,7 +305,10 @@ class TestAccessibilityAndPrintCSS(unittest.TestCase):
         """Verify Exam Simulator uses ARIA roles and attributes for tab navigation."""
         all_code = self.sim_js + "\n" + read_file(INDEX_FILE)
         self.assertTrue(
-            "aria-label" in all_code or "role=\"tab\"" in all_code or "tablist" in all_code or "aria-selected" in all_code,
+            "aria-label" in all_code
+            or 'role="tab"' in all_code
+            or "tablist" in all_code
+            or "aria-selected" in all_code,
             "Exam simulator must define ARIA accessibility attributes",
         )
 

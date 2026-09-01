@@ -51,7 +51,9 @@ class TestE2EIntegrationScenarios(unittest.TestCase):
         search_terms = ["transformer", "attention", "трансформ", "вниман"]
         matching_lectures = []
         for lec in self.exam_data:
-            combined = f"{lec.get('title', '')} {lec.get('ticket', '')} {lec.get('filename', '')}".lower()
+            combined = (
+                f"{lec.get('title', '')} {lec.get('ticket', '')} {lec.get('filename', '')}".lower()
+            )
             if any(term in combined for term in search_terms):
                 matching_lectures.append(lec)
 
@@ -111,9 +113,14 @@ class TestE2EIntegrationScenarios(unittest.TestCase):
 
         # Verify ticket content
         self.assertIn("vae", ticket_10.get("filename", "").lower())
-        self.assertTrue(len(ticket_10.get("cheat_items", [])) >= 3, "Ticket 10 must have >= 3 cheat skeleton bullets")
+        self.assertTrue(
+            len(ticket_10.get("cheat_items", [])) >= 3,
+            "Ticket 10 must have >= 3 cheat skeleton bullets",
+        )
         self.assertTrue(len(ticket_10.get("qas", [])) >= 3, "Ticket 10 must have >= 3 sample Q&As")
-        self.assertTrue(len(ticket_10.get("tasks", [])) >= 1, "Ticket 10 must have >= 1 sample task")
+        self.assertTrue(
+            len(ticket_10.get("tasks", [])) >= 1, "Ticket 10 must have >= 1 sample task"
+        )
 
         # Simulate 3-minute oral exam timer countdown
         display_states = []
@@ -203,9 +210,17 @@ class TestE2EIntegrationScenarios(unittest.TestCase):
         all_qas = []
         for lec in self.exam_data:
             for qa in lec.get("qas", []):
-                all_qas.append({"lectureId": lec.get("id"), "question": qa.get("question"), "answer": qa.get("answer")})
+                all_qas.append(
+                    {
+                        "lectureId": lec.get("id"),
+                        "question": qa.get("question"),
+                        "answer": qa.get("answer"),
+                    }
+                )
 
-        self.assertGreaterEqual(len(all_qas), 280, "Syllabus must contain at least 280 Q&As for Blitz pool")
+        self.assertGreaterEqual(
+            len(all_qas), 280, "Syllabus must contain at least 280 Q&As for Blitz pool"
+        )
 
         # Select 10 questions
         blitz_sample = all_qas[:10]
@@ -247,6 +262,7 @@ class TestE2EIntegrationScenarios(unittest.TestCase):
 
         # Check that EXAM_DATA matches live lecture extraction
         from tools.build_exam_data import compile_exam_dataset
+
         live_dataset = compile_exam_dataset(LECTURES_DIR)
         self.assertEqual(len(live_dataset), 28)
 

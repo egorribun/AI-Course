@@ -22,6 +22,7 @@ from common import (
     read_file,
 )
 
+
 def run_exhaustive_audit():
     results = {
         "lectures": {},
@@ -46,7 +47,9 @@ def run_exhaustive_audit():
         index_content = read_file(INDEX_PATH)
         idx_struct = parse_lecture_structure(index_content)
         results["index_page"] = {
-            "title": re.search(r"<title>(.*?)</title>", index_content).group(1) if re.search(r"<title>(.*?)</title>", index_content) else "",
+            "title": re.search(r"<title>(.*?)</title>", index_content).group(1)
+            if re.search(r"<title>(.*?)</title>", index_content)
+            else "",
             "all_hrefs_count": len(idx_struct.all_hrefs),
             "element_ids_count": len(idx_struct.element_ids),
         }
@@ -70,9 +73,9 @@ def run_exhaustive_audit():
 
         # Pills extraction
         pills_raw = re.findall(r'<span class=["\']pill["\'][^>]*>(.*?)</span>', content)
-        qa_pill_m = re.search(r'(\d+)\s+вопрос', content)
-        task_pill_m = re.search(r'(\d+)\s+микро-задач', content)
-        dur_pill_m = re.search(r'(\d+)\s+мин', content)
+        qa_pill_m = re.search(r"(\d+)\s+вопрос", content)
+        task_pill_m = re.search(r"(\d+)\s+микро-задач", content)
+        dur_pill_m = re.search(r"(\d+)\s+мин", content)
 
         qa_pill_val = int(qa_pill_m.group(1)) if qa_pill_m else None
         task_pill_val = int(task_pill_m.group(1)) if task_pill_m else None
@@ -221,6 +224,7 @@ def run_exhaustive_audit():
         json.dump(results, f, indent=2, ensure_ascii=False)
     print("AUDIT COMPLETE! Saved data to", out_path)
     print("Summary:", json.dumps(results["summary"], indent=2))
+
 
 if __name__ == "__main__":
     if hasattr(sys.stdout, "reconfigure"):

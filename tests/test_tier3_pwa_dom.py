@@ -31,9 +31,15 @@ class TestTier3PWADOM(unittest.TestCase):
     def setUpClass(cls):
         cls.sw_content = read_file(SW_FILE) if SW_FILE.exists() else ""
         cls.manifest_json = json.loads(read_file(MANIFEST_FILE)) if MANIFEST_FILE.exists() else {}
-        cls.tracker_js = read_file(JS_DIR / "tracker.js") if (JS_DIR / "tracker.js").exists() else ""
-        cls.simulator_js = read_file(JS_DIR / "simulator.js") if (JS_DIR / "simulator.js").exists() else ""
-        cls.exam_data_js = read_file(JS_DIR / "exam_data.js") if (JS_DIR / "exam_data.js").exists() else ""
+        cls.tracker_js = (
+            read_file(JS_DIR / "tracker.js") if (JS_DIR / "tracker.js").exists() else ""
+        )
+        cls.simulator_js = (
+            read_file(JS_DIR / "simulator.js") if (JS_DIR / "simulator.js").exists() else ""
+        )
+        cls.exam_data_js = (
+            read_file(JS_DIR / "exam_data.js") if (JS_DIR / "exam_data.js").exists() else ""
+        )
 
     def test_01_web_app_manifest_conformance(self):
         """Verify manifest.json has required PWA fields and valid metadata."""
@@ -51,7 +57,9 @@ class TestTier3PWADOM(unittest.TestCase):
             self.assertIn("src", icon)
             self.assertIn("sizes", icon)
             icon_file = COURSE_ROOT / icon["src"]
-            self.assertTrue(icon_file.exists(), f"Manifest icon file {icon['src']} not found on disk")
+            self.assertTrue(
+                icon_file.exists(), f"Manifest icon file {icon['src']} not found on disk"
+            )
 
     def test_02_service_worker_precache_assets(self):
         """Verify Service Worker precaches core assets and all 28 lectures."""
@@ -86,8 +94,12 @@ class TestTier3PWADOM(unittest.TestCase):
 
     def test_03_service_worker_lifecycle_and_caching_strategies(self):
         """Verify Network-First with cache fallback and SWR strategies in sw.js."""
-        self.assertIn("skipWaiting", self.sw_content, "Service Worker should skipWaiting on install")
-        self.assertIn("clients.claim", self.sw_content, "Service Worker should claim clients on activate")
+        self.assertIn(
+            "skipWaiting", self.sw_content, "Service Worker should skipWaiting on install"
+        )
+        self.assertIn(
+            "clients.claim", self.sw_content, "Service Worker should claim clients on activate"
+        )
         self.assertIn("fetch", self.sw_content, "Service Worker must have fetch event handler")
         self.assertTrue(
             "caches.match" in self.sw_content or "cache.put" in self.sw_content,
@@ -97,31 +109,41 @@ class TestTier3PWADOM(unittest.TestCase):
     def test_04_sm2_spaced_repetition_mathematical_parity(self):
         """Verify SuperMemo SM-2 formula and interval calculations."""
         # Quality 5 review on fresh card: EF increases from 2.5 to 2.6, interval 1
-        q5 = SM2ReferenceEngine.calc_next_review(quality=5, repetitions=0, ease_factor=2.5, interval=0)
+        q5 = SM2ReferenceEngine.calc_next_review(
+            quality=5, repetitions=0, ease_factor=2.5, interval=0
+        )
         self.assertEqual(q5["repetitions"], 1)
         self.assertEqual(q5["interval"], 1)
         self.assertEqual(q5["ease_factor"], 2.6)
 
         # Second successful review: interval 6
-        q4 = SM2ReferenceEngine.calc_next_review(quality=4, repetitions=1, ease_factor=2.6, interval=1)
+        q4 = SM2ReferenceEngine.calc_next_review(
+            quality=4, repetitions=1, ease_factor=2.6, interval=1
+        )
         self.assertEqual(q4["repetitions"], 2)
         self.assertEqual(q4["interval"], 6)
         self.assertEqual(q4["ease_factor"], 2.6)
 
         # Third successful review: interval = round(6 * 2.6) = 16
-        q5_3 = SM2ReferenceEngine.calc_next_review(quality=5, repetitions=2, ease_factor=2.6, interval=6)
+        q5_3 = SM2ReferenceEngine.calc_next_review(
+            quality=5, repetitions=2, ease_factor=2.6, interval=6
+        )
         self.assertEqual(q5_3["repetitions"], 3)
         self.assertEqual(q5_3["interval"], 16)
         self.assertEqual(q5_3["ease_factor"], 2.7)
 
         # Failed review (quality < 3): resets streak to 0, interval 1, EF decreases
-        fail = SM2ReferenceEngine.calc_next_review(quality=2, repetitions=5, ease_factor=2.7, interval=45)
+        fail = SM2ReferenceEngine.calc_next_review(
+            quality=2, repetitions=5, ease_factor=2.7, interval=45
+        )
         self.assertEqual(fail["repetitions"], 0)
         self.assertEqual(fail["interval"], 1)
         self.assertLess(fail["ease_factor"], 2.7)
 
         # Ease factor must never drop below 1.3 lower bound
-        clamped = SM2ReferenceEngine.calc_next_review(quality=0, repetitions=0, ease_factor=1.35, interval=1)
+        clamped = SM2ReferenceEngine.calc_next_review(
+            quality=0, repetitions=0, ease_factor=1.35, interval=1
+        )
         self.assertEqual(clamped["ease_factor"], 1.3)
 
     def test_05_localstorage_keys_and_schema(self):
@@ -136,14 +158,21 @@ class TestTier3PWADOM(unittest.TestCase):
             self.assertIn(k, self.tracker_js, f"Missing storage key '{k}' in tracker.js")
 
         self.assertTrue(
-            "ai_course_completed_lectures" in self.tracker_js or "ai_course_read_lectures" in self.tracker_js,
+            "ai_course_completed_lectures" in self.tracker_js
+            or "ai_course_read_lectures" in self.tracker_js,
             "Missing lecture completion storage key in tracker.js",
         )
 
-        self.assertIn("exportProgressJSON", self.tracker_js, "tracker.js must implement exportProgressJSON")
-        self.assertIn("importProgressJSON", self.tracker_js, "tracker.js must implement importProgressJSON")
+        self.assertIn(
+            "exportProgressJSON", self.tracker_js, "tracker.js must implement exportProgressJSON"
+        )
+        self.assertIn(
+            "importProgressJSON", self.tracker_js, "tracker.js must implement importProgressJSON"
+        )
         self.assertIn("resetProgress", self.tracker_js, "tracker.js must implement resetProgress")
-        self.assertIn("getOverallStats", self.tracker_js, "tracker.js must implement getOverallStats")
+        self.assertIn(
+            "getOverallStats", self.tracker_js, "tracker.js must implement getOverallStats"
+        )
 
     def test_06_modular_blocks_progress_calculation(self):
         """Verify 4 modular blocks (A, B, C, D) progress math."""
@@ -165,7 +194,9 @@ class TestTier3PWADOM(unittest.TestCase):
         self.assertIn("initSimulator", self.simulator_js, "simulator.js must expose initSimulator")
 
         # Timer logic in simulator.js
-        self.assertIn("180", self.simulator_js, "Simulator must implement 180s (3-minute) countdown timer")
+        self.assertIn(
+            "180", self.simulator_js, "Simulator must implement 180s (3-minute) countdown timer"
+        )
         self.assertTrue(
             "timer" in self.simulator_js.lower() or "starttimer" in self.simulator_js.lower(),
             "Simulator must contain timer methods",

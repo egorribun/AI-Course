@@ -159,7 +159,9 @@ class TestTier1ToolsCoverage(unittest.TestCase):
 
             # 4. Check mode on missing file -> exit 1
             missing_file = tmp_path / "non_existent.js"
-            code_check_missing = build_main(["-l", str(lec_dir), "-o", str(missing_file), "--check"])
+            code_check_missing = build_main(
+                ["-l", str(lec_dir), "-o", str(missing_file), "--check"]
+            )
             self.assertEqual(code_check_missing, 1)
 
             # 5. Dry-run
@@ -223,7 +225,9 @@ class TestTier1ToolsCoverage(unittest.TestCase):
         self.assertTrue(len(validate_latex_syntax("\\frac{1}")) > 0)
         self.assertTrue(len(validate_latex_syntax("\\begin{aligned} x \\end{gather}")) > 0)
         self.assertTrue(len(validate_latex_syntax("\\left( x + y")) > 0)
-        self.assertEqual(len(validate_latex_syntax("\\frac{a}{b} + \\left( \\frac{c}{d} \\right)")), 0)
+        self.assertEqual(
+            len(validate_latex_syntax("\\frac{a}{b} + \\left( \\frac{c}{d} \\right)")), 0
+        )
 
         # CourseStructureParser
         full_sample_html = """
@@ -262,25 +266,35 @@ class TestTier1ToolsCoverage(unittest.TestCase):
         self.assertEqual(len(val_res["missing_steps"]), 0)
 
         # SM2ReferenceEngine
-        sm2_first = SM2ReferenceEngine.calc_next_review(quality=5, repetitions=0, ease_factor=2.5, interval=0)
+        sm2_first = SM2ReferenceEngine.calc_next_review(
+            quality=5, repetitions=0, ease_factor=2.5, interval=0
+        )
         self.assertEqual(sm2_first["repetitions"], 1)
         self.assertEqual(sm2_first["interval"], 1)
         self.assertGreaterEqual(sm2_first["ease_factor"], 2.5)
 
-        sm2_second = SM2ReferenceEngine.calc_next_review(quality=4, repetitions=1, ease_factor=2.6, interval=1)
+        sm2_second = SM2ReferenceEngine.calc_next_review(
+            quality=4, repetitions=1, ease_factor=2.6, interval=1
+        )
         self.assertEqual(sm2_second["repetitions"], 2)
         self.assertEqual(sm2_second["interval"], 6)
 
-        sm2_third = SM2ReferenceEngine.calc_next_review(quality=5, repetitions=2, ease_factor=2.6, interval=6)
+        sm2_third = SM2ReferenceEngine.calc_next_review(
+            quality=5, repetitions=2, ease_factor=2.6, interval=6
+        )
         self.assertEqual(sm2_third["repetitions"], 3)
         self.assertEqual(sm2_third["interval"], 16)
 
-        sm2_fail = SM2ReferenceEngine.calc_next_review(quality=1, repetitions=5, ease_factor=2.5, interval=30)
+        sm2_fail = SM2ReferenceEngine.calc_next_review(
+            quality=1, repetitions=5, ease_factor=2.5, interval=30
+        )
         self.assertEqual(sm2_fail["repetitions"], 0)
         self.assertEqual(sm2_fail["interval"], 1)
 
         # DOMViewportEmulator & EmulatedElement
-        elem = EmulatedElement(tag="button", classes=["btn"], width=44.0, height=44.0, padding=(4, 8, 4, 8))
+        elem = EmulatedElement(
+            tag="button", classes=["btn"], width=44.0, height=44.0, padding=(4, 8, 4, 8)
+        )
         self.assertEqual(elem.total_width, 60.0)
         self.assertEqual(elem.total_height, 52.0)
         self.assertTrue(DOMViewportEmulator.verify_viewport_overflow(320, 320, False))

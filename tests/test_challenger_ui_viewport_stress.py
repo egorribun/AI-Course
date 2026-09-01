@@ -26,13 +26,33 @@ STYLE_FILE = COURSE_ROOT / "style.css"
 JS_DIR = COURSE_ROOT / "js"
 
 EXPECTED_LECTURES = [
-    "00-intro-ml.html", "01-fcnn.html", "02-autodiff-pinn.html", "03-losses-mle.html",
-    "04-cnn-layers.html", "05-cnn-architectures.html", "06-optimizers.html", "07-hyperparams.html",
-    "08-metric-learning.html", "09-contrastive-ssl.html", "10-vae.html", "11-gan.html",
-    "12-diffusion.html", "13-cv-tasks.html", "14-rnn-lstm.html", "15-attention-seq2seq.html",
-    "16-transformers.html", "17-self-attention.html", "18-lstm-vs-transformer.html",
-    "19-text-word2vec.html", "20-mt-bleu.html", "21-enc-dec.html", "22-rl-intro.html",
-    "23-bellman.html", "24-vi-pi-mc.html", "25-td-qlearning.html", "26-policy-gradient.html",
+    "00-intro-ml.html",
+    "01-fcnn.html",
+    "02-autodiff-pinn.html",
+    "03-losses-mle.html",
+    "04-cnn-layers.html",
+    "05-cnn-architectures.html",
+    "06-optimizers.html",
+    "07-hyperparams.html",
+    "08-metric-learning.html",
+    "09-contrastive-ssl.html",
+    "10-vae.html",
+    "11-gan.html",
+    "12-diffusion.html",
+    "13-cv-tasks.html",
+    "14-rnn-lstm.html",
+    "15-attention-seq2seq.html",
+    "16-transformers.html",
+    "17-self-attention.html",
+    "18-lstm-vs-transformer.html",
+    "19-text-word2vec.html",
+    "20-mt-bleu.html",
+    "21-enc-dec.html",
+    "22-rl-intro.html",
+    "23-bellman.html",
+    "24-vi-pi-mc.html",
+    "25-td-qlearning.html",
+    "26-policy-gradient.html",
     "27-actor-critic.html",
 ]
 
@@ -70,13 +90,15 @@ class HTMLInteractiveElementScraper(HTMLParser):
                 px_val = int(width_match.group(1))
                 # If width is fixed and > 280px without max-width: 100%
                 if px_val > 280 and "max-width" not in style:
-                    self.inline_widths.append({
-                        "tag": tag,
-                        "class": " ".join(classes),
-                        "width": px_val,
-                        "style": style,
-                        "line": line_no
-                    })
+                    self.inline_widths.append(
+                        {
+                            "tag": tag,
+                            "class": " ".join(classes),
+                            "width": px_val,
+                            "style": style,
+                            "line": line_no,
+                        }
+                    )
 
         # Interactive elements
         is_interactive = False
@@ -84,18 +106,31 @@ class HTMLInteractiveElementScraper(HTMLParser):
             is_interactive = True
         elif tag == "a" and "href" in attr_dict:
             is_interactive = True
-        elif any(c in classes for c in ("btn", "theme-toggle", "copy-btn", "back-to-top", "tag-chip", "sim-tab-btn", "quick-action-btn")):
+        elif any(
+            c in classes
+            for c in (
+                "btn",
+                "theme-toggle",
+                "copy-btn",
+                "back-to-top",
+                "tag-chip",
+                "sim-tab-btn",
+                "quick-action-btn",
+            )
+        ):
             is_interactive = True
 
         if is_interactive:
             parent_tag = self._tag_stack[-2][0] if len(self._tag_stack) >= 2 else ""
-            self.interactive_elements.append({
-                "tag": tag,
-                "classes": classes,
-                "parent_tag": parent_tag,
-                "line": line_no,
-                "attrs": attr_dict,
-            })
+            self.interactive_elements.append(
+                {
+                    "tag": tag,
+                    "classes": classes,
+                    "parent_tag": parent_tag,
+                    "line": line_no,
+                    "attrs": attr_dict,
+                }
+            )
 
         # Tables
         if tag == "table":
@@ -103,19 +138,23 @@ class HTMLInteractiveElementScraper(HTMLParser):
             parent_classes = []
             if len(self._tag_stack) >= 2:
                 parent_classes = self._tag_stack[-2][1].get("class", "").split()
-            self.tables.append({
-                "line": line_no,
-                "parent_classes": parent_classes,
-                "classes": classes,
-            })
+            self.tables.append(
+                {
+                    "line": line_no,
+                    "parent_classes": parent_classes,
+                    "classes": classes,
+                }
+            )
 
         # Math wrappers
         if "math-scroll-wrapper" in classes or "formula" in classes:
-            self.math_wrappers.append({
-                "tag": tag,
-                "classes": classes,
-                "line": line_no,
-            })
+            self.math_wrappers.append(
+                {
+                    "tag": tag,
+                    "classes": classes,
+                    "line": line_no,
+                }
+            )
 
     def handle_endtag(self, tag: str):
         if self._tag_stack and self._tag_stack[-1][0] == tag:
@@ -140,11 +179,13 @@ class TestChallengerEmpiricalSuite(unittest.TestCase):
     # =========================================================================
     def test_01_all_30_pages_have_mobile_viewport_meta(self):
         """Verify all 30 HTML files include responsive meta viewport tags."""
-        self.assertEqual(len(self.scraped_data), 30, "All 30 HTML pages (28 lectures + index + exam) must exist")
+        self.assertEqual(
+            len(self.scraped_data), 30, "All 30 HTML pages (28 lectures + index + exam) must exist"
+        )
         for filename, scraper in self.scraped_data.items():
             self.assertTrue(
                 scraper.has_viewport_meta,
-                f"Page {filename} is missing <meta name='viewport' content='width=device-width, ...'>"
+                f"Page {filename} is missing <meta name='viewport' content='width=device-width, ...'>",
             )
 
     def test_02_no_hardcoded_overflowing_inline_widths(self):
@@ -167,7 +208,24 @@ class TestChallengerEmpiricalSuite(unittest.TestCase):
         Canonical: 320, 375, 414, 768, 1024, 1440, 2560 px
         Intermediate: 280, 360, 480, 600, 720, 900, 1200, 1920, 3840 px
         """
-        all_viewports = [280, 320, 360, 375, 414, 480, 600, 720, 768, 900, 1024, 1200, 1440, 1920, 2560, 3840]
+        all_viewports = [
+            280,
+            320,
+            360,
+            375,
+            414,
+            480,
+            600,
+            720,
+            768,
+            900,
+            1024,
+            1200,
+            1440,
+            1920,
+            2560,
+            3840,
+        ]
         max_content_width = 880  # Max-width of .wrap in style.css
 
         for vp in all_viewports:
@@ -175,9 +233,7 @@ class TestChallengerEmpiricalSuite(unittest.TestCase):
             effective_wrap_width = min(vp, max_content_width)
             # Margin & padding fit within viewport
             self.assertLessEqual(
-                effective_wrap_width,
-                vp,
-                f"Container exceeds viewport at width {vp}px"
+                effective_wrap_width, vp, f"Container exceeds viewport at width {vp}px"
             )
 
     # =========================================================================
@@ -221,7 +277,7 @@ class TestChallengerEmpiricalSuite(unittest.TestCase):
                 if tag in ("button", "input", "select", "summary"):
                     self.assertTrue(
                         len(classes) > 0 or tag in ("input", "select", "summary", "button"),
-                        f"Interactive element <{tag}> at {filename}:{el['line']} must have accessible styling"
+                        f"Interactive element <{tag}> at {filename}:{el['line']} must have accessible styling",
                     )
 
     # =========================================================================
@@ -279,7 +335,6 @@ class TestChallengerEmpiricalSuite(unittest.TestCase):
             "'\"><iframe src=\"javascript:alert('XSS')\"></iframe>",
             "<body onload=alert('XSS')>",
             "<input autofocus onfocus=alert(1)>",
-
             # Regex Injection & Backtracking Vulnerabilities
             "(a+)+$",
             "([a-zA-Z0-9_.-]+)+@",
@@ -293,16 +348,14 @@ class TestChallengerEmpiricalSuite(unittest.TestCase):
             "[a-",
             "(?i)",
             "(?P<name>)",
-
             # Unicode, Control & Exotic Codepoints
             "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x0b\x0c\x0e\x0f",
             "مرحبا بكم в мире глубокого обучения! 🚀",  # Mixed Arabic/Russian
-            "\u202E\u202D\u202A\u202B\u202C",  # BiDi override characters
-            "\u200B\u200C\u200D\uFEFF\u00A0",  # Zero-width spaces & non-breaking spaces
+            "\u202e\u202d\u202a\u202b\u202c",  # BiDi override characters
+            "\u200b\u200c\u200d\ufeff\u00a0",  # Zero-width spaces & non-breaking spaces
             "👨‍👩‍👧‍👦 🏳️‍⚧️ 🦾 🧠 🤖",  # Multi-codepoint emoji sequences
             "𝕸𝖆𝖙𝖍 𝕱𝖔𝖓𝖙𝖘 ℵ ∇ ∮",  # Mathematical alphanumeric symbols
             "\ufffd\ufffe\uffff",  # Replacement & non-characters
-
             # Extreme Lengths & Edge Cases
             "",
             "   \t\r\n   ",
@@ -313,13 +366,27 @@ class TestChallengerEmpiricalSuite(unittest.TestCase):
         ]
 
         sample_corpus = [
-            {"title": "00. Введение в машинное обучение", "desc": "Линейные модели, градиентный спуск, регуляризация."},
-            {"title": "01. Полносвязные нейросети", "desc": "Backprop, функции активации, архитектуры."},
-            {"title": "16. Архитектура Transformer", "desc": "Self-attention, Multi-head, позиционное кодирование."},
-            {"title": "25. Обучение с подкреплением: Q-Learning", "desc": "TD-learning, Bellman optimality, DQN."},
+            {
+                "title": "00. Введение в машинное обучение",
+                "desc": "Линейные модели, градиентный спуск, регуляризация.",
+            },
+            {
+                "title": "01. Полносвязные нейросети",
+                "desc": "Backprop, функции активации, архитектуры.",
+            },
+            {
+                "title": "16. Архитектура Transformer",
+                "desc": "Self-attention, Multi-head, позиционное кодирование.",
+            },
+            {
+                "title": "25. Обучение с подкреплением: Q-Learning",
+                "desc": "TD-learning, Bellman optimality, DQN.",
+            },
         ]
 
-        def client_side_search_matcher(query: str, items: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        def client_side_search_matcher(
+            query: str, items: List[Dict[str, str]]
+        ) -> List[Dict[str, str]]:
             """Exact JavaScript matching logic from app.js."""
             q = (query or "").lower().strip()
             if not q:
@@ -357,7 +424,7 @@ class TestChallengerEmpiricalSuite(unittest.TestCase):
             "12345",
             "'single quotes'",
             "[1, 2, 3,",
-            "{\"a\": [1, 2, }",
+            '{"a": [1, 2, }',
             "\x00\x00\x00",
             "{__proto__: {admin: true}}",
         ]
@@ -385,12 +452,26 @@ class TestChallengerEmpiricalSuite(unittest.TestCase):
 
     def test_11_sm2_card_state_adversarial_recovery(self):
         """Verify SM-2 algorithm sanity under corrupted card attributes."""
-        def sm2_calc(quality: int, repetitions: int, ease_factor: float, interval: int) -> Dict[str, Any]:
+
+        def sm2_calc(
+            quality: int, repetitions: int, ease_factor: float, interval: int
+        ) -> Dict[str, Any]:
             # Sanitize inputs
-            quality = max(0, min(5, quality if isinstance(quality, int) and not math.isnan(quality) else 0))
-            ease_factor = ease_factor if isinstance(ease_factor, (int, float)) and not math.isnan(ease_factor) else 2.5
-            repetitions = max(0, repetitions if isinstance(repetitions, int) and not math.isnan(repetitions) else 0)
-            interval = max(1, interval if isinstance(interval, int) and not math.isnan(interval) else 1)
+            quality = max(
+                0, min(5, quality if isinstance(quality, int) and not math.isnan(quality) else 0)
+            )
+            ease_factor = (
+                ease_factor
+                if isinstance(ease_factor, (int, float)) and not math.isnan(ease_factor)
+                else 2.5
+            )
+            repetitions = max(
+                0,
+                repetitions if isinstance(repetitions, int) and not math.isnan(repetitions) else 0,
+            )
+            interval = max(
+                1, interval if isinstance(interval, int) and not math.isnan(interval) else 1
+            )
 
             new_ef = ease_factor + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02))
             new_ef = max(1.3, new_ef)
