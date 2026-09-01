@@ -43,7 +43,7 @@ jobs:
         run: uv run python tools/export_anki.py
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           name: "Deep Learning Course Platform ${{ github.ref_name || inputs.tag_name }} (Reference Edition)"
           generate_release_notes: true
