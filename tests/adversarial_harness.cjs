@@ -94,9 +94,16 @@ function createMockEnvironment() {
     }
   };
 
+  const navigator = {
+    userAgent: 'NodeAdversarialTest',
+    serviceWorker: undefined,
+    clipboard: { writeText: () => Promise.resolve() }
+  };
+
   const window = {
     localStorage,
     document,
+    navigator,
     CustomEvent: MockCustomEvent,
     location: { href: 'http://localhost/index.html', pathname: '/index.html' },
     addEventListener: (evt, cb) => {

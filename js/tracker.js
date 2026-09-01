@@ -507,7 +507,7 @@
   });
 
   // Auto Service Worker registration for Zero-build PWA
-  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+  if (typeof window !== 'undefined' && typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
     let refreshing = false;
     if (typeof navigator.serviceWorker.addEventListener === 'function') {
       navigator.serviceWorker.addEventListener('controllerchange', () => {

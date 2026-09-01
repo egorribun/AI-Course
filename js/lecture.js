@@ -46,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const code = pre.querySelector('code');
       const textToCopy = code ? code.innerText : pre.innerText;
       try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
+        if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
           await navigator.clipboard.writeText(textToCopy);
         } else {
           const ta = document.createElement('textarea');
