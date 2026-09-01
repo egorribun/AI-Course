@@ -1102,6 +1102,12 @@ hr { border: none; border-top: 1px solid var(--line); margin: 44px 0; }
     display: none !important;
   }
 
+  /* Скрываем статический блок прогресса на мобильных устройствах (доступен через нижнюю панель) */
+  .progress-hub,
+  #global-progress-hub {
+    display: none !important;
+  }
+
   .header-actions {
     position: absolute !important;
     top: 0 !important;
