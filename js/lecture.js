@@ -96,11 +96,14 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     const checkbox = checkWrap.querySelector('input');
-    checkbox.addEventListener('change', (e) => {
-      const checked = e.target.checked;
-      if (window.CourseTracker) window.CourseTracker.setQAChecked(qaId, checked);
-      checkWrap.classList.toggle('checked', checked);
-    });
+    if (checkbox) {
+      checkbox.addEventListener('change', (e) => {
+        const targetInput = /** @type {HTMLInputElement} */ (e.target);
+        const checked = targetInput.checked;
+        if (window.CourseTracker) window.CourseTracker.setQAChecked(qaId, checked);
+        checkWrap.classList.toggle('checked', checked);
+      });
+    }
 
     summary.appendChild(checkWrap);
   });
@@ -119,11 +122,14 @@ document.addEventListener('DOMContentLoaded', () => {
     checkWrap.innerHTML = `<input type="checkbox" id="${taskId}" ${isChecked ? 'checked' : ''}> <label for="${taskId}">Решено</label>`;
 
     const checkbox = checkWrap.querySelector('input');
-    checkbox.addEventListener('change', (e) => {
-      const checked = e.target.checked;
-      if (window.CourseTracker) window.CourseTracker.setTaskChecked(taskId, checked);
-      checkWrap.classList.toggle('checked', checked);
-    });
+    if (checkbox) {
+      checkbox.addEventListener('change', (e) => {
+        const targetInput = /** @type {HTMLInputElement} */ (e.target);
+        const checked = targetInput.checked;
+        if (window.CourseTracker) window.CourseTracker.setTaskChecked(taskId, checked);
+        checkWrap.classList.toggle('checked', checked);
+      });
+    }
 
     if (tt) {
       const headerDiv = document.createElement('div');
@@ -174,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   window.addEventListener('keydown', (e) => {
-    const active = document.activeElement;
+    const active = /** @type {HTMLElement | null} */ (document.activeElement);
     const isInput = active && (
       active.tagName === 'INPUT' ||
       active.tagName === 'TEXTAREA' ||
@@ -182,7 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
       active.isContentEditable
     );
 
-    if (e.key === 'Escape' && isInput) {
+    if (e.key === 'Escape' && isInput && active) {
       active.blur();
       return;
     }

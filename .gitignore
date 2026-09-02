@@ -53,3 +53,7 @@ desktop.ini
 # Agent workspaces and scratch files
 .agents/
 *.tmp
+
+# Node.js
+node_modules/
+npm-debug.log*

@@ -1,0 +1,24 @@
+{
+  "name": "deep-learning-exam-course",
+  "version": "1.0.0",
+  "description": "Comprehensive 3-day intensive exam preparation course and syllabus for Deep Learning and AI methods (GUU 2026)",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node --test --experimental-test-coverage tests/unit/*.test.js",
+    "coverage": "node --test --experimental-test-coverage tests/unit/*.test.js",
+    "lint": "npm run lint:css && npm run check:types",
+    "lint:css": "stylelint style.css",
+    "check:types": "tsc --noEmit --checkJs",
+    "build:data": "python tools/build_exam_data.py",
+    "check:data": "python tools/build_exam_data.py --check",
+    "export:anki": "python tools/export_anki.py",
+    "check:anki": "python tools/export_anki.py --check"
+  },
+  "devDependencies": {
+    "stylelint": "^16.0.0",
+    "stylelint-config-standard": "^36.0.0",
+    "typescript": "^5.4.0"
+  },
+  "author": "Egor Ribun",
+  "license": "MIT"
+}

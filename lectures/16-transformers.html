@@ -21,7 +21,7 @@ window.MathJax = {
 <header class="top"><div class="inner">
   <div class="kicker">Блок C · Языковые модели и Трансформеры · Вопрос 15</div>
   <h1>Лекция 16. Архитектура Transformer («Attention Is All You Need»)</h1>
-  <p class="sub">Полное устройство трансформера: блоки энкодера и декодера, Multi-Head Self-Attention, Feed-Forward Network, Residual connections, LayerNorm vs BatchNorm, Pre-LN vs Post-LN, позиционное кодирование и сквозной поток данных.</p>
+  <p class="sub">Блоки энкодера и декодера, Multi-Head Self-Attention, Feed-Forward Network, Residual connections, LayerNorm, Pre-LN vs Post-LN, позиционное кодирование и сквозной поток данных.</p>
   <div class="meta">
     <span class="pill">⏱ 2 ч 00 мин</span>
     <span class="pill gray">10 вопросов препода</span>
@@ -37,37 +37,35 @@ window.MathJax = {
 <nav class="toc">
   <div class="bt">Содержание лекции</div>
   <ol>
-    <li><a href="#s1">Интуиция и мотивация</a></li>
-    <li><a href="#s2">Архитектура и схема</a></li>
-    <li><a href="#s3">Математический аппарат</a></li>
-    <li><a href="#s4">Пошаговый числовой пример</a></li>
-    <li><a href="#s5">Преимущества, недостатки и применимость</a></li>
-    <li><a href="#qa">🎯 Препод спросит</a></li>
-    <li><a href="#tasks">📝 Микро-задачи</a></li>
-    <li><a href="#cheat">⚡ Краткий скелет ответа по билету</a></li>
+    <li><a href="#s1">1. Интуиция и мотивация</a></li>
+    <li><a href="#s2">2. Архитектура и схема</a></li>
+    <li><a href="#s3">3. Математический аппарат</a></li>
+    <li><a href="#s4">4. Пошаговый числовой пример</a></li>
+    <li><a href="#s5">5. Преимущества, недостатки и применимость</a></li>
+    <li><a href="#qa">6. 🎯 Препод спросит</a></li>
+    <li><a href="#tasks">7. 📝 Микро-задачи с решениями</a></li>
+    <li><a href="#cheat">8. ⚡ Скелет ответа по билету</a></li>
   </ol>
 </nav>
 
 <!-- ============================================ -->
 <h2 id="s1"><span class="num">1.</span> Интуиция и мотивация</h2>
 
-<p>До 2017 года в обработке естественного языка (NLP) и последовательностей безраздельно доминировали рекуррентные архитектуры (RNN, LSTM, biLSTM, GRU). Однако они упирались в фундаментальное ограничение — <strong>строгую последовательность вычислений по временной оси</strong>: шаг $t$ не может начаться до полного завершения шага $t-1$. Это делало невозможным масштабирование моделей на массивные вычислительные кластеры GPU и TPU.</p>
-
-<p>Статья команды Google Brain (Vaswani et al., 2017) <strong>«Attention Is All You Need»</strong> доказала, что от рекуррентности и сверток можно отказаться целиком, построив глубокую модель исключительно на механизмах внимания, полносвязных слоях и нормализации.</p>
+<p>Рекуррентные сети (RNN/LSTM) требовали <strong>последовательного шага во времени</strong>: вычисление $t$ невозможно без $t-1$, что блокировало параллелизм на GPU. Работа <em>«Attention Is All You Need»</em> (Vaswani et al., 2017) показала, что от рекуррентности можно отказаться, построив модель исключительно на внимании и полносвязных слоях.</p>
 
 <div class="box idea">
-  <div class="bt">💡 Три кита превосходства архитектуры Transformer</div>
+  <div class="bt">💡 Три преимущества Transformer</div>
   <ol>
-    <li><strong>Массивный параллелизм при обучении:</strong> Все $T$ токенов последовательности обрабатываются одновременно через матричные операции за $O(1)$ параллельных шагов на GPU.</li>
-    <li><strong>Прямой контакт между токенами ($O(1)$ длина пути):</strong> Любой токен напрямую взаимодействует с любым другим через скалярное произведение, устраняя затухание градиента на длинных контекстах.</li>
-    <li><strong>Законы масштабирования (Scaling Laws):</strong> Архитектура обладает превосходной вычислительной масштабируемостью, что открыло дорогу современным языковым моделям (LLM) с сотнями миллиардов параметров.</li>
+    <li><strong>Массивный параллелизм:</strong> все $T$ токенов обрабатываются одновременно за $O(1)$ параллельных шагов на GPU.</li>
+    <li><strong>Прямой контакт ($O(1)$ путь):</strong> любой токен напрямую взаимодействует с любым другим через скалярное произведение, устраняя затухание градиента.</li>
+    <li><strong>Масштабируемость (Scaling Laws):</strong> архитектура эффективно утилизирует кластеры ускорителей при росте параметров до сотен миллиардов.</li>
   </ol>
 </div>
 
 <!-- ============================================ -->
 <h2 id="s2"><span class="num">2.</span> Архитектура и схема</h2>
 
-<p>Оригинальный Transformer имеет структуру <strong>Encoder-Decoder</strong>, предназначенную для задач трансформации последовательности в последовательность (Seq2Seq, машинный перевод):</p>
+<p>Оригинальный Transformer имеет структуру <strong>Encoder-Decoder</strong>:</p>
 
 <div class="scheme">
                       ВЫХОДНЫЕ ВЕРОЯТНОСТИ (Словарь |V|)
@@ -98,10 +96,9 @@ window.MathJax = {
            ▲                                 ▲
    Входные токены (EN)               Целевые токены (RU) (Сдвинуты вправо)
 
-<span class="cap">Каноническая схема Transformer: $N=6$ блоков энкодера и $N=6$ блоков декодера со связью через Cross-Attention.</span></div>
+<span class="cap">Схема Transformer: $N=6$ блоков энкодера и $N=6$ блоков декодера со связью через Cross-Attention.</span></div>
 
-<h3>Сравнение топологий нормализации: Post-LN vs Pre-LN</h3>
-<p>В оригинальной статье 2017 года использовалась схема <strong>Post-LN</strong>, однако современные модели перешли на <strong>Pre-LN</strong>:</p>
+<h3>Топологии нормализации: Post-LN vs Pre-LN</h3>
 
 <div class="scheme">
   POST-LN (Оригинал 2017):               PRE-LN (Современный стандарт: GPT, LLaMA):
@@ -109,13 +106,13 @@ window.MathJax = {
   x ──┬──▶ [ SubLayer ] ──▶ [ + ] ──▶ [ LayerNorm ] ──▶      x ──┬──▶ [ LayerNorm ] ──▶ [ SubLayer ] ──▶ [ + ] ──▶
       └─────────────────────▲                                    └────────────────────────────────────────▲
 
-<span class="cap">Pre-LN сохраняет прямой неискаженный остаточный тракт (Residual Stream), обеспечивая градиентный поток сквозь 100+ слоев.</span></div>
+<span class="cap">Pre-LN сохраняет прямой остаточный тракт (Residual Stream), обеспечивая градиентный поток сквозь 100+ слоёв.</span></div>
 
 <!-- ============================================ -->
 <h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
 
-<h3>1. Блок Энкодера (Encoder Block)</h3>
-<p>Входной тензор $X \in \mathbb{R}^{T \times d_{\text{model}}}$ проходит через два основных подблока, объединенных остаточными связями (Residual Connections) и послойной нормализацией (LayerNorm):</p>
+<h3>1. Блок Энкодера</h3>
+<p>Вход $X \in \mathbb{R}^{T \times d_{\text{model}}}$ проходит через два подблока с остаточными связями (Residual) и LayerNorm:</p>
 
 <div class="math-scroll-wrapper">
 $$ X^{(1)} = \text{LayerNorm}\left( X + \text{MultiHeadSelfAttention}(X) \right) $$
@@ -125,7 +122,7 @@ $$ X^{(2)} = \text{LayerNorm}\left( X^{(1)} + \text{FFN}(X^{(1)}) \right) $$
 </div>
 
 <h3>2. Многоголовое внимание (Multi-Head Attention)</h3>
-<p>Вместо вычисления одной проекции внимания размерности $d_{\text{model}}$, вход проецируется в $h$ независимых пространств меньшей размерности $d_k = d_v = d_{\text{model}} / h$:</p>
+<p>Вход проецируется в $h$ независимых пространств размерности $d_k = d_v = d_{\text{model}} / h$:</p>
 
 <div class="math-scroll-wrapper">
 $$ \text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, \dots, \text{head}_h) W^O $$
@@ -134,86 +131,47 @@ $$ \text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, \dots, \text{head}_h
 $$ \text{head}_i = \text{Attention}\left( Q W_i^Q, \, K W_i^K, \, V W_i^V \right) = \text{softmax}\left( \frac{(Q W_i^Q)(K W_i^K)^\top}{\sqrt{d_k}} \right) (V W_i^V) $$
 </div>
 <ul>
-  <li>$W_i^Q \in \mathbb{R}^{d_{\text{model}} \times d_k}$, $W_i^K \in \mathbb{R}^{d_{\text{model}} \times d_k}$, $W_i^V \in \mathbb{R}^{d_{\text{model}} \times d_v}$ — проекционные матрицы $i$-й головы.</li>
-  <li>$W^O \in \mathbb{R}^{h d_v \times d_{\text{model}}}$ — финальная объединяющая проекция.</li>
+  <li>$W_i^Q, W_i^K \in \mathbb{R}^{d_{\text{model}} \times d_k}, W_i^V \in \mathbb{R}^{d_{\text{model}} \times d_v}, W^O \in \mathbb{R}^{h d_v \times d_{\text{model}}}$.</li>
 </ul>
 
-<h3>3. Полносвязная сеть над каждой позицией (Position-wise FFN)</h3>
-<p>Применяется к каждому токену независимо и идентично, проецируя вектор в расширенное пространство $d_{\text{ff}} = 4 d_{\text{model}}$:</p>
-
+<h3>3. Position-wise Feed-Forward Network (FFN)</h3>
 <div class="math-scroll-wrapper">
 $$ \text{FFN}(x) = \max\left(0, \, x W_1 + b_1\right) W_2 + b_2 = \text{GELU}\left(x W_1 + b_1\right) W_2 + b_2 $$
 </div>
-<ul>
-  <li>$W_1 \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ff}}}$, $b_1 \in \mathbb{R}^{d_{\text{ff}}}$ — расширяющий слой.</li>
-  <li>$W_2 \in \mathbb{R}^{d_{\text{ff}} \times d_{\text{model}}}$, $b_2 \in \mathbb{R}^{d_{\text{model}}}$ — сужающий слой.</li>
-</ul>
+<p>где $d_{\text{ff}} = 4 d_{\text{model}}$, $W_1 \in \mathbb{R}^{d_{\text{model}} \times d_{\text{ff}}}$, $W_2 \in \mathbb{R}^{d_{\text{ff}} \times d_{\text{model}}}$.</p>
 
 <h3>4. Послойная нормализация (LayerNorm)</h3>
-<p>Вычисляет среднее $\mu$ и дисперсию $\sigma^2$ по вектору скрытых признаков одного токена (независимо от размера батча $B$ и позиции $t$):</p>
-
 <div class="math-scroll-wrapper">
 $$ \mu = \frac{1}{d} \sum_{j=1}^d x_j, \quad \sigma^2 = \frac{1}{d} \sum_{j=1}^d (x_j - \mu)^2, \quad \hat{x} = \frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}} \odot \gamma + \beta $$
 </div>
-<p>где $\gamma, \beta \in \mathbb{R}^d$ — обучаемые масштабирующие параметры.</p>
+<p>где $\gamma, \beta \in \mathbb{R}^d$ — обучаемые параметры.</p>
 
 <h3>5. Синусоидальное позиционное кодирование (Positional Encoding)</h3>
-<p>Поскольку операция внимания инвариантна к перестановкам токенов, порядок слов кодируется вектором $PE \in \mathbb{R}^{T \times d_{\text{model}}}$, прибавляемым к входным эмбеддингам:</p>
-
 <div class="math-scroll-wrapper">
 $$ PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{2i / d_{\text{model}}}}\right), \quad PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{2i / d_{\text{model}}}}\right) $$
 </div>
-<p>где $pos \in [0, T-1]$ — позиция токена, $i \in [0, \frac{d}{2}-1]$ — индекс частотной гармоники.</p>
 
 <!-- ============================================ -->
 <h2 id="s4"><span class="num">4.</span> Пошаговый числовой пример</h2>
 
-<p>Рассчитаем пошагово нормализацию LayerNorm и синусоидальное позиционное кодирование для вектора размерности $d_{\text{model}} = 4$.</p>
-
-<p><strong>1. Расчет LayerNorm для скрытого состояния токена:</strong></p>
-<p>Пусть входной вектор токена $x = [2.0, \, 4.0, \, 6.0, \, 8.0]$, параметры $\gamma = [1.0, 1.0, 1.0, 1.0]$, $\beta = [0.0, 0.0, 0.0, 0.0]$, $\epsilon = 10^{-5}$.</p>
+<p><strong>1. Расчёт LayerNorm для $d_{\text{model}} = 4$:</strong></p>
+<p>Вход $x = [2.0, \, 4.0, \, 6.0, \, 8.0], \gamma = [1,1,1,1], \beta = [0,0,0,0], \epsilon = 10^{-5}$.</p>
 <ol>
-  <li>Среднее значение:
-    <div class="math-scroll-wrapper">
-    $$ \mu = \frac{2.0 + 4.0 + 6.0 + 8.0}{4} = \frac{20.0}{4} = \mathbf{5.0} $$
-    </div>
-  </li>
-  <li>Дисперсия:
-    <div class="math-scroll-wrapper">
-    $$ \sigma^2 = \frac{(2-5)^2 + (4-5)^2 + (6-5)^2 + (8-5)^2}{4} = \frac{9 + 1 + 1 + 9}{4} = \frac{20}{4} = \mathbf{5.0} $$
-    </div>
-    $$ \sqrt{\sigma^2 + \epsilon} = \sqrt{5.00001} \approx \mathbf{2.2361} $$
-  </li>
-  <li>Нормализованный вектор $\hat{x}$:
-    <ul>
-      <li>$\hat{x}_0 = \frac{2.0 - 5.0}{2.2361} = \frac{-3.0}{2.2361} \approx \mathbf{-1.3416}$</li>
-      <li>$\hat{x}_1 = \frac{4.0 - 5.0}{2.2361} = \frac{-1.0}{2.2361} \approx \mathbf{-0.4472}$</li>
-      <li>$\hat{x}_2 = \frac{6.0 - 5.0}{2.2361} = \frac{1.0}{2.2361} \approx \mathbf{0.4472}$</li>
-      <li>$\hat{x}_3 = \frac{8.0 - 5.0}{2.2361} = \frac{3.0}{2.2361} \approx \mathbf{1.3416}$</li>
-    </ul>
-    <div class="math-scroll-wrapper">
-    $$ \hat{x} = [-1.3416, \, -0.4472, \, 0.4472, \, 1.3416] $$
-    </div>
-  </li>
+  <li>$\mu = \frac{2 + 4 + 6 + 8}{4} = \mathbf{5.0}$.</li>
+  <li>$\sigma^2 = \frac{(-3)^2 + (-1)^2 + 1^2 + 3^2}{4} = \frac{20}{4} = \mathbf{5.0}, \quad \sqrt{\sigma^2 + \epsilon} \approx \mathbf{2.2361}$.</li>
+  <li>$\hat{x}_0 = \frac{2-5}{2.2361} \approx \mathbf{-1.3416}, \quad \hat{x}_1 \approx \mathbf{-0.4472}, \quad \hat{x}_2 \approx \mathbf{0.4472}, \quad \hat{x}_3 \approx \mathbf{1.3416}$.<br>
+  Итог: $\hat{x} = [-1.3416, \, -0.4472, \, 0.4472, \, 1.3416]$.</li>
 </ol>
 
-<p><strong>2. Расчет синусоидального позиционного кодирования $PE(pos=1)$ для $d=4$:</strong></p>
+<p><strong>2. Расчёт $PE(pos=1)$ для $d=4$:</strong></p>
 <ol>
-  <li>Частоты: $\omega_0 = \frac{1}{10000^0} = 1.0$, $\omega_1 = \frac{1}{10000^{2/4}} = \frac{1}{100} = 0.01$.</li>
-  <li>Компоненты для $pos=1$:
-    <ul>
-      <li>$PE_{(1, 0)} = \sin(1 \cdot 1.0) = \sin(1.0) \approx \mathbf{0.8415}$</li>
-      <li>$PE_{(1, 1)} = \cos(1 \cdot 1.0) = \cos(1.0) \approx \mathbf{0.5403}$</li>
-      <li>$PE_{(1, 2)} = \sin(1 \cdot 0.01) = \sin(0.01) \approx \mathbf{0.0100}$</li>
-      <li>$PE_{(1, 3)} = \cos(1 \cdot 0.01) = \cos(0.01) \approx \mathbf{0.9999}$</li>
-    </ul>
-    <div class="math-scroll-wrapper">
-    $$ PE(1) = [0.8415, \, 0.5403, \, 0.0100, \, 0.9999] $$
-    </div>
-  </li>
+  <li>$\omega_0 = 10000^0 = 1.0, \quad \omega_1 = 10000^{-2/4} = 0.01$.</li>
+  <li>$PE_{(1, 0)} = \sin(1.0) \approx \mathbf{0.8415}, \quad PE_{(1, 1)} = \cos(1.0) \approx \mathbf{0.5403}$.</li>
+  <li>$PE_{(1, 2)} = \sin(0.01) \approx \mathbf{0.0100}, \quad PE_{(1, 3)} = \cos(0.01) \approx \mathbf{0.9999}$.<br>
+  Итог: $PE(1) = [0.8415, \, 0.5403, \, 0.0100, \, 0.9999]$.</li>
 </ol>
 
-<h3>Практическая реализация слоя Transformer Encoder (Pre-LN) на PyTorch</h3>
+<h3>Реализация слоя Transformer Encoder (Pre-LN) на PyTorch</h3>
 <pre><code>import torch
 import torch.nn as nn
 
@@ -233,12 +191,10 @@ class TransformerEncoderLayerPreLN(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
     def forward(self, x: torch.Tensor, mask: torch.Tensor = None) -> torch.Tensor:
-        # 1. Pre-LN Self-Attention с остаточной связью
         norm_x = self.norm1(x)
         attn_out, _ = self.self_attn(norm_x, norm_x, norm_x, attn_mask=mask)
         x = x + self.dropout(attn_out)
         
-        # 2. Pre-LN Feed-Forward с остаточной связью
         norm_x = self.norm2(x)
         ffn_out = self.ffn(norm_x)
         x = x + ffn_out
@@ -253,206 +209,177 @@ class TransformerEncoderLayerPreLN(nn.Module):
   <thead>
     <tr>
       <th>Характеристика</th>
-      <th>Convolutional (CNN)</th>
-      <th>Recurrent (LSTM/GRU)</th>
-      <th>Transformer (Self-Attention)</th>
+      <th>CNN</th>
+      <th>RNN (LSTM)</th>
+      <th>Transformer</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td><strong>Сложность одного слоя</strong></td>
+      <td><strong>Сложность слоя</strong></td>
       <td>$O(k \cdot T \cdot d^2)$</td>
       <td>$O(T \cdot d^2)$</td>
       <td>$O(T^2 \cdot d + T \cdot d^2)$</td>
     </tr>
     <tr>
-      <td><strong>Последовательные шаги (обучение)</strong></td>
-      <td>$O(1)$ (параллельно)</td>
-      <td>$O(T)$ (последовательно)</td>
-      <td><strong>$O(1)$ (массивно параллельно)</strong></td>
+      <td><strong>Шаги обучения</strong></td>
+      <td>$O(1)$</td>
+      <td>$O(T)$</td>
+      <td><strong>$O(1)$ (параллельно)</strong></td>
     </tr>
     <tr>
-      <td><strong>Максимальная длина пути градиента</strong></td>
-      <td>$O(\log_k T)$ (с пулингом/дилацией)</td>
-      <td>$O(T)$ (затухание)</td>
+      <td><strong>Длина пути градиента</strong></td>
+      <td>$O(\log_k T)$</td>
+      <td>$O(T)$</td>
       <td><strong>$O(1)$ (прямой контакт)</strong></td>
     </tr>
     <tr>
       <td><strong>Индуктивные смещения</strong></td>
-      <td>Высокие (локальность, сдвиговая инвариантность)</td>
-      <td>Высокие (временной порядок)</td>
-      <td><strong>Минимальные</strong> (требует больших объемов данных)</td>
+      <td>Высокие (локальность)</td>
+      <td>Высокие (порядок)</td>
+      <td><strong>Минимальные</strong> (нужен большой объём данных)</td>
     </tr>
     <tr>
-      <td><strong>Области применения</strong></td>
-      <td>Обработка изображений, аудио, 1D-сигналы.</td>
-      <td>Edge-устройства, бесконечные потоки данных датчиков ($O(1)$ памяти).</td>
-      <td>LLM (GPT, Claude, LLaMA), машинный перевод, Vision Transformers (ViT).</td>
+      <td><strong>Применимость</strong></td>
+      <td>Изображения, аудио.</td>
+      <td>Edge, стриминг с $O(1)$ памяти.</td>
+      <td>LLM (GPT, Claude, LLaMA), ViT.</td>
     </tr>
   </tbody>
 </table>
 </div>
 
 <!-- ============================================ -->
-<h2 id="qa">🎯 Препод спросит</h2>
+<h2 id="qa">6. 🎯 Препод спросит</h2>
 
-<details class="qa"><summary>В чем принципиальная разница между Self-Attention и Cross-Attention в архитектуре Transformer?</summary>
+<details class="qa"><summary>В чём принципиальная разница между Self-Attention и Cross-Attention?</summary>
 <div class="ans">
-<p>В <strong>Self-Attention</strong> Запросы ($Q$), Ключи ($K$) и Значения ($V$) вычисляются из <em>одного и того же источника</em> (из выходов предыдущего слоя того же стека). В <strong>Cross-Attention</strong> (в декодере) вектор Запроса $Q$ формируется из состояния <em>декодера</em>, а Ключи $K$ и Значения $V$ поступают из <em>финального выхода энкодера</em>. Декодер использует свои запросы для динамического извлечения релевантной информации из памяти исходного предложения.</p>
+<p>В <strong>Self-Attention</strong> $Q, K, V$ поступают из <em>одного источника</em> (выход предыдущего слоя того же стека). В <strong>Cross-Attention</strong> запросы $Q$ идут от <em>декодера</em>, а ключи $K$ и значения $V$ — из <em>выхода энкодера</em>, связывая целевой текст с исходным.</p>
 </div></details>
 
 <details class="qa"><summary>Зачем в декодере применяется маскирование в Masked Multi-Head Attention?</summary>
 <div class="ans">
-<p>Декодер предназначен для авторегрессионного моделирования языка. Во время параллельного обучения на GPU вся целевая последовательность подается в декодер одновременно. Без маски токен на позиции $t$ вычислил бы скалярные произведения с токенами на позициях $t+1, t+2$ (будущее), сделав обучение тривиальным списыванием ответов. Аддитивная верхнетреугольная маска с $-\infty$ зануляет веса внимания к будущим позициям после Softmax.</p>
+<p>При авторегрессионном обучении вся последовательность подаётся разом. Без маски токен $t$ «подглядывал» бы в $t+1, t+2$. Причинная маска с $-\infty$ зануляет веса внимания к будущим токенам после Softmax.</p>
 </div></details>
 
-<details class="qa"><summary>Чем Layer Normalization отличается от Batch Normalization и почему в NLP используется исключительно LayerNorm?</summary>
+<details class="qa"><summary>Чем Layer Normalization отличается от Batch Normalization и почему в NLP используется LayerNorm?</summary>
 <div class="ans">
-<p>BatchNorm вычисляет статистики по всему батчу для каждого признака независимо. Это создает жесткую зависимость от размера батча $B$, ломается при работе с предложениями переменной длины $T$ и неприменимо при инференсе с $B=1$. LayerNorm вычисляет среднее и дисперсию <strong>по вектору скрытых каналов одного конкретного токена</strong>, обеспечивая полную независимость от размера батча и структуры других предложений.</p>
+<p>BatchNorm считает статистики по батчу для каждого признака, что ломается на переменной длине $T$ и при $B=1$. LayerNorm вычисляет $\mu$ и $\sigma^2$ <strong>по скрытым каналам одного токена</strong>, не завися от размера батча и соседних предложений.</p>
 </div></details>
 
-<details class="qa"><summary>Почему позиционное кодирование прибавляется к эмбеддингам токенов, а не конкатенируется?</summary>
+<details class="qa"><summary>Почему позиционное кодирование прибавляется к эмбеддингам, а не конкатенируется?</summary>
 <div class="ans">
-<p>Конкатенация увеличила бы размерность входного вектора до $d_{\text{model}} + d_{\text{pos}}$, требуя дополнительных параметров во всех последующих проекциях $W^Q, W^K, W^V$. Сложение сохраняет размерность $d_{\text{model}}$ неизменной. При высокой размерности ($d=512, 4096$) векторное пространство практически ортогонально, что позволяет линейным проекциям внимания легко разделять семантическую и позиционную информацию.</p>
+<p>Конкатенация увеличила бы входную размерность до $d_{\text{model}} + d_{\text{pos}}$, требуя больше весов во всех слоях. В многомерных пространствах ($d=512, 4096$) векторы практически ортогональны, поэтому сложение сохраняет и семантику, и позицию.</p>
 </div></details>
 
 <details class="qa"><summary>Какую роль выполняет подблок Position-wise Feed-Forward Network (FFN)?</summary>
 <div class="ans">
-<p>Слой внимания выполняет лишь линейную комбинацию существующих представлений разных токенов ($\sum \alpha_i V_i$). Подблок FFN содержит нелинейную активацию (ReLU/GELU/SwiGLU) и проецирует вектор в пространство повышенной размерности ($4 \times d_{\text{model}}$) и обратно, выполняя нелинейную трансформацию признаков и выступая в роли ассоциативной памяти фактов модели.</p>
+<p>Внимание лишь перевзвешивает токены линейно. FFN добавляет нелинейность (GELU/ReLU) и расширяет размерность ($4 d_{\text{model}}$), выполняя роль ассоциативной памяти фактов и трансформации признаков.</p>
 </div></details>
 
-<details class="qa"><summary>В чем преимущество топологии Pre-LN перед оригинальной Post-LN?</summary>
+<details class="qa"><summary>В чём преимущество топологии Pre-LN перед оригинальной Post-LN?</summary>
 <div class="ans">
-<p>В оригинальной схеме Post-LN нормализация стоит после сложения: $\text{LN}(x + \text{SubLayer}(x))$. В глубоких моделях дисперсия на выходе слоев изменяется, что приводило к затуханию или взрыву градиентов и требовало обязательного Learning Rate Warmup. В Pre-LN нормализуется вход: $x + \text{SubLayer}(\text{LN}(x))$. Это создает непрерывный градиентный «хайвей» (Residual Stream), позволяя стабильно обучать модели из сотен слоев с первого шага.</p>
+<p>В Post-LN нормализация $\text{LN}(x + F(x))$ искажала градиенты в глубоких сетях (требовался Warmup). В Pre-LN нормализуется вход $x + F(\text{LN}(x))$, создавая чистый Residual Stream и позволяя стабильно обучать 100+ слоёв с первого шага.</p>
 </div></details>
 
-<details class="qa"><summary>Сколько раз вызываются энкодер и декодер при генерации предложения из 20 токенов?</summary>
+<details class="qa"><summary>Сколько раз вызываются энкодер и декодер при генерации фразы из 20 токенов?</summary>
 <div class="ans">
-<p>Энкодер вызывается <strong>ровно один раз</strong> в самом начале, формируя матрицу представлений $H_{\text{enc}}$. Декодер вызывается <strong>20 раз последовательно</strong> (по одному разу на каждый авторегрессионный шаг генерации следующего токена).</p>
+<p>Энкодер вызывается <strong>1 раз</strong> в начале, формируя память $H_{\text{enc}}$. Декодер вызывается <strong>20 раз пошагово</strong> (авторегрессионная генерация).</p>
 </div></details>
 
-<details class="qa"><summary>Почему в оригинальной архитектуре Transformer выбрана размерность $d_{\text{ff}} = 4 \times d_{\text{model}}$?</summary>
+<details class="qa"><summary>Почему в архитектуре Transformer выбрана размерность $d_{\text{ff}} = 4 \times d_{\text{model}}$?</summary>
 <div class="ans">
-<p>Четырехкратное расширение скрытого пространства FFN (с 512 до 2048) дает нейросети достаточную нелинейную выразительную емкость для аппроксимации сложных лингвистических правил и ассоциативных знаний без переутяжеления матриц внимания.</p>
+<p>Четырёхкратное расширение даёт сети нелинейную ёмкость для аппроксимации лингвистических правил и фактов без утяжеления слоёв внимания.</p>
 </div></details>
 
-<details class="qa"><summary>Каким математическим свойством обладает синусоидальное позиционное кодирование при относительном сдвиге позиций?</summary>
+<details class="qa"><summary>Каким свойством обладает синусоидальное кодирование при относительном сдвиге?</summary>
 <div class="ans">
-<p>Для любой пары компонент частоты $\omega_i = \frac{1}{10000^{2i/d}}$ вектор на позиции $pos + k$ выражается через вектор на позиции $pos$ с помощью <strong>линейного ортогонального преобразования (матрицы поворота)</strong>:</p>
-<div class="math-scroll-wrapper">
-$$ \begin{pmatrix} \sin(\omega_i (pos + k)) \\ \cos(\omega_i (pos + k)) \end{pmatrix} = \begin{pmatrix} \cos(\omega_i k) & \sin(\omega_i k) \\ -\sin(\omega_i k) & \cos(\omega_i k) \end{pmatrix} \begin{pmatrix} \sin(\omega_i pos) \\ \cos(\omega_i pos) \end{pmatrix} $$
-</div>
-<p>Существует фиксированная блочно-диагональная матрица $M_k$, зависящая только от сдвига $k$, такая что $PE_{pos + k} = M_k PE_{pos}$, что позволяет матрицам внимания легко обучаться учету относительных расстояний между словами.</p>
+<p>Вектор позиции $pos + k$ выражается через вектор $pos$ с помощью <strong>ортогональной матрицы поворота</strong> $M_k$: $PE_{pos + k} = M_k PE_{pos}$. Это позволяет вниманию легко обучаться учёту относительных расстояний.</p>
 </div></details>
 
 <details class="qa"><summary>Почему современные LLM (LLaMA, Mistral) перешли от абсолютных эмбеддингов к RoPE?</summary>
 <div class="ans">
-<p>Абсолютные позиционные эмбеддинги (табличные или синусоидальные) жестко привязаны к началу координат и не умеют экстраполировать генерацию за пределы длины обучения $L_{\text{train}}$. <strong>RoPE (Rotary Position Embedding)</strong> поворачивает векторы $Q$ и $K$ в комплексной плоскости на угол, пропорциональный их позиции. Скалярное произведение $q_m^\top k_n$ в логитах внимания становится функцией исключительно <em>относительного расстояния</em> $(m - n)$, что позволяет расширять контекст до сотен тысяч токенов через частотную интерполяцию.</p>
+<p>Абсолютные эмбеддинги не экстраполируют длину контекста за пределы $L_{\text{train}}$. <strong>RoPE</strong> поворачивает $Q$ и $K$ на угол, пропорциональный позиции, делая скалярное произведение $q_m^\top k_n$ функцией строго <em>относительного расстояния</em> $(m - n)$.</p>
 </div></details>
 
 <!-- ============================================ -->
-<h2 id="tasks">📝 Микро-задачи</h2>
+<h2 id="tasks">7. 📝 Микро-задачи с решениями</h2>
 
 <div class="task">
-  <div class="tt">Задача 1. Подсчет параметров одного слоя Transformer Encoder</div>
-  <p>Параметры модели: $d_{\text{model}} = 512$, $d_{\text{ff}} = 2048$, $h = 8$ голов. Посчитайте суммарное количество параметров в одном слое энкодера (Multi-Head Attention + FFN + 2 слоя LayerNorm с bias).</p>
+  <div class="tt">Задача 1. Подсчёт параметров одного слоя Transformer Encoder</div>
+  <p>$d_{\text{model}} = 512, d_{\text{ff}} = 2048, h = 8$. Посчитайте параметры одного слоя энкодера (Multi-Head Attention + FFN + 2 LayerNorm с bias).</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>1. <strong>Multi-Head Attention:</strong></p>
-    <ul>
-      <li>$W^Q, W^K, W^V$: $3 \times (512 \times 512 + 512) = 3 \times 262\,656 = 787\,968$.</li>
-      <li>$W^O$: $512 \times 512 + 512 = 262\,656$.</li>
-      <li>Итого Attention: $1\,050\,624$.</li>
-    </ul>
-    <p>2. <strong>FFN:</strong></p>
-    <ul>
-      <li>Слой 1 ($512 \to 2048$): $512 \times 2048 + 2048 = 1\,050\,624$.</li>
-      <li>Слой 2 ($2048 \to 512$): $2048 \times 512 + 512 = 1\,049\,088$.</li>
-      <li>Итого FFN: $2\,099\,712$.</li>
-    </ul>
-    <p>3. <strong>Два слоя LayerNorm:</strong> $2 \times (2 \cdot 512) = 2\,048$ ($\gamma$ и $\beta$).</p>
-    <div class="math-scroll-wrapper">
-    $$ \text{Суммарно на 1 блок} = 1\,050\,624 + 2\,099\,712 + 2\,048 = \mathbf{3\,152\,384} \approx 3.15 \text{ млн} $$
-    </div>
+    <p>1. Attention: $W^Q, W^K, W^V, W^O \implies 4 \times (512 \times 512 + 512) = 1\,050\,624$.<br>
+    2. FFN: $512 \times 2048 + 2048 + 2048 \times 512 + 512 = 2\,099\,712$.<br>
+    3. 2 LayerNorm: $2 \times 2 \times 512 = 2\,048$.<br>
+    Итого: $1\,050\,624 + 2\,099\,712 + 2\,048 = \mathbf{3\,152\,384} \approx 3.15 \text{ млн}$.</p>
   </div></details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 2. Ручной расчет синусоидального позиционного кодирования</div>
-  <p>Пусть $d_{\text{model}} = 4$. Рассчитайте компоненты вектора $PE$ для позиции $pos = 0$ и позиции $pos = 1$.</p>
+  <div class="tt">Задача 2. Ручной расчёт синусоидального позиционного кодирования</div>
+  <p>$d_{\text{model}} = 4$. Рассчитайте компоненты $PE$ для $pos = 0$ и $pos = 1$.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>Формула частот: $\omega_0 = 1.0$, $\omega_1 = 10000^{-0.5} = 0.01$.</p>
-    <p><strong>Для $pos = 0$:</strong></p>
-    <div class="math-scroll-wrapper">
-    $$ PE(0) = [\sin(0), \, \cos(0), \, \sin(0), \, \cos(0)] = \mathbf{[0.0, \, 1.0, \, 0.0, \, 1.0]} $$
-    </div>
-    <p><strong>Для $pos = 1$:</strong></p>
-    <div class="math-scroll-wrapper">
-    $$ PE(1) = [\sin(1.0), \, \cos(1.0), \, \sin(0.01), \, \cos(0.01)] \approx \mathbf{[0.8415, \, 0.5403, \, 0.0100, \, 0.9999]} $$
-    </div>
+    <p>Частоты: $\omega_0 = 1.0, \omega_1 = 0.01$.<br>
+    $pos = 0$: $[\sin(0), \cos(0), \sin(0), \cos(0)] = \mathbf{[0, 1, 0, 1]}$.<br>
+    $pos = 1$: $[\sin(1), \cos(1), \sin(0.01), \cos(0.01)] \approx \mathbf{[0.8415, 0.5403, 0.0100, 0.9999]}$.</p>
   </div></details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 3. Расчет Causal Mask для последовательности</div>
-  <p>Последовательность состоит из 3 токенов. Выпишите бинарную матрицу маски и аддитивную матрицу маски для сложения с логитами перед Softmax.</p>
+  <div class="tt">Задача 3. Расчёт Causal Mask для последовательности</div>
+  <p>Последовательность из 3 токенов. Выпишите аддитивную маску для сложения с логитами перед Softmax.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>1. Булева маска видимости (1 — разрешено, 0 — запрещено):</p>
-    <div class="math-scroll-wrapper">
-    $$ M_{\text{bool}} = \begin{pmatrix} 1 & 0 & 0 \\ 1 & 1 & 0 \\ 1 & 1 & 1 \end{pmatrix} $$
-    </div>
-    <p>2. Аддитивная маска (0 — нейтрально, $-\infty$ — зануление в Softmax):</p>
     <div class="math-scroll-wrapper">
     $$ M_{\text{add}} = \begin{pmatrix} 0 & -\infty & -\infty \\ 0 & 0 & -\infty \\ 0 & 0 & 0 \end{pmatrix} $$
     </div>
+    <p>Значения $-\infty$ зануляют внимание к будущим токенам после Softmax.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 4. Размерность Cross-Attention матриц</div>
-  <p>Батч $B=8$. Длина входа энкодера $S=50$, длина выхода декодера $T=20$. Размерность $d=512$, $h=8$ голов ($d_k = 64$). Каковы размерности матриц $Q, K, V$ и матрицы весов внимания до и после Softmax в Cross-Attention?</p>
+  <p>Батч $B=8$, $S=50, T=20, d=512, h=8$ ($d_k=64$). Каковы размерности $Q, K, V$ и матрицы весов до и после Softmax?</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>1. $Q$ (от декодера): $(B, h, T, d_k) = (8, 8, 20, 64)$.</p>
-    <p>2. $K, V$ (от энкодера): $(B, h, S, d_k) = (8, 8, 50, 64)$.</p>
-    <p>3. Матрица $Q K^\top$: $(8, 8, 20, 64) \times (8, 8, 64, 50) \to \mathbf{(8, 8, 20, 50)}$.</p>
-    <p>4. Softmax вычисляется по последней размерности $S=50$. Размерность весов: $\mathbf{(8, 8, 20, 50)}$.</p>
+    <p>1. $Q$ (декодер): $(8, 8, 20, 64)$, $K, V$ (энкодер): $(8, 8, 50, 64)$.<br>
+    2. $Q K^\top$: $(8, 8, 20, 64) \times (8, 8, 64, 50) \to \mathbf{(8, 8, 20, 50)}$.<br>
+    3. Softmax по $S=50$: размерность весов $\mathbf{(8, 8, 20, 50)}$.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 5. Размерность тензора после FFN</div>
-  <p>Вход в FFN имеет размерность $(B=16, T=128, d=512)$. Промежуточный слой расширяет размерность до $d_{\text{ff}}=2048$. Каковы размеры тензора внутри FFN и на выходе?</p>
+  <p>Вход в FFN: $(B=16, T=128, d=512)$. Промежуточный слой $d_{\text{ff}}=2048$. Каковы размеры тензора внутри и на выходе?</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>После первого линейного слоя $W_1$ и активации: $\mathbf{(16, 128, 2048)}$.</p>
-    <p>После второго линейного слоя $W_2$: $\mathbf{(16, 128, 512)}$.</p>
-    <p>Пространственная форма $(16, 128)$ сохраняется неизменной.</p>
+    <p>Внутри FFN (после $W_1$): $\mathbf{(16, 128, 2048)}$. На выходе (после $W_2$): $\mathbf{(16, 128, 512)}$. Форма $(16, 128)$ неизменна.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 6. Влияние Residual Connection на градиенты</div>
-  <p>Пусть блок описывается уравнением $y = x + F(x)$. Найдите производную $\frac{\partial y}{\partial x}$. Почему это предотвращает затухание градиента?</p>
+  <p>Блок $y = x + F(x)$. Найдите $\frac{\partial y}{\partial x}$. Почему это устраняет затухание градиента?</p>
   <details><summary>Решение</summary><div class="sol">
     <div class="math-scroll-wrapper">
     $$ \frac{\partial y}{\partial x} = I + \frac{\partial F(x)}{\partial x} $$
     </div>
-    <p>При обратном распространении ошибки через $N$ слоев градиент содержит слагаемое $I$ (единичную матрицу). Даже если градиент подблока затухает ($\frac{\partial F}{\partial x} \to 0$), сигнал ошибки беспрепятственно протекает через единичную матрицу $I$, предотвращая затухание градиентов.</p>
+    <p>Слагаемое $I$ (единичная матрица) обеспечивает сквозное протекание градиента без затухания, даже если $\frac{\partial F}{\partial x} \to 0$.</p>
   </div></details>
 </div>
 
 <!-- ============================================ -->
-<h2 id="cheat">⚡ Краткий скелет ответа по билету</h2>
+<h2 id="cheat">8. ⚡ Скелет ответа по билету</h2>
 
 <div class="cheat">
-  <div class="bt">Скелет устного ответа по билету 15 (Архитектура Transformer)</div>
+  <div class="bt">Скелет ответа по билету 15 (Архитектура Transformer)</div>
   <ol>
-    <li><strong>Суть и мотивация:</strong> «Attention Is All You Need» (2017): полный отказ от RNN и CNN в пользу прямого внимания. Полный параллелизм при обучении, длина пути $O(1)$.</li>
-    <li><strong>Общая структура:</strong> Энкодер ($N=6$ слоев) переводит вход в контекстные представления. Декодер ($N=6$ слоев) авторегрессионно генерирует выходную последовательность.</li>
-    <li><strong>Блок Энкодера:</strong> 2 подблока: Multi-Head Self-Attention (двунаправленное) и Position-wise FFN ($d_{\text{model}} \to 4d \to d_{\text{model}}$), охваченные Residual и LayerNorm.</li>
-    <li><strong>Блок Декодера:</strong> 3 подблока: Masked Self-Attention (с причинной маской против подглядывания вперед), Cross-Attention ($Q$ от декодера, $K,V$ от энкодера) и FFN.</li>
-    <li><strong>LayerNorm vs BatchNorm:</strong> LayerNorm считает статистики по каналам одного токена независимо от размера батча $B$. Pre-LN ($x + F(\text{LN}(x))$) — современный стандарт стабильности глубоких сетей.</li>
-    <li><strong>Residual Connections:</strong> $x + F(x)$ формирует градиентный тракт $I + \frac{\partial F}{\partial x}$, защищая от затухания градиента.</li>
-    <li><strong>Позиционное кодирование:</strong> Внимание инвариантно к перестановкам токенов. Для учета порядка к эмбеддингам прибавляют $PE$. Синусоидальное кодирование выражает относительные сдвиги через линейные матрицы поворота. Современный аналог — RoPE.</li>
-    <li><strong>Сквозной поток данных:</strong> Токены $\to$ Embeddings + PE $\to$ Encoder Stack $\to$ Decoder Stack (авторегрессия с `[BOS]`) $\to$ Linear $\to$ Softmax $\to$ токен.</li>
+    <li><strong>Суть:</strong> «Attention Is All You Need» (2017) — отказ от RNN/CNN, параллелизм на GPU, длина пути $O(1)$.</li>
+    <li><strong>Общая схема:</strong> Энкодер ($N=6$) строит контекст; декодер ($N=6$) авторегрессионно генерирует токены.</li>
+    <li><strong>Блок Энкодера:</strong> Multi-Head Self-Attention + Position-wise FFN ($d \to 4d \to d$) с Residual и LayerNorm.</li>
+    <li><strong>Блок Декодера:</strong> Masked Self-Attention (с причинной маской) + Cross-Attention ($Q$ от декодера, $K,V$ от энкодера) + FFN.</li>
+    <li><strong>LayerNorm vs BatchNorm:</strong> LayerNorm считает статистики по каналам одного токена независимо от $B$. Pre-LN — современный стандарт стабильности.</li>
+    <li><strong>Residual Connections:</strong> $x + F(x)$ даёт градиентный тракт $I + \frac{\partial F}{\partial x}$, защищая от затухания.</li>
+    <li><strong>Позиционное кодирование:</strong> внимание не учитывает порядок; к эмбеддингам прибавляют $PE$. RoPE — современный поворотный аналог.</li>
+    <li><strong>Сквозной поток:</strong> Токены $\to$ Embeddings + PE $\to$ Encoder $\to$ Decoder (авторегрессия) $\to$ Linear $\to$ Softmax.</li>
   </ol>
 </div>
 

@@ -26,17 +26,17 @@
       if (Array.isArray(defaultVal)) {
         return Array.isArray(parsed) ? parsed : defaultVal;
       }
-      if (typeof defaultVal === 'object' && defaultVal !== null) {
-        return (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : defaultVal;
-      }
       if (typeof defaultVal === 'string') {
         return typeof parsed === 'string' ? parsed : defaultVal;
       }
       if (typeof defaultVal === 'number') {
-        return typeof parsed === 'number' && !isNaN(parsed) ? parsed : defaultVal;
+        return (typeof parsed === 'number' && !isNaN(parsed) && isFinite(parsed)) ? parsed : defaultVal;
       }
       if (typeof defaultVal === 'boolean') {
         return typeof parsed === 'boolean' ? parsed : defaultVal;
+      }
+      if (typeof defaultVal === 'object' && defaultVal !== null) {
+        return (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) ? parsed : defaultVal;
       }
       return parsed !== null && parsed !== undefined ? parsed : defaultVal;
     } catch (e) {
@@ -62,6 +62,8 @@
   }
 
   const CourseTracker = {
+    _safeGetJSON: safeGetJSON,
+
     // ---------- Theme ----------
     getTheme() {
       try {

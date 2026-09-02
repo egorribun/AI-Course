@@ -21,7 +21,7 @@ window.MathJax = {
 <header class="top"><div class="inner">
   <div class="kicker">Блок D · Reinforcement Learning · Вопрос 24</div>
   <h1>Лекция 26. Алгоритмы на основе стратегии: Метод Cross-Entropy (CEM), Policy Gradient, REINFORCE и PPO</h1>
-  <p class="sub">Прямая параметризация стратегии $\pi_\theta(a|s)$, безградиентный эволюционный метод Cross-Entropy (CEM), строгий вывод теоремы о градиенте стратегии (Log-derivative trick), алгоритм REINFORCE, снижение дисперсии с помощью Baseline и клиппинг PPO.</p>
+  <p class="sub">Параметризация стратегии $\pi_\theta(a|s)$, эволюционный метод Cross-Entropy (CEM), вывод теоремы Policy Gradient (Log-derivative trick), алгоритм REINFORCE, Baseline и клиппинг PPO.</p>
   <div class="meta">
     <span class="pill">⏱ 2 ч 45 мин</span>
     <span class="pill gray">10 вопросов препода</span>
@@ -37,10 +37,10 @@ window.MathJax = {
 <nav class="toc">
   <div class="bt">Содержание лекции</div>
   <ol>
-    <li><a href="#s1">Интуиция и мотивация: зачем оптимизировать стратегию напрямую</a></li>
-    <li><a href="#s2">Архитектура и схема: пайплайн Policy Gradient и метод Cross-Entropy</a></li>
-    <li><a href="#s3">Математический аппарат: вывод теоремы Policy Gradient, REINFORCE, Baseline и PPO</a></li>
-    <li><a href="#s4">Пошаговый числовой пример градиентного шага REINFORCE</a></li>
+    <li><a href="#s1">Интуиция и мотивация</a></li>
+    <li><a href="#s2">Архитектура и схема</a></li>
+    <li><a href="#s3">Математический аппарат</a></li>
+    <li><a href="#s4">Пошаговый числовой пример</a></li>
     <li><a href="#s5">Преимущества, недостатки и применимость</a></li>
     <li><a href="#qa">🎯 Препод спросит</a></li>
     <li><a href="#tasks">📝 Микро-задачи с решениями</a></li>
@@ -51,16 +51,16 @@ window.MathJax = {
 <!-- ============================================ -->
 <h2 id="s1"><span class="num">1.</span> Интуиция и мотивация</h2>
 
-<p>Методы на основе полезности (Value-Based: Q-learning, DQN) выбирают действия косвенно: сначала вычисляют скаляр $Q(s, a)$, а затем берут жадный максимум $a = \arg\max_a Q(s, a)$. Этот подход сталкивается с тремя непреодолимыми барьерами:</p>
+<p>Value-based методы (Q-learning, DQN) выбирают действия косвенно через $a = \arg\max_a Q(s, a)$. Это создаёт три ограничения:</p>
 <ol>
-  <li><strong>Непрерывные пространства действий:</strong> В робототехнике действие — это вектор крутящих моментов моторов $a \in \mathbb{R}^k$. Найти точный $\max_a Q(s, a)$ в непрерывном пространстве за миллисекунды невозможно.</li>
-  <li><strong>Стохастические оптимальные стратегии:</strong> В играх с неполной информацией (Камень-Ножницы-Бумага, Покер) или при неполной наблюдаемости (POMDP) любая детерминированная стратегия легко эксплуатируется оппонентом. Оптимальная стратегия обязана быть стохастической (например, бросать $1/3$ на каждый выбор). Value-based методы не умеют выражать вероятностные стратегии.</li>
-  <li><strong>Разрывы градиентов:</strong> Малейшее изменение весов в $Q(s, a)$ может скачкообразно изменить $\arg\max$, что приводит к нестабильности обучения.</li>
+  <li><strong>Непрерывные действия:</strong> В робототехнике $a \in \mathbb{R}^k$. Брать $\max_a Q(s, a)$ в континууме вычислительно дорого.</li>
+  <li><strong>Стохастические оптимумы:</strong> В играх с неполной информацией (покер) или POMDP детерминированная политика субоптимальна; требуется стохастическая $\pi(a|s)$.</li>
+  <li><strong>Нестабильность:</strong> Малое изменение весов в $Q(s, a)$ может скачкообразно менять $\arg\max$.</li>
 </ol>
 
 <div class="box idea">
   <div class="bt">💡 Идея Policy-Based методов</div>
-  <p>Мы <strong>напрямую параметризуем стратегию нейросетью $\pi_\theta(a \mid s)$</strong>, которая по состоянию $s$ выдает распределение вероятностей по действиям (или параметры гауссианы $\mu(s), \sigma(s)$ для непрерывных действий). Обучение идет градиентным подъемом по весам $\theta$ для максимизации ожидаемого суммарного дохода:</p>
+  <p>Мы <strong>напрямую параметризуем стратегию нейросетью $\pi_\theta(a \mid s)$</strong> и оптимизируем ожидаемый доход градиентным подъёмом:</p>
   <div class="math-scroll-wrapper">
   $$ \max_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} [R(\tau)] \implies \theta \leftarrow \theta + \alpha \nabla_\theta J(\theta) $$
   </div>
@@ -93,106 +93,83 @@ window.MathJax = {
       │   Градиентный шаг REINFORCE:                            │
       │   θ ← θ + α · Σ_t ∇_θ log π_θ(A_t | S_t) · (G_t - b(S_t))│
       └─────────────────────────────────────────────────────────┘
-<span class="cap">Схема прямого градиентного обновления стратегии: траектория сэмплируется целиком, после чего вероятности действий, приведших к высокому $G_t$, увеличиваются.</span></div>
+<span class="cap">Пайплайн REINFORCE: вероятности действий, приведших к высокому $G_t$, увеличиваются градиентным шагом.</span></div>
 
 <div class="scheme">
   МЕТОД CROSS-ENTROPY (CEM):
 
-  1. Распределение параметров: θ ~ N(μ, Σ)
-  2. Сэмплирование N векторов параметров {θ_1, ..., θ_N}
-  3. Прогон эпизодов в среде и замер наград J(θ_i) = Σ r_t
-  4. Сортировка и отбор топ-K «элитных» параметров (Elite Sessions)
-  5. Пересчет среднего и ковариации: μ_new = Mean(θ_elite), Σ_new = Cov(θ_elite)
-  6. Повторение до сходимости.
-<span class="cap">Cross-Entropy Method (CEM) — безградиентный эволюционный метод оптимизации стратегии в пространстве параметров.</span></div>
+  1. Параметры: θ ~ N(μ, Σ)
+  2. Сэмплирование N векторов {θ_1, ..., θ_N}
+  3. Прогон эпизодов и замер наград J(θ_i) = Σ r_t
+  4. Отбор топ-K элитных параметров (Elite Sessions)
+  5. Пересчёт: μ_new = Mean(θ_elite), Σ_new = Cov(θ_elite)
+<span class="cap">CEM: безградиентная эволюционная оптимизация в пространстве параметров.</span></div>
 
 <!-- ============================================ -->
 <h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
 
 <h3>1. Метод Cross-Entropy (CEM)</h3>
-<p>CEM оптимизирует целевую функцию $J(\theta)$ без вычисления производных среды. На каждой итерации сэмплируется популяция из $N$ агентов $\theta_i \sim \mathcal{N}(\mu, \Sigma)$. После оценки траекторий отбирается элитная доля лучших сессий (квантиль $1 - \rho$, $K = \rho N$ лучших векторов $\theta$). Новые параметры распределения обновляются по методу максимального правдоподобия:</p>
+<p>CEM оптимизирует $J(\theta)$ без производных среды. Сэмплируется $N$ агентов $\theta_i \sim \mathcal{N}(\mu, \Sigma)$, отбираются $K = \rho N$ лучших векторов:</p>
 
 <div class="math-scroll-wrapper">
 $$ \mu_{k+1} = \frac{1}{K} \sum_{i \in \text{Elite}} \theta_i, \quad \Sigma_{k+1} = \frac{1}{K} \sum_{i \in \text{Elite}} (\theta_i - \mu_{k+1})(\theta_i - \mu_{k+1})^T + \epsilon I $$
 </div>
 
-<h3>2. Строгий вывод теоремы о градиенте стратегии (Policy Gradient Theorem)</h3>
-<p>Целевой функционал качества стратегии — математическое ожидание дохода траектории $\tau = (S_0, A_0, \dots, S_T)$:</p>
-
-<div class="math-scroll-wrapper">
-$$ J(\theta) \doteq \mathbb{E}_{\tau \sim P(\tau; \theta)} [R(\tau)] = \int P(\tau; \theta) R(\tau) \, d\tau $$
-</div>
-<p>где $R(\tau) = \sum_{t=0}^{T-1} R_{t+1}$ — суммарная награда траектории.</p>
+<h3>2. Вывод теоремы о градиенте стратегии (Policy Gradient Theorem)</h3>
+<p>Целевой функционал качества: $J(\theta) \doteq \mathbb{E}_{\tau \sim \pi_\theta} [R(\tau)] = \int P(\tau; \theta) R(\tau) \, d\tau$.</p>
 
 <div class="box mathbox">
-  <div class="bt">📐 Трюк с логарифмической производной (Log-Derivative Trick / Likelihood Ratio)</div>
-  <p>Возьмем градиент по $\theta$ от интеграла:</p>
+  <div class="bt">📐 Трюк с логарифмической производной (Log-Derivative Trick)</div>
+  <p>Используем тождество $\nabla_\theta P(\tau) = P(\tau) \nabla_\theta \log P(\tau)$:</p>
   <div class="math-scroll-wrapper">
-  $$ \nabla_\theta J(\theta) = \nabla_\theta \int P(\tau; \theta) R(\tau) \, d\tau = \int \nabla_\theta P(\tau; \theta) R(\tau) \, d\tau $$
-  </div>
-  <p>Используем тождество $\nabla_\theta f(\theta) = f(\theta) \nabla_\theta \log f(\theta)$ (так как $\nabla \log f = \frac{\nabla f}{f}$):</p>
-  <div class="math-scroll-wrapper">
-  $$ \nabla_\theta P(\tau; \theta) = P(\tau; \theta) \nabla_\theta \log P(\tau; \theta) $$
-  </div>
-  <p>Подставляем обратно в интеграл:</p>
-  <div class="math-scroll-wrapper">
-  $$ \nabla_\theta J(\theta) = \int P(\tau; \theta) \nabla_\theta \log P(\tau; \theta) R(\tau) \, d\tau = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \nabla_\theta \log P(\tau; \theta) R(\tau) \right] $$
+  $$ \nabla_\theta J(\theta) = \int \nabla_\theta P(\tau; \theta) R(\tau) \, d\tau = \int P(\tau; \theta) \nabla_\theta \log P(\tau; \theta) R(\tau) \, d\tau = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \nabla_\theta \log P(\tau; \theta) R(\tau) \right] $$
   </div>
   
-  <p>Распишем вероятность траектории в MDP:</p>
-  <div class="math-scroll-wrapper">
-  $$ P(\tau; \theta) = \rho(S_0) \prod_{t=0}^{T-1} \pi_\theta(A_t \mid S_t) \mathcal{P}(S_{t+1} \mid S_t, A_t) $$
-  </div>
-  <p>Логарифмируем произведение:</p>
+  <p>Вероятность траектории в MDP: $P(\tau; \theta) = \rho(S_0) \prod_{t=0}^{T-1} \pi_\theta(A_t \mid S_t) \mathcal{P}(S_{t+1} \mid S_t, A_t)$. Логарифмируем:</p>
   <div class="math-scroll-wrapper">
   $$ \log P(\tau; \theta) = \log \rho(S_0) + \sum_{t=0}^{T-1} \log \pi_\theta(A_t \mid S_t) + \sum_{t=0}^{T-1} \log \mathcal{P}(S_{t+1} \mid S_t, A_t) $$
   </div>
-  <p>Берем градиент по $\theta$. Начальное распределение $\rho(S_0)$ и динамика среды $\mathcal{P}(S_{t+1}|S_t, A_t)$ <strong>не зависят от весов нейросети $\theta$</strong>, поэтому их градиенты тождественно равны $0$:</p>
+  <p>Дифференцируя по $\theta$, члены $\rho(S_0)$ и $\mathcal{P}$ обнуляются:</p>
   <div class="math-scroll-wrapper">
   $$ \nabla_\theta \log P(\tau; \theta) = \sum_{t=0}^{T-1} \nabla_\theta \log \pi_\theta(A_t \mid S_t) $$
   </div>
-  <p><strong>Фундаментальный вывод:</strong> Для вычисления точного градиента целевой функции <strong>не требуется знать уравнения динамики среды $\mathcal{P}$!</strong></p>
+  <p><strong>Результат:</strong> Градиент вычисляется <strong>без знания динамики среды $\mathcal{P}$</strong>!</p>
 </div>
 
 <h3>3. Алгоритм REINFORCE (Williams, 1992)</h3>
-<p>Используя причинно-следственную связь (действие в момент $t$ влияет только на будущие награды с момента $t$, causality), заменяем полный доход $R(\tau)$ на суффиксный дисконтированный доход $G_t = \sum_{k=0}^\infty \gamma^k R_{t+k+1}$:</p>
+<p>Заменяя полный $R(\tau)$ на дисконтированный доход $G_t = \sum_{k=0}^\infty \gamma^k R_{t+k+1}$ в силу причинности (causality):</p>
 
 <div class="math-scroll-wrapper">
-$$ \nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \sum_{t=0}^T \nabla_\theta \log \pi_\theta(A_t \mid S_t) G_t \right] $$
-</div>
-<p>Правило стохастического обновления весов REINFORCE:</p>
-<div class="math-scroll-wrapper">
-$$ \theta \leftarrow \theta + \alpha \sum_{t=0}^T \nabla_\theta \log \pi_\theta(A_t \mid S_t) G_t $$
+$$ \nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \sum_{t=0}^T \nabla_\theta \log \pi_\theta(A_t \mid S_t) G_t \right] \implies \theta \leftarrow \theta + \alpha \sum_{t=0}^T \nabla_\theta \log \pi_\theta(A_t \mid S_t) G_t $$
 </div>
 
-<h3>4. Снижение дисперсии с помощью Baseline (Базовой линии)</h3>
-<p>Эмпирические доходы $G_t$ обладают огромной дисперсией. Для ее снижения вычитают независимый от действия базовый уровень $b(S_t)$:</p>
+<h3>4. Снижение дисперсии с помощью Baseline</h3>
+<p>Вычитание базового уровня $b(S_t)$ снижает дисперсию без смещения оценки:</p>
 
 <div class="math-scroll-wrapper">
 $$ \nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} \left[ \sum_{t=0}^T \nabla_\theta \log \pi_\theta(A_t \mid S_t) \Big( G_t - b(S_t) \Big) \right] $$
 </div>
 
-<p><strong>Доказательство строгой несмещенности градиента с Baseline:</strong></p>
+<p><strong>Доказательство несмещённости:</strong></p>
 <div class="math-scroll-wrapper">
-$$ \mathbb{E}_{A_t \sim \pi_\theta} \left[ \nabla_\theta \log \pi_\theta(A_t \mid S_t) b(S_t) \right] = b(S_t) \sum_{a \in \mathcal{A}} \pi_\theta(a \mid S_t) \frac{\nabla_\theta \pi_\theta(a \mid S_t)}{\pi_\theta(a \mid S_t)} = b(S_t) \nabla_\theta \underbrace{\sum_{a \in \mathcal{A}} \pi_\theta(a \mid S_t)}_{= 1} = b(S_t) \nabla_\theta (1) = 0 $$
+$$ \mathbb{E}_{A_t \sim \pi_\theta} \left[ \nabla_\theta \log \pi_\theta(A_t \mid S_t) b(S_t) \right] = b(S_t) \sum_{a} \pi_\theta(a \mid S_t) \frac{\nabla_\theta \pi_\theta(a \mid S_t)}{\pi_\theta(a \mid S_t)} = b(S_t) \nabla_\theta \sum_{a} \pi_\theta(a \mid S_t) = b(S_t) \nabla_\theta (1) = 0 $$
 </div>
-<p>Оптимальным с точки зрения минимальной дисперсии бейзлайном является функция ценности состояния: $b(s) = V(s)$.</p>
+<p>Оптимальный baseline — функция ценности состояния $b(s) = V(s)$.</p>
 
-<h3>5. Клиппинг в Proximal Policy Optimization (PPO, Schulman et al., 2017)</h3>
-<p>Чтобы избежать катастрофического разрушения стратегии слишком большим градиентным шагом, PPO ограничивает отношение вероятностей $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{\text{old}}}(a_t|s_t)}$:</p>
+<h3>5. Клиппинг в Proximal Policy Optimization (PPO)</h3>
+<p>PPO ограничивает отношение $r_t(\theta) = \frac{\pi_\theta(a_t|s_t)}{\pi_{\theta_{\text{old}}}(a_t|s_t)}$ интервалом $[1-\epsilon, 1+\epsilon]$:</p>
 
 <div class="math-scroll-wrapper">
 $$ L^{\text{CLIP}}(\theta) = \hat{\mathbb{E}}_t \left[ \min\left( r_t(\theta) \hat{A}_t, \; \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon) \hat{A}_t \right) \right] $$
 </div>
-<p>где $\epsilon \approx 0.2$ — гиперпараметр клиппинга, а $\hat{A}_t = G_t - V(S_t)$ — оценка преимущества.</p>
+<p>где $\hat{A}_t = G_t - V(S_t)$ — преимущество.</p>
 
-<h3>6. Практическая реализация REINFORCE и PPO Loss на PyTorch</h3>
+<h3>6. Реализация REINFORCE и PPO Loss на PyTorch</h3>
 <pre><code>import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 class PolicyNetwork(nn.Module):
-    """Стохастическая нейросеть стратегии."""
     def __init__(self, state_dim, action_dim, hidden_dim=64):
         super().__init__()
         self.net = nn.Sequential(
@@ -206,73 +183,40 @@ class PolicyNetwork(nn.Module):
         return F.softmax(logits, dim=-1)
 
 def compute_reinforce_loss(policy_net, states, actions, returns):
-    """Расчет функции потерь REINFORCE: -E[log pi(a|s) * G_t]."""
     probs = policy_net(states)
     dist = torch.distributions.Categorical(probs)
     log_probs = dist.log_prob(actions)
-    loss = -(log_probs * returns).mean()
-    return loss
+    return -(log_probs * returns).mean()
 
 def compute_ppo_clipped_loss(log_probs, old_log_probs, advantages, epsilon=0.2):
-    """Расчет Clipped Surrogate Objective в алгоритме PPO."""
     ratios = torch.exp(log_probs - old_log_probs)
     surr1 = ratios * advantages
     surr2 = torch.clamp(ratios, 1.0 - epsilon, 1.0 + epsilon) * advantages
-    loss = -torch.min(surr1, surr2).mean()
-    return loss
+    return -torch.min(surr1, surr2).mean()
 </code></pre>
 
 <!-- ============================================ -->
 <h2 id="s4"><span class="num">4.</span> Пошаговый числовой пример</h2>
 
 <div class="box exambox">
-  <div class="bt">🔢 Пример 1. Ручной расчет шага REINFORCE для 1 параметра</div>
-  <p>Пусть стратегия с 2 действиями $\{a_1, a_2\}$ параметризована скаляром $\theta \in \mathbb{R}$:</p>
-  <div class="math-scroll-wrapper">
-  $$ \pi_\theta(a_1 \mid s) = \sigma(\theta) = \frac{1}{1 + e^{-\theta}}, \quad \pi_\theta(a_2 \mid s) = 1 - \sigma(\theta) $$
-  </div>
-  <p>Начальное значение $\theta = 0.0 \implies \pi(a_1|s) = \sigma(0) = 0.5, \quad \pi(a_2|s) = 0.5$.</p>
-  <p>Агент выбрал действие $A_0 = a_1$ и получил высокий дисконтированный доход $G_0 = +10.0$. Шаг обучения $\alpha = 0.1$.</p>
-
-  <h3>1. Вычисление градиента log-вероятности:</h3>
-  <p>Так как $\frac{d}{d\theta} \log \sigma(\theta) = \frac{1}{\sigma(\theta)} \cdot \sigma(\theta)(1 - \sigma(\theta)) = 1 - \sigma(\theta)$:</p>
-  <div class="math-scroll-wrapper">
-  $$ \nabla_\theta \log \pi_\theta(a_1 \mid s) = 1 - \sigma(0.0) = 1 - 0.5 = +0.5 $$
-  </div>
-
-  <h3>2. Вычисление изменения весов:</h3>
-  <div class="math-scroll-wrapper">
-  $$ \Delta \theta = \alpha \cdot \nabla_\theta \log \pi_\theta(a_1 \mid s) \cdot G_0 = 0.1 \cdot 0.5 \cdot 10.0 = +0.5 $$
-  </div>
-  <div class="math-scroll-wrapper">
-  $$ \theta_{\text{new}} = 0.0 + 0.5 = 0.5 $$
-  </div>
-
-  <h3>3. Проверка новой вероятности действия $a_1$:</h3>
-  <div class="math-scroll-wrapper">
-  $$ \pi_{\theta_{\text{new}}}(a_1 \mid s) = \sigma(0.5) = \frac{1}{1 + e^{-0.5}} \approx \frac{1}{1 + 0.6065} = \frac{1}{1.6065} \approx 0.6225 $$
-  </div>
-  <p>Вероятность успешно выбранного действия возросла с 50.0% до 62.25%!</p>
+  <div class="bt">🔢 Пример 1. Расчёт шага REINFORCE для 1 параметра</div>
+  <p>Стратегия с 2 действиями: $\pi_\theta(a_1 \mid s) = \sigma(\theta) = \frac{1}{1 + e^{-\theta}}$. Начальное $\theta = 0.0 \implies \pi(a_1|s) = 0.5$.</p>
+  <p>Выбрано $a_1$, получен доход $G_0 = +10.0$ при $\alpha = 0.1$:</p>
+  <ol>
+    <li>Градиент: $\nabla_\theta \log \pi_\theta(a_1 \mid s) = 1 - \sigma(0.0) = 0.5$.</li>
+    <li>Шаг: $\Delta \theta = 0.1 \cdot 0.5 \cdot 10.0 = +0.5 \implies \theta_{\text{new}} = 0.5$.</li>
+    <li>Новая вероятность: $\pi_{\text{new}}(a_1 \mid s) = \sigma(0.5) = \frac{1}{1 + e^{-0.5}} \approx 0.6225$ ($62.25\%$).</li>
+  </ol>
 </div>
 
 <div class="box exambox">
-  <div class="bt">🔢 Пример 2. Расчет PPO Clipped Objective</div>
-  <p>Пусть $\epsilon = 0.2$ (диапазон клиппинга $[0.8, 1.2]$):</p>
+  <div class="bt">🔢 Пример 2. Расчёт PPO Clipped Objective ($\epsilon = 0.2$)</div>
   <ul>
-    <li><strong>Случай A (Положительное преимущество $\hat{A} = +2.0$):</strong> Отношение $r(\theta) = 1.5$ (стратегия сильно увеличила вероятность хорошего действия).
-      <div class="math-scroll-wrapper">
-      $$ \text{clip}(1.5, 0.8, 1.2) = 1.2 \implies \min(1.5 \cdot 2.0, 1.2 \cdot 2.0) = \min(3.0, 2.4) = 2.4 $$
-      </div>
-      Клиппинг не дал градиенту раздуться выше 2.4!
-    </li>
-    <li><strong>Случай B (Отрицательное преимущество $\hat{A} = -2.0$):</strong> Отношение $r(\theta) = 0.5$ (стратегия сильно занизила вероятность плохого действия).
-      <div class="math-scroll-wrapper">
-      $$ \text{clip}(0.5, 0.8, 1.2) = 0.8 \implies \min(0.5 \cdot (-2.0), 0.8 \cdot (-2.0)) = \min(-1.0, -1.6) = -1.6 $$
-      </div>
-    </li>
+    <li>$\hat{A} = +2.0, r(\theta) = 1.5 \implies \min(1.5 \cdot 2.0, 1.2 \cdot 2.0) = \min(3.0, 2.4) = 2.4$.</li>
+    <li>$\hat{A} = -2.0, r(\theta) = 0.5 \implies \min(0.5 \cdot (-2.0), 0.8 \cdot (-2.0)) = \min(-1.0, -1.6) = -1.6$.</li>
   </ul>
 
-  <h3>Реализация метода Cross-Entropy (CEM) на Python</h3>
+  <h3>Реализация Cross-Entropy Method (CEM) на Python</h3>
 <pre><code>import numpy as np
 
 def cross_entropy_method(evaluate_fn, param_dim, n_samples=50, percentile=70, n_iter=20):
@@ -298,40 +242,40 @@ def cross_entropy_method(evaluate_fn, param_dim, n_samples=50, percentile=70, n_
     <tr>
       <th>Критерий</th>
       <th>Q-Learning / DQN</th>
-      <th>REINFORCE (Policy Gradient)</th>
-      <th>Proximal Policy Optimization (PPO)</th>
+      <th>REINFORCE (PG)</th>
+      <th>PPO</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td><strong>Пространство действий</strong></td>
-      <td>Только дискретное</td>
-      <td><strong>Дискретное и непрерывное $\mathbb{R}^k$</strong></td>
-      <td><strong>Дискретное и непрерывное $\mathbb{R}^k$</strong></td>
+      <td><strong>Действия</strong></td>
+      <td>Только дискретные</td>
+      <td><strong>Дискретные и непрерывные $\mathbb{R}^k$</strong></td>
+      <td><strong>Дискретные и непрерывные $\mathbb{R}^k$</strong></td>
     </tr>
     <tr>
-      <td><strong>Тип стратегии</strong></td>
+      <td><strong>Стратегия</strong></td>
       <td>Детерминированная жадная</td>
       <td><strong>Стохастическая $\pi_\theta(a|s)$</strong></td>
       <td><strong>Стохастическая $\pi_\theta(a|s)$</strong></td>
     </tr>
     <tr>
-      <td><strong>Дисперсия градиента</strong></td>
+      <td><strong>Дисперсия</strong></td>
       <td>Низкая (бутстрэпинг)</td>
-      <td><strong>Очень высокая</strong> (целый эпизод $G_t$)</td>
+      <td><strong>Очень высокая</strong> ($G_t$)</td>
       <td>Умеренная (GAE + Baseline)</td>
     </tr>
     <tr>
-      <td><strong>Стабильность шага</strong></td>
-      <td>Колебания оценок</td>
-      <td>Чувствителен к $\alpha$ (риск коллапса)</td>
-      <td><strong>Высокая</strong> благодаря Clipped Objective</td>
+      <td><strong>Стабильность</strong></td>
+      <td>Колебания $Q$</td>
+      <td>Чувствителен к $\alpha$</td>
+      <td><strong>Высокая</strong> (Clipped Objective)</td>
     </tr>
     <tr>
-      <td><strong>Область применения</strong></td>
-      <td>Atari, настольные игры</td>
-      <td>Простые среды, бенчмарки</td>
-      <td><strong>SOTA: Робототехника, LLM RLHF (ChatGPT)</strong></td>
+      <td><strong>Применение</strong></td>
+      <td>Atari, дискретные игры</td>
+      <td>Базовые задачи, бенчмарки</td>
+      <td><strong>SOTA: Робототехника, LLM RLHF</strong></td>
     </tr>
   </tbody>
 </table>
@@ -343,70 +287,70 @@ def cross_entropy_method(evaluate_fn, param_dim, n_samples=50, percentile=70, n_
 <details class="qa">
   <summary>1. В чем математическая суть трюка с логарифмической производной и почему он критически важен?</summary>
   <div class="ans">
-    <p>Трюк с логарифмической производной заключается в тождестве $\nabla_\theta P(\tau) = P(\tau) \nabla_\theta \log P(\tau)$. Он позволяет превратить градиент интеграла в математическое ожидание: $\int \nabla P(\tau) R(\tau) d\tau = \mathbb{E}_{\tau}[\nabla \log P(\tau) R(\tau)]$, которое можно оценивать сэмплированием методом Монте-Карло. При этом члены, отвечающие за динамику среды $\mathcal{P}$, обнуляются при взятии производной по весам стратегии $\theta$, что позволяет обучать агента без знания физики среды.</p>
+    <p>$\nabla_\theta P(\tau) = P(\tau) \nabla_\theta \log P(\tau)$ преобразует градиент интеграла в математическое ожидание: $\nabla J = \mathbb{E}[\nabla \log P(\tau) R(\tau)]$. Члены динамики среды $\mathcal{P}$ обнуляются при дифференцировании по $\theta$, позволяя обучать политику без знания модели среды.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>2. Почему вычитание Baseline $b(s)$ не смещает математическое ожидание градиента стратегии?</summary>
   <div class="ans">
-    <p>Потому что матожидание градиента логарифма вероятности по распределению стратегии тождественно равно нулю: $\mathbb{E}_{a \sim \pi} [\nabla_\theta \log \pi_\theta(a|s)] = \sum_a \pi_\theta(a|s) \frac{\nabla_\theta \pi_\theta(a|s)}{\pi_\theta(a|s)} = \nabla_\theta \sum_a \pi_\theta(a|s) = \nabla_\theta (1) = 0$. Умножение на любую функцию $b(s)$, не зависящую от действия $a$, сохраняет тождественный ноль.</p>
+    <p>Потому что $\mathbb{E}_{a \sim \pi} [\nabla_\theta \log \pi_\theta(a|s)] = \sum_a \nabla_\theta \pi_\theta(a|s) = \nabla_\theta(1) = 0$. Умножение на любую функцию $b(s)$, не зависящую от $a$, даёт тождественный ноль.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>3. В чем разница между оптимизацией в пространстве параметров (CEM) и пространстве действий (Policy Gradient)?</summary>
   <div class="ans">
-    <p>CEM сэмплирует возмущения в весах сети $\theta \sim \mathcal{N}(\mu, \Sigma)$, прогоняет детерминированные эпизоды и отбирает лучшие векторы параметров (Black-Box эволюционный поиск). Policy Gradient сэмплирует действия $a_t \sim \pi_\theta(\cdot|s)$ на каждом шаге и использует обратное распространение ошибки по графу вычислений, что на порядки эффективнее по выборке на глубоких сетях.</p>
+    <p>CEM возмущает веса $\theta \sim \mathcal{N}(\mu, \Sigma)$ и отбирает лучшие векторы (Black-Box эволюция). Policy Gradient дифференцирует стохастические действия $\pi_\theta(a|s)$ через Backprop, что эффективнее по выборке.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>4. Как Policy Gradient работает в непрерывных пространствах действий?</summary>
   <div class="ans">
-    <p>Нейросеть выводит параметры непрерывного распределения, например математическое ожидание $\mu_\theta(s)$ и диагональную ковариацию $\sigma_\theta(s)$ многомерного нормального закона $\mathcal{N}(\mu_\theta(s), \text{diag}(\sigma_\theta^2(s)))$. Действие сэмплируется по формуле $a = \mu_\theta(s) + \sigma_\theta(s) \odot \epsilon$, где $\epsilon \sim \mathcal{N}(0, I)$, а логарифм плотности вычисляется аналитически.</p>
+    <p>Сеть выводит параметры распределения (например, $\mu_\theta(s), \sigma_\theta(s)$ Гауссианы), действие сэмплируется $a \sim \mathcal{N}(\mu, \sigma^2)$, а $\nabla \log \pi$ вычисляется аналитически.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>5. Почему алгоритм REINFORCE называют алгоритмом с высокой дисперсией (High Variance)?</summary>
   <div class="ans">
-    <p>Потому что градиент масштабируется полным доходом эпизода $G_t = \sum_{k=0}^T \gamma^k R_{t+k+1}$. Случайные колебания наград на всех последующих шагах эпизода перемножаются, создавая огромный разброс оценок градиента. Для подавления дисперсии применяют Baseline, GAE и переходят к Actor-Critic.</p>
+    <p>Градиент масштабируется полным доходом $G_t = \sum \gamma^k R$. Случайные колебания наград по всей длине эпизода перемножаются, создавая огромный разброс оценок.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>6. Как регуляризация энтропией (Entropy Regularization) предотвращает преждевременную сходимость?</summary>
   <div class="ans">
-    <p>В функцию потерь добавляется штраф за низкую энтропию: $\mathcal{L}_{total} = \mathcal{L}_{PG} - \beta \mathcal{H}(\pi_\theta(\cdot|s))$, где $\mathcal{H}(\pi) = -\sum_a \pi(a|s) \log \pi(a|s)$. Это стимулирует стратегию сохранять стохастичность и продолжать исследование пространства действий, предотвращая вырождение в детерминированный локальный оптимум на ранних этапах.</p>
+    <p>Добавление штрафа $+\beta \mathcal{H}(\pi)$ к целевой функции стимулирует стохастичность политики, предотвращая вырождение в детерминированный локальный оптимум.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>7. Зачем в PPO введен Clipped Surrogate Objective?</summary>
   <div class="ans">
-    <p>В классическом Policy Gradient большой шаг обучения может катастрофически изменить стратегию: агент начнет генерировать плохие траектории и никогда не сможет восстановиться. PPO клиппирует коэффициент важности $r_t(\theta)$ интервалом $[1-\epsilon, 1+\epsilon]$, гарантируя, что новая стратегия $\pi_\theta$ не уйдет слишком далеко от предыдущей $\pi_{\theta_{\text{old}}}$.</p>
+    <p>Клиппинг отношения $r_t(\theta)$ интервалом $[1-\epsilon, 1+\epsilon]$ защищает от разрушительно больших шагов оптимизации, удерживая новую политику близко к старой.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>8. Чем PPO превосходит TRPO (Trust Region Policy Optimization)?</summary>
   <div class="ans">
-    <p>TRPO гарантирует монотонное улучшение стратегии с помощью жесткого ограничения на KL-дивергенцию $D_{KL}(\pi_{\text{old}} \parallel \pi) \le \delta$, но требует вычисления матрицы Фишера второго порядка и метода сопряженных градиентов ($O(N^2)$). PPO аппроксимирует ту же область доверия простым клиппингом функции потерь первого порядка, легко оптимизируясь стандартным Adam.</p>
+    <p>TRPO требует сложного вычисления матрицы Фишера и сопряжённых градиентов ($O(N^2)$). PPO аппроксимирует область доверия простым клиппингом первого порядка, совместимым с Adam.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>9. Почему при использовании стохастической политики в RLHF для LLM используется именно PPO?</summary>
   <div class="ans">
-    <p>Языковая модель генерирует текст как авторегрессионную стохастическую последовательность токенов (высокоразмерное пространство действий $|V| \sim 10^5$). PPO с клиппингом и штрафом за KL-дивергенцию относительно базовой модели позволяет оптимизировать скалярную оценку Reward Model без разрушения языковых способностей LLM.</p>
+    <p>Генерация текста стохастична ($|V| \sim 10^5$). PPO с клиппингом и штрафом за KL-дивергенцию оптимизирует Reward Model без разрушения базовых языковых способностей модели.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>10. Что такое Advantage Function $A(s, a)$ и почему она лучше $Q(s, a)$ в градиенте стратегии?</summary>
   <div class="ans">
-    <p>Функция преимущества $A(s, a) = Q(s, a) - V(s)$ показывает, насколько конкретное действие $a$ лучше или хуже среднего действия в данном состоянии. Если все действия в плохом состоянии дают отрицательный доход, $Q(s, a)$ будут отрицательными, но лучшее среди них будет иметь положительный Advantage $A(s, a) > 0$ и будет поощряться.</p>
+    <p>$A(s, a) = Q(s, a) - V(s)$ показывает относительное преимущество действия по сравнению со средним уровнем. Даже в плохом состоянии ($Q < 0$) лучшее действие получает $A > 0$ и поощряется.</p>
   </div>
 </details>
 
@@ -415,30 +359,26 @@ def cross_entropy_method(evaluate_fn, param_dim, n_samples=50, percentile=70, n_
 
 <div class="task">
   <div class="tt">Задача 1. Градиент Softmax-стратегии для дискретного действия</div>
-  <p>Логиты действий $z = [z_1, z_2] = [1.0, 0.0]$. Вероятности Softmax: $\pi(a_1) = \frac{e^1}{e^1 + 1} \approx 0.731, \pi(a_2) \approx 0.269$. Было выбрано действие $a_1$. Чему равны частные производные $\frac{\partial \log \pi(a_1)}{\partial z_1}$ и $\frac{\partial \log \pi(a_1)}{\partial z_2}$?</p>
+  <p>Логиты $z = [1.0, 0.0]$, вероятности $\pi = [0.731, 0.269]$. Выбрано $a_1$. Найдите $\frac{\partial \log \pi(a_1)}{\partial z_1}$ и $\frac{\partial \log \pi(a_1)}{\partial z_2}$.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>По свойствам производной Softmax:</p>
-      <ul>
-        <li>По своему логиту: $\frac{\partial \log \pi(a_1)}{\partial z_1} = 1 - \pi(a_1) = 1 - 0.731 = +0.269$.</li>
-        <li>По чужому логиту: $\frac{\partial \log \pi(a_1)}{\partial z_2} = -\pi(a_2) = -0.269$.</li>
-      </ul>
-      <p><strong>Ответ:</strong> $\frac{\partial \log \pi}{\partial z_1} = +0.269, \frac{\partial \log \pi}{\partial z_2} = -0.269$.</p>
+      <p>По своему логиту: $\frac{\partial \log \pi(a_1)}{\partial z_1} = 1 - \pi(a_1) = 1 - 0.731 = +0.269$.</p>
+      <p>По чужому логиту: $\frac{\partial \log \pi(a_1)}{\partial z_2} = -\pi(a_2) = -0.269$.</p>
+      <p><strong>Ответ:</strong> $+0.269$ и $-0.269$.</p>
     </div>
   </details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 2. Обновление REINFORCE с Baseline</div>
-  <p>В состоянии $s$ вектор градиента $\nabla_\theta \log \pi(a|s) = [0.4, -0.2]$. Доход эпизода $G_t = 12.0$. Оценка ценности состояния критиком $V(s) = 10.0$. Скорость обучения $\alpha = 0.1$. Чему равен вектор обновления параметров $\Delta \theta$?</p>
+  <p>$\nabla_\theta \log \pi = [0.4, -0.2], G_t = 12.0, V(s) = 10.0, \alpha = 0.1$. Чему равен шаг $\Delta \theta$?</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>1) Оценка преимущества с бейзлайном: $\hat{A}_t = G_t - V(s) = 12.0 - 10.0 = +2.0$.</p>
-      <p>2) Градиентный шаг:</p>
+      <p>Преимущество: $\hat{A}_t = G_t - V(s) = 12.0 - 10.0 = 2.0$.</p>
       <div class="math-scroll-wrapper">
-      $$ \Delta \theta = \alpha \cdot \nabla_\theta \log \pi(a \mid s) \cdot \hat{A}_t = 0.1 \cdot [0.4, -0.2] \cdot 2.0 = 0.2 \cdot [0.4, -0.2] = [0.08, -0.04] $$
+      $$ \Delta \theta = 0.1 \cdot [0.4, -0.2] \cdot 2.0 = [0.08, -0.04] $$
       </div>
       <p><strong>Ответ:</strong> $\Delta \theta = [0.08, -0.04]$.</p>
     </div>
@@ -447,30 +387,24 @@ def cross_entropy_method(evaluate_fn, param_dim, n_samples=50, percentile=70, n_
 
 <div class="task">
   <div class="tt">Задача 3. Отбор элитных сессий в методе Cross-Entropy (CEM)</div>
-  <p>Популяция из 5 агентов показала суммарные награды $J = [45, 12, 88, 60, 30]$. Доля элиты $\rho = 0.4$ (отбираются топ-40% лучших, то есть $K = 2$ агента). Найдите среднее значение наград отобранных элитных сессий.</p>
+  <p>Награды $J = [45, 12, 88, 60, 30], \rho = 0.4$ ($K = 2$ лучших). Найдите среднюю награду элиты.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Сортируем награды по убыванию: $[88, 60, 45, 30, 12]$.</p>
-      <p>Два лучших результата: $88$ и $60$.</p>
-      <p>Среднее: $\mu_{\text{elite}} = \frac{88 + 60}{2} = \frac{148}{2} = 74.0$.</p>
-      <p><strong>Ответ:</strong> 74.0.</p>
+      <p>Топ-2 награды: $88$ и $60$. Среднее: $\mu = \frac{88 + 60}{2} = 74.0$.</p>
+      <p><strong>Ответ:</strong> $74.0$.</p>
     </div>
   </details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 4. PPO Clipping при падении качества действия</div>
-  <p>Отношение вероятностей $r_t(\theta) = \frac{\pi_\theta(a|s)}{\pi_{\text{old}}(a|s)} = 0.7$. Преимущество отрицательное $\hat{A}_t = -4.0$. Граница клиппинга $\epsilon = 0.2$. Вычислите значение суррогатной функции потерь $L^{\text{CLIP}}$.</p>
+  <p>$r_t(\theta) = 0.7, \hat{A}_t = -4.0, \epsilon = 0.2$. Вычислите $L^{\text{CLIP}}$.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Диапазон клиппинга $[1-\epsilon, 1+\epsilon] = [0.8, 1.2]$.</p>
-      <ul>
-        <li>Необрезанный член: $r_t \hat{A}_t = 0.7 \cdot (-4.0) = -2.8$.</li>
-        <li>Обрезанный член: $\text{clip}(0.7, 0.8, 1.2) \cdot \hat{A}_t = 0.8 \cdot (-4.0) = -3.2$.</li>
-      </ul>
-      <p>Целевая функция берет минимум: $\min(-2.8, -3.2) = -3.2$.</p>
+      <p>Необрезанный: $0.7 \cdot (-4.0) = -2.8$. Обрезанный: $\text{clip}(0.7, 0.8, 1.2) \cdot (-4.0) = 0.8 \cdot (-4.0) = -3.2$.</p>
+      <p>Минимум: $\min(-2.8, -3.2) = -3.2$.</p>
       <p><strong>Ответ:</strong> $L^{\text{CLIP}} = -3.2$.</p>
     </div>
   </details>
@@ -478,18 +412,12 @@ def cross_entropy_method(evaluate_fn, param_dim, n_samples=50, percentile=70, n_
 
 <div class="task">
   <div class="tt">Задача 5. Непрерывное 1D действие: градиент Гауссовой стратегии</div>
-  <p>Стратегия задает $\mu_\theta(s) = \theta \cdot s$ с фиксированным $\sigma = 1.0$. Состояние $s = 2.0$, выбранное непрерывное действие $a = 2.6$. Чему равна производная $\frac{\partial \log \pi_\theta(a|s)}{\partial \theta}$ при $\theta = 1.0$?</p>
+  <p>$\mu_\theta(s) = \theta s, \sigma = 1.0, s = 2.0, a = 2.6$. Найдите $\frac{\partial \log \pi}{\partial \theta}$ при $\theta = 1.0$.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Плотность нормального распределения: $\log \pi(a|s) = -\frac{1}{2}\log(2\pi\sigma^2) - \frac{(a - \mu)^2}{2\sigma^2}$.</p>
-      <p>Берем производную по $\theta$:</p>
       <div class="math-scroll-wrapper">
-      $$ \frac{\partial \log \pi}{\partial \theta} = \frac{a - \mu}{\sigma^2} \cdot \frac{\partial \mu}{\partial \theta} = \frac{a - \theta s}{\sigma^2} \cdot s $$
-      </div>
-      <p>При $\theta = 1.0, s = 2.0 \implies \mu = 2.0$. Разница $(a - \mu) = 2.6 - 2.0 = 0.6$.</p>
-      <div class="math-scroll-wrapper">
-      $$ \frac{\partial \log \pi}{\partial \theta} = \frac{0.6}{1.0^2} \cdot 2.0 = 1.2 $$
+      $$ \frac{\partial \log \pi}{\partial \theta} = \frac{a - \theta s}{\sigma^2} \cdot s = \frac{2.6 - 2.0}{1.0^2} \cdot 2.0 = 0.6 \cdot 2.0 = 1.2 $$
       </div>
       <p><strong>Ответ:</strong> $1.2$.</p>
     </div>
@@ -498,18 +426,12 @@ def cross_entropy_method(evaluate_fn, param_dim, n_samples=50, percentile=70, n_
 
 <div class="task">
   <div class="tt">Задача 6. Расчет REINFORCE функции потерь в PyTorch</div>
-  <p>Для батча из 2 переходов логарифмы вероятностей $\log \pi = [-0.5, -1.2]$, доходы $G = [10.0, -5.0]$. Чему равно скалярное значение функции потерь $\mathcal{L}_{\text{policy}} = -\frac{1}{N} \sum \log \pi_i G_i$?</p>
+  <p>$\log \pi = [-0.5, -1.2], G = [10.0, -5.0]$. Найдите $\mathcal{L} = -\frac{1}{N} \sum \log \pi_i G_i$.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Вычисляем взвешенные слагаемые:</p>
-      <ul>
-        <li>Элемент 1: $(-0.5) \cdot 10.0 = -5.0$</li>
-        <li>Элемент 2: $(-1.2) \cdot (-5.0) = +6.0$</li>
-      </ul>
-      <p>Сумма: $-5.0 + 6.0 = +1.0$.</p>
-      <p>Среднее с отрицательным знаком: $\mathcal{L} = -\frac{+1.0}{2} = -0.5$.</p>
-      <p><strong>Ответ:</strong> $\mathcal{L}_{\text{policy}} = -0.5$.</p>
+      <p>Сумма: $(-0.5)(10.0) + (-1.2)(-5.0) = -5.0 + 6.0 = +1.0$. Среднее со знаком минус: $\mathcal{L} = -\frac{1.0}{2} = -0.5$.</p>
+      <p><strong>Ответ:</strong> $\mathcal{L} = -0.5$.</p>
     </div>
   </details>
 </div>
@@ -518,15 +440,15 @@ def cross_entropy_method(evaluate_fn, param_dim, n_samples=50, percentile=70, n_
 <h2 id="cheat"><span class="num">8.</span> ⚡ Скелет ответа по билету</h2>
 
 <div class="cheat">
-  <div class="bt">Скелет устного ответа по билету 24 (Алгоритмы по стратегии: Cross-Entropy, Policy Gradient, REINFORCE)</div>
+  <div class="bt">Скелет ответа по билету 24 (Cross-Entropy, Policy Gradient, REINFORCE, PPO)</div>
   <ol>
-    <li><strong>Мотивация Policy-Based:</strong> Прямая параметризация $\pi_\theta(a|s)$. Позволяет работать в непрерывных пространствах действий $\mathbb{R}^k$ (робототехника) и обучаться стохастическим стратегиям (игры с неполной информацией, POMDP).</li>
-    <li><strong>Метод Cross-Entropy (CEM):</strong> Безградиентный эволюционный метод. Сэмплирование параметров $\theta \sim \mathcal{N}(\mu, \Sigma) \to$ оценка $J(\theta_i) \to$ отбор топ-$\rho$ элитных сессий $\to$ обновление $(\mu, \Sigma)$ по элите.</li>
-    <li><strong>Теорема о градиенте стратегии:</strong> $\nabla_\theta J(\theta) = \mathbb{E}_{\tau \sim \pi_\theta} [ \nabla_\theta \log P(\tau; \theta) R(\tau) ]$.</li>
-    <li><strong>Log-Derivative Trick:</strong> $\nabla_\theta P(\tau) = P(\tau) \nabla_\theta \log P(\tau)$. Динамика среды $\mathcal{P}$ выпадает при дифференцировании: $\nabla_\theta \log P(\tau) = \sum_t \nabla_\theta \log \pi_\theta(A_t|S_t)$, что позволяет оптимизировать стратегию без знания модели мира!</li>
-    <li><strong>Алгоритм REINFORCE:</strong> $\theta \leftarrow \theta + \alpha \sum_t \nabla_\theta \log \pi_\theta(A_t \mid S_t) G_t$. Увеличивает вероятность действий, приведших к высокому суммарному доходу $G_t$.</li>
-    <li><strong>Снижение дисперсии через Baseline:</strong> $\nabla_\theta \log \pi_\theta(A_t|S_t) (G_t - b(S_t))$. Не смещает градиент, так как $\mathbb{E}[\nabla_\theta \log \pi_\theta \cdot b(s)] \equiv 0$. Оптимальный бейзлайн $b(s) = V(s)$.</li>
-    <li><strong>Proximal Policy Optimization (PPO):</strong> Клиппинг суррогатной функции $L^{\text{CLIP}} = \hat{\mathbb{E}} [ \min(r_t(\theta)\hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t) ]$ для защиты от разрушительно больших шагов.</li>
+    <li><strong>Мотивация Policy-Based:</strong> Прямая параметризация $\pi_\theta(a|s)$. Работа в непрерывных пространствах действий $\mathbb{R}^k$ и поддержка стохастических стратегий (игры с неполной информацией, POMDP).</li>
+    <li><strong>Cross-Entropy Method (CEM):</strong> Безградиентная оптимизация: сэмплирование $\theta \sim \mathcal{N}(\mu, \Sigma) \to$ оценка $J(\theta) \to$ отбор элиты $\to$ пересчёт $(\mu, \Sigma)$.</li>
+    <li><strong>Теорема Policy Gradient:</strong> $\nabla_\theta J(\theta) = \mathbb{E}_{\tau} [ \nabla_\theta \log P(\tau; \theta) R(\tau) ]$.</li>
+    <li><strong>Log-Derivative Trick:</strong> $\nabla_\theta P(\tau) = P(\tau) \nabla_\theta \log P(\tau)$. Динамика среды $\mathcal{P}$ выпадает при дифференцировании: $\nabla_\theta \log P(\tau) = \sum \nabla_\theta \log \pi_\theta(A_t|S_t)$.</li>
+    <li><strong>REINFORCE:</strong> $\theta \leftarrow \theta + \alpha \sum_t \nabla_\theta \log \pi_\theta(A_t \mid S_t) G_t$. Повышает вероятности действий с высоким $G_t$.</li>
+    <li><strong>Baseline:</strong> $\nabla_\theta \log \pi_\theta (G_t - b(S_t))$ снижает дисперсию без смещения ($\mathbb{E}[\nabla \log \pi \cdot b(s)] \equiv 0$). Оптимум $b(s) = V(s)$.</li>
+    <li><strong>PPO:</strong> Клиппинг суррогатной функции $L^{\text{CLIP}} = \hat{\mathbb{E}} [ \min(r_t(\theta)\hat{A}_t, \text{clip}(r_t(\theta), 1-\epsilon, 1+\epsilon)\hat{A}_t) ]$ для стабильности шага.</li>
   </ol>
 </div>
 

@@ -21,7 +21,7 @@ window.MathJax = {
 <header class="top"><div class="inner">
   <div class="kicker">Блок D · Reinforcement Learning · Вопрос 23</div>
   <h1>Лекция 25. Базовые алгоритмы RL на основе полезности: TD(0), SARSA, Q-Learning и Deep Q-Networks (DQN)</h1>
-  <p class="sub">Обучение по временным разностям (Temporal Difference), On-Policy контроль (SARSA) vs Off-Policy контроль (Q-Learning), глубокие Q-сети DQN: буфер воспроизведения (Experience Replay), целевая сеть (Target Network) и Double DQN.</p>
+  <p class="sub">Обучение по временным разностям (TD), On-Policy (SARSA) vs Off-Policy (Q-Learning), глубокие Q-сети DQN: буфер воспроизведения (Experience Replay), целевая сеть (Target Network) и Double DQN.</p>
   <div class="meta">
     <span class="pill">⏱ 2 ч 45 мин</span>
     <span class="pill gray">10 вопросов препода</span>
@@ -37,10 +37,10 @@ window.MathJax = {
 <nav class="toc">
   <div class="bt">Содержание лекции</div>
   <ol>
-    <li><a href="#s1">Интуиция и мотивация: Temporal Difference и бутстрэпинг</a></li>
-    <li><a href="#s2">Архитектура и схема: SARSA, Q-Learning и контур DQN</a></li>
-    <li><a href="#s3">Математический аппарат: TD(0), SARSA, Q-Learning, DQN и Double DQN</a></li>
-    <li><a href="#s4">Пошаговый числовой пример: ручной расчет обновлений Q-таблицы</a></li>
+    <li><a href="#s1">Интуиция и мотивация</a></li>
+    <li><a href="#s2">Архитектура и схема</a></li>
+    <li><a href="#s3">Математический аппарат</a></li>
+    <li><a href="#s4">Пошаговый числовой пример</a></li>
     <li><a href="#s5">Преимущества, недостатки и применимость</a></li>
     <li><a href="#qa">🎯 Препод спросит</a></li>
     <li><a href="#tasks">📝 Микро-задачи с решениями</a></li>
@@ -51,30 +51,29 @@ window.MathJax = {
 <!-- ============================================ -->
 <h2 id="s1"><span class="num">1.</span> Интуиция и мотивация</h2>
 
-<p>Алгоритмы на основе <strong>временных разностей (Temporal Difference, TD)</strong> объединяют лучшие черты двух миров:</p>
+<p><strong>Обучение по временным разностям (Temporal Difference, TD)</strong> объединяет ключевые преимущества DP и MC:</p>
 <ul>
-  <li>Как и <strong>Монте-Карло</strong>, они обучаются <em>напрямую на сыром опыте без знания модели среды</em> ($\mathcal{P}$ и $\mathcal{R}$ неизвестны).</li>
-  <li>Как и <strong>Динамическое программирование</strong>, они <em>бутстрэпят (bootstrapping)</em> — обновляют оценку на каждом шаге времени, не дожидаясь исхода эпизода.</li>
+  <li>Как и <strong>Монте-Карло</strong>, TD обучается на <em>сыром опыте без модели среды</em> ($\mathcal{P}$ и $\mathcal{R}$ не требуются).</li>
+  <li>Как и <strong>Динамическое программирование</strong>, TD использует <em>бутстрэпинг</em> — обновляет оценку на каждом шаге по $\gamma V(S_{t+1})$, не дожидаясь завершения эпизода.</li>
 </ul>
 
 <div class="box idea">
-  <div class="bt">💡 Интуитивная аналогия: вождение автомобиля</div>
-  <p>Представьте, что вы учитесь водить машину:</p>
+  <div class="bt">💡 Интуиция: вождение автомобиля</div>
   <ul>
-    <li><strong>Подход Монте-Карло:</strong> Вы едете 50 километров. В процессе вы чуть не вылетели на встречную полосу, но чудом доехали. Вы делаете вывод: «Поездка завершилась успешно, значит, выезд на встречку был отличным действием!» (Обновление только в конце).</li>
-    <li><strong>Подход Temporal Difference (TD):</strong> В момент, когда машина вильнула на встречку, вы <em>немедленно</em> видите возросший риск аварии ($V(S_{t+1}) \ll V(S_t)$). Вы сразу же штрафуете это действие, не дожидаясь аварии в конце пути!</li>
+    <li><strong>Monte Carlo:</strong> Обновление только в конце поездки. Если машина чудом избежала аварии после заноса, MC оценивает действия как успешные.</li>
+    <li><strong>Temporal Difference (TD):</strong> Мгновенная реакция. В момент опасного манёвра $V(S_{t+1}) \ll V(S_t)$, и действие сразу штрафуется через TD-ошибку $\delta_t$.</li>
   </ul>
 </div>
 
 <!-- ============================================ -->
-<h2 id="s2"><span class="num">2.</span> Архитектура и схема: SARSA, Q-Learning и контур DQN</h2>
+<h2 id="s2"><span class="num">2.</span> Архитектура и схема</h2>
 
 <div class="scheme">
   СРАВНЕНИЕ КОРТЕЖЕЙ ПЕРЕХОДОВ:
   
-  SARSA (On-Policy):     ( S_t,  A_t,  R_{t+1},  S_{t+1},  A_{t+1} )  ← Требуется A_{t+1} из текущей политики!
-  Q-Learning (Off-Policy):( S_t,  A_t,  R_{t+1},  S_{t+1} )           ← Действие A' берется виртуальным max_a'
-<span class="cap">SARSA обновляет Q-ценность по действию A_{t+1}, реально выбранному исследовательской стратегией; Q-Learning использует теоретический максимум по всем действиям.</span></div>
+  SARSA (On-Policy):     ( S_t,  A_t,  R_{t+1},  S_{t+1},  A_{t+1} )  ← A_{t+1} сэмплируется из текущей политики π
+  Q-Learning (Off-Policy):( S_t,  A_t,  R_{t+1},  S_{t+1} )           ← Действие A' берётся через max_a'
+<span class="cap">SARSA обновляет $Q$ по реально совершённому действию $A_{t+1}$; Q-Learning использует теоретический максимум $\max_{a'}$.</span></div>
 
 <div class="scheme">
   АРХИТЕКТУРА DEEP Q-NETWORK (DQN):
@@ -101,84 +100,78 @@ window.MathJax = {
          │                Градиентный шаг ∇_θ                      │
          └─────────────────────────────────────────────────────────┘
                    Периодическое копирование: θ⁻ ← θ (каждые C шагов)
-<span class="cap">Архитектура DQN: Experience Replay разрывает временную автокорреляцию данных, а Target Network $\theta^-$ стабилизирует вычисление TD-таргета.</span></div>
+<span class="cap">DQN: Replay Buffer устраняет автокорреляцию данных, а Target Network $\theta^-$ стабилизирует вычисление TD-таргета.</span></div>
 
 <!-- ============================================ -->
 <h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
 
 <h3>1. Оценка функции состояния TD(0)</h3>
-<p>В алгоритме TD(0) ценность состояния обновляется после каждого шага $t$:</p>
+<p>Обновление ценности состояния на шаге $t$:</p>
 
 <div class="math-scroll-wrapper">
 $$ V(S_t) \leftarrow V(S_t) + \alpha \Big( \underbrace{R_{t+1} + \gamma V(S_{t+1})}_{\text{TD Target } y_t} - V(S_t) \Big) = V(S_t) + \alpha \, \delta_t $$
 </div>
-<p>где $\delta_t \doteq R_{t+1} + \gamma V(S_{t+1}) - V(S_t)$ — <strong>ошибка временных разностей (TD-Error)</strong>, а $\alpha \in (0, 1]$ — скорость обучения.</p>
+<p>где $\delta_t \doteq R_{t+1} + \gamma V(S_{t+1}) - V(S_t)$ — <strong>ошибка временных разностей (TD-Error)</strong>, а $\alpha \in (0, 1]$ — шаг обучения.</p>
 
 <h3>2. SARSA: On-Policy TD Control</h3>
-<p>SARSA оценивает функцию $Q(s, a)$ для стратегии $\pi$, по которой сам же и действует (например, $\epsilon$-greedy):</p>
+<p>SARSA оценивает $Q(s, a)$ для стратегии $\pi$, по которой совершаются действия ($\epsilon$-greedy):</p>
 
 <div class="math-scroll-wrapper">
 $$ Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \alpha \left[ R_{t+1} + \gamma Q(S_{t+1}, A_{t+1}) - Q(S_t, A_t) \right] $$
 </div>
-<p>где действие $A_{t+1} \sim \pi(\cdot \mid S_{t+1})$ сэмплируется согласно текущей исследовательской политике агента.</p>
+<p>где $A_{t+1} \sim \pi(\cdot \mid S_{t+1})$.</p>
 
 <h3>3. Q-Learning (Watkins, 1989): Off-Policy TD Control</h3>
-<p>Q-Learning напрямую оценивает оптимальную функцию $Q^*(s, a)$ независимо от стратегии сбора данных $b(a|s)$:</p>
+<p>Q-Learning оценивает $Q^*(s, a)$ независимо от исследовательской стратегии сбора данных $b(a|s)$:</p>
 
 <div class="math-scroll-wrapper">
 $$ Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \alpha \left[ R_{t+1} + \gamma \max_{a \in \mathcal{A}} Q(S_{t+1}, a) - Q(S_t, A_t) \right] $$
 </div>
 
 <div class="box mathbox">
-  <div class="bt">📐 Почему Q-learning — Off-Policy, а SARSA — On-Policy?</div>
+  <div class="bt">📐 Сравнение On-Policy и Off-Policy</div>
   <ul>
-    <li><strong>Q-Learning (Off-Policy):</strong> Таргет вычисляется по <em>строго оптимальной жадной стратегии</em> $\max_a Q(S_{t+1}, a)$, в то время как следующее реальное действие агент может выбрать случайно ($\epsilon$-greedy). Целевая стратегия $\pi$ отличается от поведенческой $b$.</li>
-    <li><strong>SARSA (On-Policy):</strong> Таргет вычисляется по $Q(S_{t+1}, A_{t+1})$, где $A_{t+1}$ — действие, <em>реально совершаемое агентом</em> с учетом случайных исследовательских шагов $\epsilon$. SARSA оценивает реальную стратегию с учетом ее несовершенства и риска падений.</li>
+    <li><strong>Q-Learning (Off-Policy):</strong> Таргет вычисляется по жадной политике $\max_a Q(S_{t+1}, a)$. Целевая стратегия $\pi$ отличается от исследовательской $b$.</li>
+    <li><strong>SARSA (On-Policy):</strong> Таргет вычисляется по $Q(S_{t+1}, A_{t+1})$, где $A_{t+1}$ — реально совершаемое действие. Учитывает риск ошибок при exploration.</li>
   </ul>
 </div>
 
 <h3>4. Deep Q-Networks (DQN, Mnih et al., 2015)</h3>
-<p>Для работы в непрерывных пространствах состояний таблица $Q(s, a)$ заменяется нейросетью $Q(s, a; \theta)$. Функция потерь DQN:</p>
+<p>Аппроксимация табличных значений нейросетью $Q(s, a; \theta)$ с функцией потерь MSE:</p>
 
 <div class="math-scroll-wrapper">
 $$ \mathcal{L}(\theta) = \mathbb{E}_{(s, a, r, s', d) \sim \mathcal{D}} \left[ \left( r + \gamma (1 - d) \max_{a'} Q(s', a'; \theta^-) - Q(s, a; \theta) \right)^2 \right] $$
 </div>
-<p>где $d \in \{0, 1\}$ — индикатор терминального состояния (done flag). Два ключевых механизма стабилизации:</p>
+<p>где $d \in \{0, 1\}$ — флаг терминального состояния. Стабилизирующие механизмы:</p>
 <ol>
-  <li><strong>Experience Replay (Буфер воспроизведения $\mathcal{D}$):</strong> Хранит кортежи $(s, a, r, s', d)$. Сэмплирование случайных минибатчей устраняет автокорреляцию последовательных кадров и стабилизирует обучение SGD.</li>
-  <li><strong>Target Network (Целевая сеть $\theta^-$):</strong> Веса $\theta^-$ замораживаются и обновляются периодически $\theta^- \leftarrow \theta$ раз в $C$ шагов, предотвращая расходимость и эффект «бегущей цели».</li>
+  <li><strong>Experience Replay ($\mathcal{D}$):</strong> Случайные минибатчи переходов разрывают автокорреляцию данных и стабилизируют SGD.</li>
+  <li><strong>Target Network ($\theta^-$):</strong> Замороженные веса $\theta^-$ обновляются раз в $C$ шагов, предотвращая эффект «бегущей цели».</li>
 </ol>
 
 <h3>5. Double DQN (van Hasselt et al., 2015)</h3>
-<p>Стандартный DQN систематически завышает оценки $Q$ (Overestimation Bias) из-за оператора $\mathbb{E}[\max(X)] \ge \max(\mathbb{E}[X])$. Double DQN разделяет выбор действия и его оценку:</p>
+<p>Устраняет Overestimation Bias (завышение оценок из-за $\mathbb{E}[\max X] \ge \max \mathbb{E}[X]$), разделяя выбор действия и оценку:</p>
 
 <div class="math-scroll-wrapper">
 $$ y^{\text{DoubleDQN}} = r + \gamma (1 - d) Q\left(s', \arg\max_{a'} Q(s', a'; \theta); \, \theta^-\right) $$
 </div>
-<p>Online-сеть $\theta$ выбирает лучшее действие $a^* = \arg\max_{a'} Q(s', a'; \theta)$, а Target-сеть $\theta^-$ вычисляет его ценность $Q(s', a^*; \theta^-)$.</p>
 
-<h3>6. Практическая реализация Q-Learning, SARSA и DQN на Python / PyTorch</h3>
+<h3>6. Реализация Q-Learning, SARSA и DQN на Python / PyTorch</h3>
 <pre><code>import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 def q_learning_update(q_table, s, a, r, s_prime, alpha=0.1, gamma=0.9):
-    """Табличный шаг обновления Q-Learning (Off-Policy)."""
     td_target = r + gamma * np.max(q_table[s_prime])
-    td_error = td_target - q_table[s, a]
-    q_table[s, a] += alpha * td_error
+    q_table[s, a] += alpha * (td_target - q_table[s, a])
     return q_table
 
 def sarsa_update(q_table, s, a, r, s_prime, a_prime, alpha=0.1, gamma=0.9):
-    """Табличный шаг обновления SARSA (On-Policy)."""
     td_target = r + gamma * q_table[s_prime, a_prime]
-    td_error = td_target - q_table[s, a]
-    q_table[s, a] += alpha * td_error
+    q_table[s, a] += alpha * (td_target - q_table[s, a])
     return q_table
 
 class DQNNetwork(nn.Module):
-    """Архитектура Deep Q-Network."""
     def __init__(self, state_dim, action_dim, hidden_dim=64):
         super().__init__()
         self.fc1 = nn.Linear(state_dim, hidden_dim)
@@ -191,69 +184,40 @@ class DQNNetwork(nn.Module):
         return self.out(x)
 
 def compute_dqn_loss(online_net, target_net, states, actions, rewards, next_states, dones, gamma=0.99):
-    """Расчет MSE функции потерь DQN с целевой сетью."""
     q_values = online_net(states).gather(1, actions.unsqueeze(1)).squeeze(1)
     with torch.no_grad():
         max_next_q = target_net(next_states).max(dim=1)[0]
         target_q = rewards + gamma * (1.0 - dones) * max_next_q
-    loss = F.mse_loss(q_values, target_q)
-    return loss
+    return F.mse_loss(q_values, target_q)
 </code></pre>
 
 <!-- ============================================ -->
 <h2 id="s4"><span class="num">4.</span> Пошаговый числовой пример</h2>
 
 <div class="box exambox">
-  <div class="bt">🔢 Пример 1. Ручной расчет обновления ячейки Q-таблицы</div>
-  <p>Агент находится в состоянии $S_t = s_0$, совершает действие $A_t = a_1$, получает награду $R_{t+1} = +5.0$ и переходит в состояние $S_{t+1} = s_1$.</p>
+  <div class="bt">🔢 Пример 1. Ручной расчёт обновлений Q-Learning и SARSA</div>
+  <p>В $s_0$ выбрано $a_1$, получено $R=+5.0$, переход в $s_1$. Параметры: $\alpha = 0.1, \gamma = 0.9$.</p>
   <ul>
-    <li>Параметры: $\alpha = 0.1, \quad \gamma = 0.9$.</li>
-    <li>Текущая Q-таблица:
-      <ul>
-        <li>В $s_0$: $Q(s_0, a_0) = 1.0, \quad Q(s_0, a_1) = 0.0, \quad Q(s_0, a_2) = 3.0$.</li>
-        <li>В $s_1$: $Q(s_1, a_0) = 2.0, \quad Q(s_1, a_1) = 6.0, \quad Q(s_1, a_2) = 4.0$.</li>
-      </ul>
-    </li>
+    <li>$Q(s_0) = [1.0, 0.0, 3.0]$, $Q(s_1) = [2.0, 6.0, 4.0]$.</li>
   </ul>
-
-  <h3>1. Расчет обновления по Q-Learning:</h3>
-  <p>Ищем максимальное значение в новом состоянии: $\max_{a'} Q(s_1, a') = \max(2.0, 6.0, 4.0) = 6.0$.</p>
+  <p><strong>Q-Learning:</strong> $\max Q(s_1) = 6.0$. Таргет: $5.0 + 0.9 \cdot 6.0 = 10.4$.</p>
   <div class="math-scroll-wrapper">
-  $$ \text{TD Target} = R_{t+1} + \gamma \max_{a'} Q(s_1, a') = 5.0 + 0.9 \cdot 6.0 = 5.0 + 5.4 = 10.4 $$
+  $$ Q_{\text{new}}(s_0, a_1) = 0.0 + 0.1 \cdot (10.4 - 0.0) = 1.04 $$
   </div>
-  <div class="math-scroll-wrapper">
-  $$ \text{TD Error } \delta_t = 10.4 - Q(s_0, a_1) = 10.4 - 0.0 = +10.4 $$
-  </div>
-  <div class="math-scroll-wrapper">
-  $$ Q_{\text{new}}(s_0, a_1) = 0.0 + 0.1 \cdot 10.4 = 1.04 $$
-  </div>
-
-  <h3>2. Расчет обновления по SARSA:</h3>
-  <p>Предположим, в состоянии $s_1$ исследовательская политика $\epsilon$-greedy выбрала действие $A_{t+1} = a_0$ с $Q(s_1, a_0) = 2.0$:</p>
-  <div class="math-scroll-wrapper">
-  $$ \text{SARSA Target} = R_{t+1} + \gamma Q(s_1, a_0) = 5.0 + 0.9 \cdot 2.0 = 5.0 + 1.8 = 6.8 $$
-  </div>
+  <p><strong>SARSA:</strong> политика выбрала в $s_1$ действие $a_0$ ($Q = 2.0$). Таргет: $5.0 + 0.9 \cdot 2.0 = 6.8$.</p>
   <div class="math-scroll-wrapper">
   $$ Q_{\text{new}}(s_0, a_1) = 0.0 + 0.1 \cdot (6.8 - 0.0) = 0.68 $$
   </div>
 </div>
 
 <div class="box exambox">
-  <div class="bt">🔢 Пример 2. Расчет DQN-таргета для батча переходов на PyTorch</div>
-  <p>Пусть батч размера $B=3$ содержит переходы:</p>
-  <ul>
-    <li>Награды $R = [1.0, 0.0, 2.0]$, дисконт $\gamma = 0.99$.</li>
-    <li>Флаги окончания $dones = [0.0, 0.0, 1.0]$ (3-й переход ведет в терминал).</li>
-    <li>Выходы Target-сети для $s'$: $Q(s') = \begin{pmatrix} 1.2 & 0.5 \\ 0.8 & 1.5 \\ 2.1 & 1.9 \end{pmatrix}$.</li>
-  </ul>
-  <p>Максимумы по действиям: $\max Q(s') = [1.2, 1.5, 2.1]$.</p>
+  <div class="bt">🔢 Пример 2. Расчёт таргета DQN для минибатча ($B=3, \gamma=0.99$)</div>
+  <p>$R = [1.0, 0.0, 2.0]$, $dones = [0.0, 0.0, 1.0]$, $\max Q(s') = [1.2, 1.5, 2.1]$:</p>
   <div class="math-scroll-wrapper">
-  $$ y_1 = 1.0 + 0.99 \cdot (1 - 0) \cdot 1.2 = 1.0 + 1.188 = 2.188 $$
-  $$ y_2 = 0.0 + 0.99 \cdot (1 - 0) \cdot 1.5 = 0.0 + 1.485 = 1.485 $$
-  $$ y_3 = 2.0 + 0.99 \cdot (1 - 1) \cdot 2.1 = 2.0 + 0.0 = 2.000 \quad \text{(Терминал: будущее обнулено!)} $$
+  $$ y_1 = 1.0 + 0.99 \cdot 1.2 = 2.188, \quad y_2 = 0.0 + 0.99 \cdot 1.5 = 1.485, \quad y_3 = 2.0 + 0.99 \cdot (1 - 1) \cdot 2.1 = 2.000 $$
   </div>
 
-  <h3>Реализация буфера воспроизведения Experience Replay на Python</h3>
+  <h3>Реализация Experience Replay на Python</h3>
 <pre><code>import random
 from collections import deque
 
@@ -288,33 +252,33 @@ class ReplayBuffer:
   <tbody>
     <tr>
       <td><strong>Тип стратегии</strong></td>
-      <td><strong>On-Policy</strong> (обучает текущую $\pi$)</td>
-      <td><strong>Off-Policy</strong> (обучает оптимальную $\pi^*$)</td>
+      <td><strong>On-Policy</strong> (текущая $\pi$)</td>
+      <td><strong>Off-Policy</strong> (оптимальная $\pi^*$)</td>
       <td><strong>Off-Policy</strong> (из буфера $\mathcal{D}$)</td>
     </tr>
     <tr>
       <td><strong>Пространство состояний</strong></td>
-      <td>Дискретное (табличное)</td>
-      <td>Дискретное (табличное)</td>
-      <td><strong>Непрерывное $\mathbb{R}^d$</strong> (нейросеть)</td>
+      <td>Табличное (дискретное)</td>
+      <td>Табличное (дискретное)</td>
+      <td><strong>Непрерывное $\mathbb{R}^d$</strong></td>
     </tr>
     <tr>
-      <td><strong>Поведение у обрыва (Cliff Walking)</strong></td>
-      <td>Безопасный далекий путь</td>
-      <td>Оптимальный путь по краю обрыва</td>
+      <td><strong>Cliff Walking</strong></td>
+      <td>Безопасный дальний путь</td>
+      <td>Опасный кратчайший путь</td>
       <td>Оптимальный при хорошем буфере</td>
     </tr>
     <tr>
       <td><strong>Риск расходимости</strong></td>
-      <td>Низкий (табличный с $\alpha$)</td>
-      <td>Низкий (табличный с $\alpha$)</td>
-      <td>Есть риск («Deadly Triad»), нужен Replay/Target</td>
+      <td>Низкий (табличный)</td>
+      <td>Низкий (табличный)</td>
+      <td>Есть («Deadly Triad»), нужен Target/Replay</td>
     </tr>
     <tr>
-      <td><strong>Эффективность сэмплов</strong></td>
-      <td>Только свежий онлайн-опыт</td>
-      <td>Можно переиспользовать старый опыт</td>
-      <td><strong>Высокая</strong> благодаря Experience Replay</td>
+      <td><strong>Sample Efficiency</strong></td>
+      <td>Только свежий опыт</td>
+      <td>Переиспользование опыта</td>
+      <td><strong>Высокая</strong> (Experience Replay)</td>
     </tr>
   </tbody>
 </table>
@@ -326,70 +290,70 @@ class ReplayBuffer:
 <details class="qa">
   <summary>1. В чем принципиальная разница в поведении SARSA и Q-learning на задаче Cliff Walking?</summary>
   <div class="ans">
-    <p>В Cliff Walking путь по краю обрыва короче, но падение с обрыва штрафуется на $-100$. Q-Learning обучается вне политики (Off-Policy), предполагая, что в будущем будет действовать строго жадно без ошибок, поэтому выбирает кратчайший путь прямо по краю. SARSA обучается в политике (On-Policy), учитывая, что с вероятностью $\epsilon$ агент совершает случайный шаг и может сорваться в обрыв. Поэтому SARSA выбирает длинный, но абсолютно безопасный путь вдалеке от края.</p>
+    <p>Q-Learning (Off-Policy) предполагает безошибочные будущие жадные действия, выбирая кратчайший путь по краю обрыва. SARSA (On-Policy) учитывает $\epsilon$-исследование и риск случайного падения, выбирая более длинный, но безопасный путь вдалеке от обрыва.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>2. Зачем в DQN нужны Experience Replay и Target Network?</summary>
   <div class="ans">
-    <p>1) <em>Experience Replay</em> устраняет сильную временную автокорреляцию между соседними кадрами и делает распределение обучающей выборки стационарным (i.i.d.), позволяя оптимизировать сеть батчами SGD. 2) <em>Target Network</em> с замороженными весами $\theta^-$ фиксирует целевые значения $y = r + \gamma \max Q(s'; \theta^-)$, устраняя проблему «бегущей цели» (moving target problem), когда обновление сети одновременно сдвигает и предсказание, и цель.</p>
+    <p>Experience Replay устраняет автокорреляцию кадров и делает данные i.i.d. для SGD. Target Network $\theta^-$ фиксирует таргет на $C$ шагов, предотвращая эффект «бегущей цели» и расходимость.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>3. Что такое «Смертоносная триада» (Deadly Triad) в обучении с подкреплением?</summary>
   <div class="ans">
-    <p>Deadly Triad — это одновременное присутствие трех факторов: 1) <strong>Аппроксимация функций</strong> (нейросети вместо таблиц); 2) <strong>Бутстрэпинг</strong> (обновление через $\gamma V(s')$ или $\max Q(s', a)$); 3) <strong>Обучение вне политики (Off-Policy)</strong>. При наличии всех трех факторов математическая гарантия сходимости теряется, и веса сети могут уйти в бесконечность (расходимость). DQN решает это буфером и целевой сетью.</p>
+    <p>Одновременное сочетание: 1) аппроксимации функций (нейросети); 2) бутстрэпинга (TD); 3) Off-Policy обучения. Без стабилизации (Replay + Target) триада может приводить к расходимости весов.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>4. Почему стандартный Q-learning страдает от Overestimation Bias (завышения оценок)?</summary>
   <div class="ans">
-    <p>Из-за оператора максимума. Если оценки $Q(s', a)$ содержат шум со средним 0, то математическое ожидание максимума шумов строго положительно: $\mathbb{E}[\max_a (\mu_a + \epsilon_a)] \ge \max_a \mu_a$. Оператор $\max$ систематически отбирает шум с завышенной оценкой, накапливая ошибку по цепочке Беллмана. Double DQN устраняет это, разделяя выбор действия ($\theta$) и его оценку ($\theta^-$).</p>
+    <p>Из-за оператора максимума: $\mathbb{E}[\max_a (\mu_a + \epsilon_a)] \ge \max_a \mu_a$. Шум систематически завышает таргет. Double DQN решает проблему разделением выбора действия ($\theta$) и оценки ($\theta^-$).</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>5. Почему в формуле таргета DQN для терминального состояния $S_{t+1}$ отбрасывается член $\gamma \max Q$?</summary>
   <div class="ans">
-    <p>Потому что терминальное состояние означает окончание эпизода. Будущих наград после терминала не существует по определению ($G = R_{\text{term}} + 0$). Если не обнулить член $\gamma \max Q(S_{t+1})$ с помощью множителя $(1 - d)$, сеть попытается предсказать несуществующее будущее, что приведет к грубым искажениям ценностей.</p>
+    <p>В терминальном состоянии эпизод закончен, будущих наград нет ($G = R_{\text{term}}$). Множитель $(1 - d)$ обнуляет несуществующую будущую ценность.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>6. Можно ли применять Q-learning в задачах с непрерывным пространством действий $\mathcal{A} \subseteq \mathbb{R}^k$?</summary>
   <div class="ans">
-    <p>Напрямую нельзя, потому что для вычисления таргета требуется найти $\max_{a \in \mathcal{A}} Q(s', a)$. Если действий бесконечно много в непрерывном пространстве, взятие точного $\max$ требует решения сложной нелинейной задачи глобальной оптимизации на каждом шаге. Для непрерывных действий используют Policy Gradient / Actor-Critic (DDPG, SAC, PPO).</p>
+    <p>Напрямую нельзя: взятие $\max_{a \in \mathcal{A}} Q(s', a)$ в непрерывном пространстве требует решения сложной оптимизационной задачи на каждом шаге. Для этого используют Actor-Critic (DDPG, SAC).</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>7. Чем Dueling DQN отличается от стандартного DQN?</summary>
   <div class="ans">
-    <p>Dueling DQN разделяет архитектуру сети на два потока: поток ценности состояния $V(s)$ и поток преимущества действий $A(s, a)$. Итоговое значение восстанавливается как $Q(s, a) = V(s) + \left( A(s, a) - \frac{1}{|\mathcal{A}|} \sum_{a'} A(s, a') \right)$. Это позволяет оценивать ценность состояния $V(s)$ даже тогда, когда выбор конкретного действия не оказывает решающего влияния.</p>
+    <p>Dueling DQN разделяет сеть на два потока: ценность состояния $V(s)$ и преимущество действий $A(s, a)$, восстанавливая $Q(s, a) = V(s) + (A(s, a) - \frac{1}{|\mathcal{A}|}\sum A(s, a'))$.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>8. Что такое Prioritized Experience Replay (PER)?</summary>
   <div class="ans">
-    <p>В стандартном DQN сэмплы извлекаются из буфера равномерно случайно. В PER сэмплы извлекаются с вероятностью, пропорциональной величине их TD-ошибки: $P(i) \propto |\delta_i|^\alpha$. Переходы, на которых сеть сильнее всего ошибается (содержащие наибольшую неожиданность), сэмплируются чаще. Смещение исправляется весами Importance Sampling $w_i = (N \cdot P(i))^{-\beta}$.</p>
+    <p>Сэмплирование переходов с вероятностью $P(i) \propto |\delta_i|^\alpha$, пропорциональной TD-ошибке. Смещение компенсируется весами важности $w_i = (N \cdot P(i))^{-\beta}$.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>9. Каковы условия сходимости табличного Q-learning к $Q^*$ по теореме Ваткинса?</summary>
   <div class="ans">
-    <p>1) Все пары $(s, a)$ посещаются бесконечное число раз; 2) Скорости обучения удовлетворяют условиям Роббинса-Монро: $\sum_{t=0}^\infty \alpha_t(s, a) = \infty$ и $\sum_{t=0}^\infty \alpha_t^2(s, a) < \infty$; 3) Награды ограничены, а фактор дисконтирования $\gamma < 1$.</p>
+    <p>1) Все пары $(s, a)$ посещаются бесконечно часто; 2) Условия Роббинса-Монро для шага: $\sum \alpha_t = \infty, \sum \alpha_t^2 < \infty$; 3) Ограниченные награды и $\gamma < 1$.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>10. Что такое TD($\lambda$) и Eligibility Traces (следы пригодности)?</summary>
   <div class="ans">
-    <p>TD($\lambda$) — это непрерывный мост между одношаговым TD(0) ($\lambda=0$) и полным методом Монте-Карло ($\lambda=1$). Он объединяет $n$-шаговые доходы с экспоненциальными весами: $G_t^\lambda = (1-\lambda) \sum_{n=1}^\infty \lambda^{n-1} G_{t:t+n}$. Механизм Eligibility Traces $e_t(s) = \gamma \lambda e_{t-1}(s) + \mathbb{I}(S_t=s)$ позволяет распространять ошибку назад во времени за один проход онлайн.</p>
+    <p>TD($\lambda$) объединяет $n$-шаговые TD-доходы с весами $(1-\lambda)\lambda^{n-1}$. Следы пригодности $e_t(s) = \gamma \lambda e_{t-1}(s) + \mathbb{I}(S_t=s)$ распространяют ошибку назад во времени онлайн.</p>
   </div>
 </details>
 
@@ -397,14 +361,13 @@ class ReplayBuffer:
 <h2 id="tasks"><span class="num">7.</span> 📝 Микро-задачи с решениями</h2>
 
 <div class="task">
-  <div class="tt">Задача 1. Расчет ошибки TD(0) для ценности состояния</div>
-  <p>Текущая оценка $V(S_t) = 15.0$. Агент получил награду $R_{t+1} = 3.0$ и перешел в $S_{t+1}$ с оценкой $V(S_{t+1}) = 12.0$. Дисконт $\gamma = 0.9$, шаг обучения $\alpha = 0.2$. Вычислите TD-ошибку $\delta_t$ и новое значение $V(S_t)$.</p>
+  <div class="tt">Задача 1. Расчёт ошибки TD(0) для ценности состояния</div>
+  <p>$V(S_t) = 15.0, R_{t+1} = 3.0, V(S_{t+1}) = 12.0$ при $\gamma = 0.9, \alpha = 0.2$. Вычислите $\delta_t$ и новое $V(S_t)$.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>1) TD-таргет: $y_t = R_{t+1} + \gamma V(S_{t+1}) = 3.0 + 0.9 \cdot 12.0 = 3.0 + 10.8 = 13.8$.</p>
-      <p>2) TD-ошибка: $\delta_t = y_t - V(S_t) = 13.8 - 15.0 = -1.2$.</p>
-      <p>3) Обновление: $V(S_t) \leftarrow 15.0 + 0.2 \cdot (-1.2) = 15.0 - 0.24 = 14.76$.</p>
+      <p>Таргет: $y = 3.0 + 0.9 \cdot 12.0 = 13.8$. Ошибка: $\delta = 13.8 - 15.0 = -1.2$.</p>
+      <p>Обновление: $V(S_t) \leftarrow 15.0 + 0.2 \cdot (-1.2) = 14.76$.</p>
       <p><strong>Ответ:</strong> $\delta_t = -1.2, V(S_t) = 14.76$.</p>
     </div>
   </details>
@@ -412,81 +375,61 @@ class ReplayBuffer:
 
 <div class="task">
   <div class="tt">Задача 2. Обновление Q-learning со штрафом</div>
-  <p>В $s_0$ совершено действие $a_{\text{jump}}$ с $Q(s_0, a_{\text{jump}}) = 2.0$. Награда $R = -10.0$ (падение). Новое состояние $s_{\text{pit}}$ имеет оценки $Q(s_{\text{pit}}, a_1) = 0.0, Q(s_{\text{pit}}, a_2) = 1.0$. Дисконт $\gamma = 0.9$, $\alpha = 0.5$. Чему равно новое $Q(s_0, a_{\text{jump}})$?</p>
+  <p>В $s_0$ $Q(s_0, a)=2.0$. $R=-10.0$. В $s_{\text{pit}}$ оценки $Q = [0.0, 1.0]$. При $\gamma = 0.9, \alpha = 0.5$ найдите новое $Q(s_0, a)$.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>1) $\max_{a'} Q(s_{\text{pit}}, a') = \max(0.0, 1.0) = 1.0$.</p>
-      <p>2) $\text{Target} = -10.0 + 0.9 \cdot 1.0 = -9.1$.</p>
-      <p>3) $\delta = -9.1 - 2.0 = -11.1$.</p>
-      <p>4) $Q_{\text{new}} = 2.0 + 0.5 \cdot (-11.1) = 2.0 - 5.55 = -3.55$.</p>
-      <p><strong>Ответ:</strong> $Q_{\text{new}}(s_0, a_{\text{jump}}) = -3.55$.</p>
+      <p>$\text{Target} = -10.0 + 0.9 \cdot 1.0 = -9.1$. $\delta = -9.1 - 2.0 = -11.1$.</p>
+      <p>$Q_{\text{new}} = 2.0 + 0.5 \cdot (-11.1) = -3.55$.</p>
+      <p><strong>Ответ:</strong> $Q_{\text{new}} = -3.55$.</p>
     </div>
   </details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 3. Расчет таргета Double DQN</div>
-  <p>В состоянии $s'$ Online-сеть предсказывает $Q(s'; \theta) = [4.2, 5.8, 3.1]$ для трех действий. Target-сеть предсказывает $Q(s'; \theta^-) = [4.5, 3.9, 3.4]$. Награда $R = 2.0$, $\gamma = 0.9$, переход нетерминальный ($d=0$). Чему равен таргет Double DQN и стандартного DQN?</p>
+  <div class="tt">Задача 3. Расчёт таргета Double DQN</div>
+  <p>$Q(s'; \theta) = [4.2, 5.8, 3.1]$, $Q(s'; \theta^-) = [4.5, 3.9, 3.4]$. $R = 2.0, \gamma = 0.9, d=0$. Найдите таргеты Double DQN и DQN.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>1) <strong>Double DQN:</strong> Online-сеть выбирает действие: $a^* = \arg\max(4.2, 5.8, 3.1) = a_2$ (индекс 1). Target-сеть оценивает это действие: $Q(s', a_2; \theta^-) = 3.9$.</p>
-      <div class="math-scroll-wrapper">
-      $$ y^{\text{DoubleDQN}} = 2.0 + 0.9 \cdot 3.9 = 2.0 + 3.51 = 5.51 $$
-      </div>
-      <p>2) <strong>Стандартный DQN:</strong> берет максимум по Target-сети $\max(4.5, 3.9, 3.4) = 4.5$.</p>
-      <div class="math-scroll-wrapper">
-      $$ y^{\text{DQN}} = 2.0 + 0.9 \cdot 4.5 = 2.0 + 4.05 = 6.05 $$
-      </div>
-      <p>Видно, что Double DQN защитил от переоценки (5.51 против 6.05)!</p>
-      <p><strong>Ответ:</strong> Double DQN: 5.51; Стандартный DQN: 6.05.</p>
+      <p>Double DQN: $a^* = \arg\max Q(\theta) = a_2 \implies y = 2.0 + 0.9 \cdot 3.9 = 5.51$.</p>
+      <p>Стандартный DQN: $y = 2.0 + 0.9 \cdot \max Q(\theta^-) = 2.0 + 0.9 \cdot 4.5 = 6.05$.</p>
+      <p><strong>Ответ:</strong> Double DQN: 5.51; DQN: 6.05.</p>
     </div>
   </details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 4. Влияние терминального флага done в DQN</div>
-  <p>Даны два перехода с одинаковыми $R=10.0, \gamma=0.9, \max Q(s')=20.0$. Для первого перехода $done=0$, для второго $done=1$. Вычислите оба целевых значения $y$.</p>
+  <p>$R = 10.0, \gamma = 0.9, \max Q(s') = 20.0$. Вычислите таргеты для $done=0$ и $done=1$.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Формула таргета: $y = R + \gamma (1 - done) \max Q(s')$.</p>
-      <ul>
-        <li>Переход 1 ($done=0$): $y_1 = 10.0 + 0.9 \cdot (1 - 0) \cdot 20.0 = 10.0 + 18.0 = 28.0$.</li>
-        <li>Переход 2 ($done=1$): $y_2 = 10.0 + 0.9 \cdot (1 - 1) \cdot 20.0 = 10.0 + 0.0 = 10.0$.</li>
-      </ul>
+      <p>$done=0 \implies y = 10.0 + 0.9 \cdot 20.0 = 28.0$. $done=1 \implies y = 10.0 + 0 = 10.0$.</p>
       <p><strong>Ответ:</strong> $y_1 = 28.0, y_2 = 10.0$.</p>
     </div>
   </details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 5. Расчет градиента функции потерь DQN</div>
-  <p>Для одного перехода предсказание сети $Q(s, a; \theta) = 4.0$, а вычисленный таргет $y = 6.0$. Функция потерь MSE: $\mathcal{L} = (y - Q(s, a; \theta))^2$. Чему равна производная $\frac{\partial \mathcal{L}}{\partial Q(s, a)}$?</p>
+  <div class="tt">Задача 5. Расчёт градиента функции потерь DQN</div>
+  <p>$Q(s, a; \theta) = 4.0, y = 6.0$. Для $\mathcal{L} = (y - Q)^2$ найдите $\frac{\partial \mathcal{L}}{\partial Q}$.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Берем производную сложной функции по $Q$ (помня, что таргет $y$ зафиксирован через stop_gradient / target network):</p>
-      <div class="math-scroll-wrapper">
-      $$ \frac{\partial \mathcal{L}}{\partial Q} = \frac{\partial (y - Q)^2}{\partial Q} = 2(y - Q) \cdot (-1) = -2(y - Q) = 2(Q - y) = 2(4.0 - 6.0) = -4.0 $$
-      </div>
-      <p><strong>Ответ:</strong> $\frac{\partial \mathcal{L}}{\partial Q} = -4.0$.</p>
+      <p>$\frac{\partial \mathcal{L}}{\partial Q} = 2(Q - y) = 2(4.0 - 6.0) = -4.0$.</p>
+      <p><strong>Ответ:</strong> $-4.0$.</p>
     </div>
   </details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 6. Сравнение шагов SARSA и Q-learning при стохастическом выборе</div>
-  <p>В $s_0$ выполнено $a_1$ с $Q(s_0, a_1)=0$. $R=+1, \gamma=0.5, \alpha=1.0$. В следующем состоянии $s_1$ оценки $Q(s_1, a_1)=10.0, Q(s_1, a_2)=2.0$. Стратегия с вероятностью $0.8$ выбирает $a_1$, с вероятностью $0.2$ выбирает $a_2$. Чему равно математическое ожидание нового значения $Q(s_0, a_1)$ для алгоритмов Expected SARSA и Q-Learning?</p>
+  <p>В $s_0$ $Q(s_0, a_1)=0, R=+1, \gamma=0.5, \alpha=1.0$. В $s_1$ $Q = [10.0, 2.0]$ с вероятностями $[0.8, 0.2]$. Найдите таргеты Q-Learning и Expected SARSA.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>1) <strong>Q-Learning:</strong> Target $= 1 + 0.5 \cdot \max(10.0, 2.0) = 1 + 5.0 = 6.0 \implies Q_{\text{new}} = 6.0$.</p>
-      <p>2) <strong>Expected SARSA:</strong> берет матожидание по стратегии: $\mathbb{E}[Q(s_1, a')] = 0.8 \cdot 10.0 + 0.2 \cdot 2.0 = 8.0 + 0.4 = 8.4$.</p>
-      <div class="math-scroll-wrapper">
-      $$ \text{Target}_{\text{ExpSARSA}} = 1 + 0.5 \cdot 8.4 = 1 + 4.2 = 5.2 \implies Q_{\text{new}} = 5.2 $$
-      </div>
+      <p>Q-Learning: $1 + 0.5 \cdot 10.0 = 6.0$. Expected SARSA: $1 + 0.5 \cdot (0.8 \cdot 10 + 0.2 \cdot 2) = 1 + 0.5 \cdot 8.4 = 5.2$.</p>
       <p><strong>Ответ:</strong> Q-Learning: 6.0; Expected SARSA: 5.2.</p>
     </div>
   </details>
@@ -496,15 +439,15 @@ class ReplayBuffer:
 <h2 id="cheat"><span class="num">8.</span> ⚡ Скелет ответа по билету</h2>
 
 <div class="cheat">
-  <div class="bt">Скелет устного ответа по билету 23 (Базовые алгоритмы RL: TD, Q-Learning, SARSA, DQN)</div>
+  <div class="bt">Скелет ответа по билету 23 (TD, SARSA, Q-Learning, DQN)</div>
   <ol>
-    <li><strong>Суть TD-обучения:</strong> Синтез DP и MC. Обучение без модели (на сыром опыте) с бутстрэпингом (обновление оценки $V(S_t)$ через $R_{t+1} + \gamma V(S_{t+1})$ без ожидания исхода эпизода). TD-ошибка: $\delta_t = R_{t+1} + \gamma V(S_{t+1}) - V(S_t)$.</li>
-    <li><strong>SARSA (On-Policy TD Control):</strong> $Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \alpha [ R_{t+1} + \gamma Q(S_{t+1}, A_{t+1}) - Q(S_t, A_t) ]$. Оценивает реальную исследовательскую политику, выбирая безопасные траектории (Cliff Walking).</li>
-    <li><strong>Q-Learning (Off-Policy TD Control):</strong> $Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \alpha [ R_{t+1} + \gamma \max_a Q(S_{t+1}, a) - Q(S_t, A_t) ]$. Напрямую сходится к $Q^*$, обучаясь на опыте произвольной поведенческой стратегии.</li>
-    <li><strong>Deep Q-Network (DQN):</strong> Аппроксимация нейросетью $Q(s, a; \theta)$. Loss: $\mathcal{L}(\theta) = \mathbb{E} [ (r + \gamma(1-d)\max_{a'} Q(s', a'; \theta^-) - Q(s, a; \theta))^2 ]$.</li>
-    <li><strong>Experience Replay:</strong> Буфер $\mathcal{D}$ разрывает временную корреляцию последовательных кадров, превращая обучение в стационарный i.i.d. батчевый SGD.</li>
-    <li><strong>Target Network $\theta^-$:</strong> Фиксирует таргет на $C$ шагов, предотвращая расходимость и эффект «бегущей цели».</li>
-    <li><strong>Double DQN:</strong> Устраняет Overestimation Bias разделением выбора действия ($\arg\max Q(\theta)$) и его оценки ($Q(\theta^-)$): $y = r + \gamma Q(s', \arg\max Q(s'; \theta); \theta^-)$.</li>
+    <li><strong>TD-обучение:</strong> Обучение без модели с бутстрэпингом: $V(S_t) \leftarrow V(S_t) + \alpha \delta_t$, где $\delta_t = R_{t+1} + \gamma V(S_{t+1}) - V(S_t)$.</li>
+    <li><strong>SARSA (On-Policy):</strong> $Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \alpha [ R_{t+1} + \gamma Q(S_{t+1}, A_{t+1}) - Q(S_t, A_t) ]$. Оценивает реальную политику с учётом риска (Cliff Walking).</li>
+    <li><strong>Q-Learning (Off-Policy):</strong> $Q(S_t, A_t) \leftarrow Q(S_t, A_t) + \alpha [ R_{t+1} + \gamma \max_a Q(S_{t+1}, a) - Q(S_t, A_t) ]$. Сходится к $Q^*$ независимо от поведенческой стратегии.</li>
+    <li><strong>DQN:</strong> Сеть $Q(s, a; \theta)$. Loss: $\mathcal{L} = \mathbb{E}[(r + \gamma(1-d)\max_{a'} Q(s', a'; \theta^-) - Q(s, a; \theta))^2]$.</li>
+    <li><strong>Experience Replay:</strong> Буфер $\mathcal{D}$ разрывает автокорреляцию кадров, стабилизируя обучение SGD.</li>
+    <li><strong>Target Network $\theta^-$:</strong> Замороженная сеть фиксирует таргет, устраняя эффект «бегущей цели».</li>
+    <li><strong>Double DQN:</strong> Разделяет выбор действия ($\arg\max Q(\theta)$) и его оценку ($Q(\theta^-)$), устраняя Overestimation Bias.</li>
   </ol>
 </div>
 

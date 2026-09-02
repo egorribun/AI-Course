@@ -9,7 +9,7 @@ on:
 
 jobs:
   test:
-    name: Quality, Coverage & Adversarial Verification
+    name: Multi-Stack Quality, Coverage & Adversarial Verification
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -19,6 +19,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
@@ -26,14 +27,30 @@ jobs:
           version: "latest"
           enable-cache: true
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: uv sync
 
-      - name: Run Ruff Linter
-        run: uv run ruff check .
+      - name: Install Node.js dependencies
+        run: npm ci || npm install
 
-      - name: Validate Exam Dataset Compilation
-        run: uv run python tools/build_exam_data.py --check
+      - name: Run Ruff Linter & Formatter Check
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      - name: Validate Exam Dataset & Anki Deck Compilation
+        run: |
+          uv run python tools/build_exam_data.py --check
+          uv run python tools/export_anki.py --check
+
+      - name: Run Stylelint (CSS Linter)
+        run: npx stylelint style.css
+
+      - name: Run TypeScript Type Check (JSDoc JS)
+        run: npx tsc --noEmit --checkJs
+
+      - name: Run Node.js Test Suite with 100% JS Coverage
+        run: npm run coverage || node --test --experimental-test-coverage tests/unit/*.test.js
 
       - name: Run Node.js Adversarial Test Suites
         run: |

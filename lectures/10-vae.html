@@ -21,7 +21,7 @@ window.MathJax = {
 <header class="top"><div class="inner">
   <div class="kicker">Блок B · Представления и генеративные модели · Билет 10</div>
   <h1>Лекция 10. Автоэнкодеры: AE, VAE, CVAE. Вывод ELBO и репараметризационный трюк</h1>
-  <p class="sub">Вероятностный вывод латентных представлений: от детерминированного сжатия к вариационному выводу, строгий вывод ELBO, аналитический расчет KL-дивергенции, Reparameterization Trick и условная генерация CVAE.</p>
+  <p class="sub">Вероятностный вывод латентных представлений: от детерминированного сжатия к вариационному выводу, строгий вывод ELBO, аналитический расчёт KL-дивергенции, Reparameterization Trick и условная генерация CVAE.</p>
   <div class="meta">
     <span class="pill">⏱ 2 ч 30 мин</span>
     <span class="pill gray">12 вопросов препода</span>
@@ -51,148 +51,110 @@ window.MathJax = {
 <!-- ============================================ -->
 <h2 id="s1"><span class="num">1.</span> Интуиция и мотивация</h2>
 
-<p>Классический детерминированный автоэнкодер (Autoencoder, AE) сжимает входной вектор $x \in \mathbb{R}^D$ через энкодер в скрытый код $z = f_\phi(x) \in \mathbb{R}^d$ ($d \ll D$), а декодер восстанавливает объект $\hat{x} = g_\theta(z)$. Однако классический AE <strong>не является генеративной моделью</strong>.</p>
+<p>Классический детерминированный автоэнкодер (AE) сжимает $x \in \mathbb{R}^D$ в код $z = f_\phi(x) \in \mathbb{R}^d$ ($d \ll D$) и восстанавливает $\hat{x} = g_\theta(z)$, но <strong>не является генеративной моделью</strong>.</p>
 
 <div class="box warnbox">
-  <div class="bt">⚠️ Почему классический AE не способен генерировать новые данные?</div>
-  <p>В классическом AE латентное пространство представляет собой <strong>дискретный набор изолированных «островов»</strong>. Энкодер отображает обучающие примеры в изолированные точки в $\mathbb{R}^d$. Пространство между этими точками никак не регуляризовано: если мы случайно сгенерируем вектор $z \sim \mathcal{N}(0, I)$ из «пустоты» между кластерами и подадим в декодер, он восстановит нереалистичный шум или бессмысленный артефакт.</p>
+  <div class="bt">⚠️ Почему классический AE не генерирует новые данные?</div>
+  <p>В AE латентное пространство представляет собой изолированные точки в $\mathbb{R}^d$. Пространство между ними не структурировано: случайный сэмпл $z \sim \mathcal{N}(0, I)$ из пустоты между кластерами декодируется в бессмысленный шум.</p>
 </div>
 
 <div class="box idea">
   <div class="bt">💡 Идея Variational Autoencoder (VAE)</div>
-  <p>Вместо отображения $x$ в единственную точку $z$, энкодер VAE отображает $x$ в <strong>вероятностное распределение</strong> $q_\phi(z|x) = \mathcal{N}(\mu(x), \Sigma(x))$.</p>
-  <p>Мы принудительно требуем (через штраф KL-дивергенции), чтобы распределения всех объектов перекрывались и были близки к стандартному нормальному априорному распределению $p(z) = \mathcal{N}(0, I)$. Это превращает латентное пространство в <strong>непрерывное, гладкое и плотное многообразие</strong>, где любая точка декодируется в осмысленный объект, а перемещение между точками порождает плавную интерполяцию признаков.</p>
+  <p>Энкодер VAE отображает $x$ в <strong>вероятностное распределение</strong> $q_\phi(z|x) = \mathcal{N}(\mu(x), \Sigma(x))$. Штраф KL-дивергенции приближает его к стандартному нормальному априорному распределению $p(z) = \mathcal{N}(0, I)$, превращая латент в <strong>гладкое непрерывное многообразие</strong> для генерации и интерполяции.</p>
 </div>
 
 <!-- ============================================ -->
 <h2 id="s2"><span class="num">2.</span> Архитектура и схема</h2>
 
 <div class="scheme">
-  1. АРХИТЕКТУРА VARIATIONAL AUTOENCODER (VAE) И REPARAMETERIZATION TRICK
+  1. АРХИТЕКТУРА VAE И REPARAMETERIZATION TRICK
 
-   Вход x ∈ R^D (напр. 784)
-        │
-        ▼
-  ┌───────────────┐
-  │ Энкодер q_ϕ   │ ──▶ Скрытые слои MLP / Conv
-  └───────┬───────┘
-          │
-          ├──────────────────────────┐
-          ▼                          ▼
-   Вектор средних            Вектор log-дисперсий
-    μ(x) ∈ R^d                 log(σ²(x)) ∈ R^d
-          │                          │
-          │                          ▼  σ = exp(0.5 · log(σ²))
-          │                   ┌──────────────┐
-          │                   │ Стандартный  │ ──▶ ε ~ N(0, I) (Случайный шум)
-          │                   │  шум ε       │     (НЕ зависит от параметров!)
-          │                   └──────┬───────┘
-          │                          │
-          ▼                          ▼
-          ● ──────── ( + ) ◀──────── ⊗ (поэлементное умножение σ ⊙ ε)
-                     │
-                     ▼
-          Латентный вектор z = μ(x) + σ(x) ⊙ ε  (дифференцируемый граф!)
-                     │
-                     ▼
-             ┌───────────────┐
-             │ Декодер p_θ   │
-             └───────┬───────┘
-                     │
-                     ▼
-          Реконструкция x̂ = p_θ(x|z) ∈ R^D
+    Вход x ∈ R^D
+         │
+         ▼
+   ┌───────────┐
+   │  Энкодер  │ ──▶ Скрытые слои
+   └─────┬─────┘
+         │
+         ├──────────────────────────┐
+         ▼                          ▼
+    Среднее μ(x)            log-дисперсия log(σ²(x))
+         │                          │
+         │                          ▼  σ = exp(0.5 · log(σ²))
+         │                   ┌──────────────┐
+         │                   │ Стандартный  │ ──▶ ε ~ N(0, I) (Шум)
+         │                   │    шум ε     │
+         │                   └──────┬───────┘
+         │                          │
+         ▼                          ▼
+         ● ──────── ( + ) ◀──────── ⊗ (поэлементное умножение σ ⊙ ε)
+                    │
+                    ▼
+         Латентный вектор z = μ(x) + σ(x) ⊙ ε  (дифференцируемый граф!)
+                    │
+                    ▼
+            ┌───────────────┐
+            │  Декодер p_θ  │
+            └───────┬───────┘
+                    ▼
+         Реконструкция x̂ = p_θ(x|z)
 
+  2. CONDITIONAL VAE (CVAE)
 
-  2. АРХИТЕКТУРА CONDITIONAL VAE (CVAE)
-
-  Вход x ────┐                     Условие y (One-Hot класс / Текст)
-             │                              │
-             ├──────── ( Конкатенация ) ◀───┤
-             ▼                              │
-    ┌─────────────────┐                     │
-    │ Энкодер q_ϕ(z|x,y)│                   │
-    └────────┬────────┘                     │
-             ▼                              │
-      z = μ + σ ⊙ ε                         │
-             │                              │
-             ├──────── ( Конкатенация ) ◀───┘
-             ▼
-    ┌─────────────────┐
-    │ Декодер p_θ(x|z,y)│
-    └────────┬────────┘
-             ▼
-      Реконструкция x̂ заданного класса y
+    Вход x ────┐                     Условие y (One-Hot класс)
+               │                              │
+               ├──────── ( Конкатенация ) ◀───┤
+               ▼                              │
+      ┌─────────────────┐                     │
+      │ Энкодер q_ϕ(z|x,y)│                   │
+      └────────┬────────┘                     │
+               ▼                              │
+        z = μ + σ ⊙ ε                         │
+               │                              │
+               ├──────── ( Конкатенация ) ◀───┘
+               ▼
+      ┌─────────────────┐
+      │ Декодер p_θ(x|z,y)│
+      └────────┬────────┘
+               ▼
+        Реконструкция x̂ заданного класса y
 
 <span class="cap">Сверху: VAE с репараметризацией $z = \mu + \sigma \odot \epsilon$. Снизу: CVAE с конкатенацией условия $y$ на входах энкодера и декодера.</span></div>
 
 <!-- ============================================ -->
 <h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
 
-<h3>3.1 Постановка задачи максимизации правдоподобия</h3>
-<p>Пусть данные $x$ порождаются скрытыми переменными $z$ согласно генеративному процессу: $z \sim p(z) = \mathcal{N}(0, I)$, $x \sim p_\theta(x|z)$. Полное маргинальное правдоподобие данных выражается интегралом:</p>
-<div class="math-scroll-wrapper">
-$$p_\theta(x) = \int p_\theta(x, z) \, dz = \int p_\theta(x|z) p(z) \, dz$$
-</div>
-<p>Этот интеграл <strong>аналитически неберущийся (intractable)</strong> для глубоких нелинейных нейросетей, а истинное апостериорное распределение $p_\theta(z|x) = \frac{p_\theta(x|z)p(z)}{p_\theta(x)}$ невозможно вычислить. Вводится вариационное приближение $q_\phi(z|x) \approx p_\theta(z|x)$.</p>
+<h3>3.1 Постановка задачи и неберущийся интеграл</h3>
+<p>Маргинальное правдоподобие $p_\theta(x) = \int p_\theta(x|z) p(z) \, dz$ аналитически не берётся для нелинейных сетей. Истинный апостериор $p_\theta(z|x) = \frac{p_\theta(x|z)p(z)}{p_\theta(x)}$ приближается вариационным распределением $q_\phi(z|x) \approx p_\theta(z|x)$.</p>
 
-<h3>3.2 Строгий аналитический вывод Evidence Lower Bound (ELBO)</h3>
-<p>Распишем логарифм маргинального правдоподобия $\log p_\theta(x)$:</p>
-
+<h3>3.2 Строгий вывод Evidence Lower Bound (ELBO)</h3>
 <div class="box mathbox">
-  <div class="bt">📐 Строгий вывод ELBO через Неравенство Йенсена и KL-дивергенцию</div>
+  <div class="bt">📐 Вывод ELBO через неравенство Йенсена</div>
   <div class="math-scroll-wrapper">
-  $$\log p_\theta(x) = \log \int p_\theta(x, z) \, dz = \log \int q_\phi(z|x) \frac{p_\theta(x, z)}{q_\phi(z|x)} \, dz = \log \mathbb{E}_{z \sim q_\phi(z|x)}\left[ \frac{p_\theta(x, z)}{q_\phi(z|x)} \right]$$
+  $$\log p_\theta(x) = \log \int q_\phi(z|x) \frac{p_\theta(x, z)}{q_\phi(z|x)} \, dz = \log \mathbb{E}_{q_\phi(z|x)}\left[ \frac{p_\theta(x, z)}{q_\phi(z|x)} \right] \ge \mathbb{E}_{q_\phi(z|x)}\left[ \log \frac{p_\theta(x, z)}{q_\phi(z|x)} \right] \equiv \text{ELBO}$$
   </div>
-  <p>Так как функция $\log(u)$ строго вогнута ($\log''(u) = -1/u^2 < 0$), по <strong>неравенству Йенсена</strong> $\log \mathbb{E}[u] \ge \mathbb{E}[\log u]$:</p>
+  <p>Раскладывая $p_\theta(x, z) = p_\theta(x|z) p(z)$:</p>
   <div class="math-scroll-wrapper">
-  $$\log p_\theta(x) \ge \mathbb{E}_{z \sim q_\phi(z|x)}\left[ \log \frac{p_\theta(x, z)}{q_\phi(z|x)} \right] \equiv \text{ELBO}(\theta, \phi; x)$$
+  $$\text{ELBO}(\theta, \phi; x) = \underbrace{\mathbb{E}_{q_\phi(z|x)} [\log p_\theta(x|z)]}_{\text{Качество реконструкции}} - \underbrace{D_{\text{KL}}\Big(q_\phi(z|x) \,\parallel\, p(z)\Big)}_{\text{KL-регуляризация к } \mathcal{N}(0, I)}$$
   </div>
-  <p>Раскладываем совместную вероятность $p_\theta(x, z) = p_\theta(x|z) p(z)$:</p>
-  <div class="math-scroll-wrapper">
-  $$\text{ELBO} = \mathbb{E}_{q_\phi(z|x)} \left[ \log \frac{p_\theta(x|z) p(z)}{q_\phi(z|x)} \right] = \mathbb{E}_{q_\phi(z|x)} [\log p_\theta(x|z)] + \mathbb{E}_{q_\phi(z|x)} \left[ \log \frac{p(z)}{q_\phi(z|x)} \right]$$
-  </div>
-  <div class="math-scroll-wrapper">
-  $$\text{ELBO} = \underbrace{\mathbb{E}_{q_\phi(z|x)} [\log p_\theta(x|z)]}_{\text{Качество реконструкции}} - \underbrace{D_{\text{KL}}\Big(q_\phi(z|x) \,\parallel\, p(z)\Big)}_{\text{KL-регуляризация к } \mathcal{N}(0, I)}$$
-  </div>
-  <p><strong>Связь с зазором приближения:</strong> Точное равенство связывает ELBO и истинный апостериор:</p>
-  <div class="math-scroll-wrapper">
-  $$\log p_\theta(x) = \text{ELBO}(\theta, \phi; x) + D_{\text{KL}}\Big(q_\phi(z|x) \,\parallel\, p_\theta(z|x)\Big)$$
-  </div>
-  <p>Поскольку $D_{\text{KL}} \ge 0$, максимизация $\text{ELBO}$ одновременно увеличивает правдоподобие данных $\log p_\theta(x)$ и минимизирует ошибку вариационного приближения $q_\phi(z|x) \to p_\theta(z|x)$.</p>
+  <p>Точная связь с апостериором: $\log p_\theta(x) = \text{ELBO} + D_{\text{KL}}\Big(q_\phi(z|x) \,\parallel\, p_\theta(z|x)\Big)$. Так как $D_{\text{KL}} \ge 0$, максимизация ELBO максимизирует правдоподобие данных и минимизирует ошибку вариационного приближения.</p>
 </div>
 
-<h3>3.3 Аналитическая формула KL-дивергенции для многомерных Гауссиан</h3>
-<p>Пусть априорное распределение $p(z) = \mathcal{N}(0, I)$, а вариационное $q_\phi(z|x) = \mathcal{N}(\mu, \text{diag}(\sigma^2))$.</p>
-<p>Для каждого измерения $j \in \{1, \dots, d\}$:</p>
+<h3>3.3 Аналитический расчёт KL-дивергенции для Гауссиан</h3>
+<p>Для $p(z) = \mathcal{N}(0, I)$ и $q_\phi(z|x) = \mathcal{N}(\mu, \text{diag}(\sigma^2))$ интеграл вычисляется аналитически:</p>
 <div class="math-scroll-wrapper">
-$$D_{\text{KL}}\Big(\mathcal{N}(\mu_j, \sigma_j^2) \,\parallel\, \mathcal{N}(0, 1)\Big) = \int q(z_j) \log \frac{\frac{1}{\sqrt{2\pi\sigma_j^2}}\exp\left(-\frac{(z_j - \mu_j)^2}{2\sigma_j^2}\right)}{\frac{1}{\sqrt{2\pi}}\exp\left(-\frac{z_j^2}{2}\right)} dz_j$$
-</div>
-<div class="math-scroll-wrapper">
-$$= \int q(z_j) \left[ -\frac{1}{2}\log(\sigma_j^2) - \frac{(z_j - \mu_j)^2}{2\sigma_j^2} + \frac{z_j^2}{2} \right] dz_j$$
-</div>
-<p>Учитывая, что $\mathbb{E}[(z_j - \mu_j)^2] = \sigma_j^2$ и $\mathbb{E}[z_j^2] = \mu_j^2 + \sigma_j^2$:</p>
-<div class="math-scroll-wrapper">
-$$= -\frac{1}{2}\log(\sigma_j^2) - \frac{\sigma_j^2}{2\sigma_j^2} + \frac{\mu_j^2 + \sigma_j^2}{2} = -\frac{1}{2}\left( 1 + \log(\sigma_j^2) - \mu_j^2 - \sigma_j^2 \right)$$
-</div>
-<p>Суммируя по всем $d$ латентным измерениям:</p>
-<div class="math-scroll-wrapper">
-$$D_{\text{KL}}\Big(q_\phi(z|x) \,\parallel\, p(z)\Big) = -\frac{1}{2} \sum_{j=1}^d \Big( 1 + \log(\sigma_j^2) - \mu_j^2 - \sigma_j^2 \Big)$$
+$$D_{\text{KL}}\Big(\mathcal{N}(\mu, \sigma^2) \,\parallel\, \mathcal{N}(0, I)\Big) = -\frac{1}{2} \sum_{j=1}^d \Big( 1 + \log(\sigma_j^2) - \mu_j^2 - \sigma_j^2 \Big)$$
 </div>
 
 <h3>3.4 Репараметризационный трюк (Reparameterization Trick)</h3>
-<p>Если сэмплировать $z \sim \mathcal{N}(\mu(\phi), \sigma^2(\phi))$ напрямую, операция сэмплирования является стохастическим узлом без детерминированного градиента: $\frac{\partial}{\partial \phi} \mathbb{E}_{z \sim q_\phi}[f(z)]$ требует шумного метода REINFORCE (Score Function Estimator).</p>
-<p><strong>Решение Кингмы и Веллинга (Kingma & Welling, 2013):</strong> Вынести случайность в независимую переменную $\epsilon \sim \mathcal{N}(0, I)$:</p>
+<p>Прямой сэмплинг $z \sim \mathcal{N}(\mu, \sigma^2)$ блокирует градиенты Backprop. Kingma & Welling (2013) вынесли стохастичность в независимый шум $\epsilon \sim \mathcal{N}(0, I)$:</p>
 <div class="math-scroll-wrapper">
-$$z = g_\phi(x, \epsilon) = \mu(x) + \sigma(x) \odot \epsilon, \quad \epsilon \sim \mathcal{N}(0, I)$$
+$$z = \mu(x) + \sigma(x) \odot \epsilon, \quad \epsilon \sim \mathcal{N}(0, I)$$
 </div>
-<p>Теперь $z$ — детерминированная дифференцируемая функция от параметров энкодера $\mu$ и $\sigma$. Градиент по параметрам $\phi$ вычисляется стандартным Backpropagation:</p>
-<div class="math-scroll-wrapper">
-$$\nabla_\phi \mathbb{E}_{q_\phi(z|x)}[f(z)] = \nabla_\phi \mathbb{E}_{\epsilon \sim \mathcal{N}(0, I)} [f(\mu(x) + \sigma(x) \odot \epsilon)] = \mathbb{E}_{\epsilon}\left[ \nabla_z f(z) \cdot \nabla_\phi (\mu(x) + \sigma(x) \odot \epsilon) \right]$$
-</div>
+<p>Операция становится детерминированной и дифференцируемой по параметрам $\mu$ и $\sigma$ энкодера.</p>
 
 <h3>3.5 Реализации на PyTorch</h3>
 
-<p><strong>1. Классический Variational Autoencoder (VAE):</strong></p>
 <pre><code>import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -200,20 +162,15 @@ import torch.nn.functional as F
 class VAE(nn.Module):
     def __init__(self, input_dim=784, hidden_dim=256, latent_dim=32):
         super().__init__()
-        # Энкодер
         self.encoder = nn.Sequential(
-            nn.Linear(input_dim, hidden_dim),
-            nn.ReLU()
+            nn.Linear(input_dim, hidden_dim), nn.ReLU()
         )
         self.fc_mu = nn.Linear(hidden_dim, latent_dim)
         self.fc_logvar = nn.Linear(hidden_dim, latent_dim)
 
-        # Декодер
         self.decoder = nn.Sequential(
-            nn.Linear(latent_dim, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, input_dim),
-            nn.Sigmoid()
+            nn.Linear(latent_dim, hidden_dim), nn.ReLU(),
+            nn.Linear(hidden_dim, input_dim), nn.Sigmoid()
         )
 
     def reparameterize(self, mu, logvar):
@@ -223,47 +180,32 @@ class VAE(nn.Module):
 
     def forward(self, x):
         h = self.encoder(x)
-        mu = self.fc_mu(h)
-        logvar = self.fc_logvar(h)
+        mu, logvar = self.fc_mu(h), self.fc_logvar(h)
         z = self.reparameterize(mu, logvar)
-        x_recon = self.decoder(z)
-        return x_recon, mu, logvar</code></pre>
+        return self.decoder(z), mu, logvar</code></pre>
 
-<p><strong>2. Условный автоэнкодер Conditional VAE (CVAE):</strong></p>
 <pre><code>class ConditionalVAE(nn.Module):
     def __init__(self, input_dim=784, num_classes=10, hidden_dim=256, latent_dim=32):
         super().__init__()
         self.class_emb = nn.Embedding(num_classes, num_classes)
         self.encoder = nn.Sequential(
-            nn.Linear(input_dim + num_classes, hidden_dim),
-            nn.ReLU()
+            nn.Linear(input_dim + num_classes, hidden_dim), nn.ReLU()
         )
         self.fc_mu = nn.Linear(hidden_dim, latent_dim)
         self.fc_logvar = nn.Linear(hidden_dim, latent_dim)
 
         self.decoder = nn.Sequential(
-            nn.Linear(latent_dim + num_classes, hidden_dim),
-            nn.ReLU(),
-            nn.Linear(hidden_dim, input_dim),
-            nn.Sigmoid()
+            nn.Linear(latent_dim + num_classes, hidden_dim), nn.ReLU(),
+            nn.Linear(hidden_dim, input_dim), nn.Sigmoid()
         )
 
     def forward(self, x, label):
         y = self.class_emb(label)
-        xy = torch.cat([x, y], dim=1)
-        h = self.encoder(xy)
-        mu = self.fc_mu(h)
-        logvar = self.fc_logvar(h)
-        
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        z = mu + eps * std
-        
-        zy = torch.cat([z, y], dim=1)
-        x_recon = self.decoder(zy)
-        return x_recon, mu, logvar</code></pre>
+        h = self.encoder(torch.cat([x, y], dim=1))
+        mu, logvar = self.fc_mu(h), self.fc_logvar(h)
+        z = mu + torch.randn_like(mu) * torch.exp(0.5 * logvar)
+        return self.decoder(torch.cat([z, y], dim=1)), mu, logvar</code></pre>
 
-<p><strong>3. Функция потерь VAE (ELBO Loss):</strong></p>
 <pre><code>def vae_loss(x, x_recon, mu, logvar, beta=1.0):
     recon_loss = F.binary_cross_entropy(x_recon, x, reduction='sum')
     kl_loss = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
@@ -272,56 +214,36 @@ class VAE(nn.Module):
 <!-- ============================================ -->
 <h2 id="s4"><span class="num">4.</span> Пошаговый числовой пример</h2>
 
-<p>Рассчитаем пошагово латентный вектор, KL-дивергенцию и ошибку реконструкции для одного 2-пиксельного объекта $x = [0.8, 0.2]^\top$.</p>
-
 <div class="box exambox">
   <div class="bt">🔢 Дано:</div>
   <ul>
-    <li>Выход энкодера (размерность $d=2$): $\mu = [0.5, -0.2]^\top$, $\log(\sigma^2) = [0.0, -0.5]^\top$</li>
-    <li>Сэмплированный стандартный шум: $\epsilon = [0.4, -1.0]^\top \sim \mathcal{N}(0, I)$</li>
+    <li>Объект $x = [0.8, 0.2]^\top$, латент $d=2$: $\mu = [0.5, -0.2]^\top$, $\log(\sigma^2) = [0.0, -0.5]^\top$.</li>
+    <li>Шум $\epsilon = [0.4, -1.0]^\top \sim \mathcal{N}(0, I)$. Реконструкция $\hat{x} = [0.75, 0.25]^\top$.</li>
   </ul>
 </div>
 
-<h3>Шаг 1. Восстановление стандартного отклонения $\sigma$</h3>
+<h3>Шаг 1. Стандартные отклонения $\sigma$</h3>
 <div class="math-scroll-wrapper">
-$$\sigma_1 = \exp(0.5 \cdot 0.0) = \exp(0) = 1.0$$
-</div>
-<div class="math-scroll-wrapper">
-$$\sigma_2 = \exp(0.5 \cdot (-0.5)) = \exp(-0.25) \approx 0.7788$$
-</div>
-<div class="math-scroll-wrapper">
-$$\sigma = [1.0, 0.7788]^\top$$
+$$\sigma_1 = \exp(0) = 1.0, \qquad \sigma_2 = \exp(0.5 \cdot (-0.5)) = e^{-0.25} \approx 0.7788$$
 </div>
 
-<h3>Шаг 2. Вычисление латентного вектора через репараметризацию</h3>
+<h3>Шаг 2. Латентный вектор $z = \mu + \sigma \odot \epsilon$</h3>
 <div class="math-scroll-wrapper">
-$$z_1 = \mu_1 + \sigma_1 \cdot \epsilon_1 = 0.5 + 1.0 \cdot 0.4 = 0.900$$
-</div>
-<div class="math-scroll-wrapper">
-$$z_2 = \mu_2 + \sigma_2 \cdot \epsilon_2 = -0.2 + 0.7788 \cdot (-1.0) = -0.2 - 0.7788 = -0.9788$$
-</div>
-<div class="math-scroll-wrapper">
-$$z = [0.900, -0.9788]^\top$$
+$$z_1 = 0.5 + 1.0 \cdot 0.4 = 0.900, \qquad z_2 = -0.2 + 0.7788 \cdot (-1.0) = -0.9788$$
 </div>
 
-<h3>Шаг 3. Аналитический расчет KL-дивергенции $D_{\text{KL}}$</h3>
-<p>Для измерения 1 ($\mu_1 = 0.5, \log\sigma_1^2 = 0.0, \sigma_1^2 = 1.0$):</p>
+<h3>Шаг 3. Аналитический расчёт $D_{\text{KL}}$</h3>
+<ul>
+  <li>$\text{term}_1 = 1 + 0.0 - 0.5^2 - 1.0 = -0.25$</li>
+  <li>$\text{term}_2 = 1 + (-0.5) - (-0.2)^2 - e^{-0.5} = 0.5 - 0.04 - 0.60653 = -0.14653$</li>
+</ul>
 <div class="math-scroll-wrapper">
-$$\text{term}_1 = 1 + \log\sigma_1^2 - \mu_1^2 - \sigma_1^2 = 1 + 0.0 - (0.5)^2 - 1.0 = 1 - 0.25 - 1 = -0.25$$
-</div>
-<p>Для измерения 2 ($\mu_2 = -0.2, \log\sigma_2^2 = -0.5, \sigma_2^2 = e^{-0.5} \approx 0.60653$):</p>
-<div class="math-scroll-wrapper">
-$$\text{term}_2 = 1 + (-0.5) - (-0.2)^2 - 0.60653 = 0.5 - 0.04 - 0.60653 = -0.14653$$
-</div>
-<p>Суммарная KL-дивергенция:</p>
-<div class="math-scroll-wrapper">
-$$D_{\text{KL}} = -\frac{1}{2} (\text{term}_1 + \text{term}_2) = -\frac{1}{2} (-0.25 - 0.14653) = -\frac{1}{2}(-0.39653) \approx 0.19827$$
+$$D_{\text{KL}} = -\frac{1}{2}(-0.25 - 0.14653) = -\frac{1}{2}(-0.39653) \approx 0.19827$$
 </div>
 
-<h3>Шаг 4. Ошибка реконструкции и общий Loss VAE</h3>
-<p>Пусть декодер выдал $\hat{x} = [0.75, 0.25]^\top$. Ошибка BCE:</p>
+<h3>Шаг 4. Ошибка реконструкции (BCE) и общий Loss</h3>
 <div class="math-scroll-wrapper">
-$$\text{BCE} = -\Big( 0.8\log(0.75) + 0.2\log(0.25) + 0.2\log(0.25) + 0.8\log(0.75) \Big) \approx 2 \times (0.2301 + 0.2773) = 1.0148$$
+$$\text{BCE} = -\Big(0.8\ln 0.75 + 0.2\ln 0.25 + 0.2\ln 0.25 + 0.8\ln 0.75\Big) \approx 1.0148$$
 </div>
 <div class="math-scroll-wrapper">
 $$\mathcal{L}_{\text{VAE}} = \text{BCE} + D_{\text{KL}} = 1.0148 + 0.1983 = 1.2131$$
@@ -333,50 +255,14 @@ $$\mathcal{L}_{\text{VAE}} = \text{BCE} + D_{\text{KL}} = 1.0148 + 0.1983 = 1.21
 <div class="table-scroll-wrapper">
 <table>
 <thead>
-  <tr>
-    <th>Архитектура</th>
-    <th>Тип латентного пространства</th>
-    <th>Преимущества</th>
-    <th>Недостатки</th>
-    <th>Типовое применение</th>
-  </tr>
+  <tr><th>Модель</th><th>Латентное пространство</th><th>Преимущества</th><th>Недостатки</th><th>Применимость</th></tr>
 </thead>
 <tbody>
-  <tr>
-    <td><strong>Deterministic AE</strong></td>
-    <td>Дискретные точки в $\mathbb{R}^d$ без регуляризации.</td>
-    <td>Идеальное качество сжатия, простая оптимизация MSE/BCE.</td>
-    <td>Не является генеративным (пустоты между кодами), не подходит для сэмплирования.</td>
-    <td>Сжатие данных, Denoising, поиск аномалий.</td>
-  </tr>
-  <tr>
-    <td><strong>Vanilla VAE</strong></td>
-    <td>Непрерывное вероятностное Гауссовское поле $\mathcal{N}(0, I)$.</td>
-    <td>Гладкое сэмплирование, явная оценка нижней границы правдоподобия (ELBO), стабильное обучение.</td>
-    <td>Размытые изображения (Blurry generation) из-за пиксельных L2/BCE лоссов.</td>
-    <td>Генерация молекул, сжатие признаков, интерполяция в латенте.</td>
-  </tr>
-  <tr>
-    <td><strong>$\beta$-VAE</strong></td>
-    <td>Регулируемое поле с весом $\beta \cdot D_{\text{KL}}$.</td>
-    <td>Распутывание факторов вариации (Disentanglement) при $\beta > 1$.</td>
-    <td>Компромисс: при большом $\beta$ падает резкость реконструкции.</td>
-    <td>Интерпретируемое обучение признаков, робототехника.</td>
-  </tr>
-  <tr>
-    <td><strong>CVAE</strong></td>
-    <td>Условное непрерывное поле $q(z|x, y)$.</td>
-    <td>Управляемая генерация заданного класса, сохранение структуры VAE.</td>
-    <td>Требует наличия меток $y$ во время обучения.</td>
-    <td>Генерация рукописных цифр по метке, синтез речи по тексту.</td>
-  </tr>
-  <tr>
-    <td><strong>VQ-VAE</strong></td>
-    <td>Дискретный словарь векторов (Codebook) + эмбеддинги.</td>
-    <td>Кристальная четкость генерации, полное отсутствие Posterior Collapse.</td>
-    <td>Требует авторегрессионного трансформера (GPT) или диффузии поверх кодов.</td>
-    <td>Латентное пространство Stable Diffusion, DALL-E, аудиокодеки (EnCodec).</td>
-  </tr>
+  <tr><td><strong>Deterministic AE</strong></td><td>Дискретные точки $\mathbb{R}^d$.</td><td>Точное сжатие, простой лосс.</td><td>Не генеративный (пустоты).</td><td>Denoising, сжатие, аномалии.</td></tr>
+  <tr><td><strong>Vanilla VAE</strong></td><td>Поле $\mathcal{N}(0, I)$.</td><td>Гладкое сэмплирование, ELBO.</td><td>Размытые картинки (L2/BCE).</td><td>Генерация молекул, латент.</td></tr>
+  <tr><td><strong>$\beta$-VAE</strong></td><td>Взвешенное $\beta \cdot D_{\text{KL}}$.</td><td>Disentanglement признаков.</td><td>Снижение резкости при $\beta > 1$.</td><td>Интерпретируемые признаки.</td></tr>
+  <tr><td><strong>CVAE</strong></td><td>Условное $q(z|x, y)$.</td><td>Управляемая генерация класса.</td><td>Требует разметки $y$.</td><td>Синтез по тексту/метке.</td></tr>
+  <tr><td><strong>VQ-VAE</strong></td><td>Дискретный словарь (Codebook).</td><td>Чёткая генерация, без collapse.</td><td>Нужен авторегрессор поверх.</td><td>Базис Stable Diffusion.</td></tr>
 </tbody>
 </table>
 </div>
@@ -386,154 +272,126 @@ $$\mathcal{L}_{\text{VAE}} = \text{BCE} + D_{\text{KL}} = 1.0148 + 0.1983 = 1.21
 
 <details class="qa"><summary>В чем фундаментальная разница между классическим AE и VAE?</summary>
 <div class="ans">
-<p>Классический AE — детерминированная модель, отображающая вход $x$ в единственную точку $z \in \mathbb{R}^d$. Его латентное пространство содержит пустоты («дыры»), поэтому случайное сэмплирование $z \sim \mathcal{N}(0, I)$ генерирует нереалистичный шум. VAE — вероятностная байесовская модель: энкодер выдает параметры распределения $q(z|x) = \mathcal{N}(\mu, \Sigma)$, а член $D_{\text{KL}}$ регуляризует латент к $\mathcal{N}(0, I)$, обеспечивая непрерывность и генеративность.</p>
+<p>Классический AE детерминирован ($x \to z$); его латент содержит разрывы, сэмплирование из которых даёт шум. VAE вероятностен: энкодер предсказывает $q(z|x) = \mathcal{N}(\mu, \Sigma)$, а $D_{\text{KL}}$ регуляризует латент к $\mathcal{N}(0, I)$, обеспечивая связность пространства для генерации.</p>
 </div></details>
 
 <details class="qa"><summary>Почему в VAE нельзя просто взять сэмпл z ~ N(μ, σ²) без репараметризации?</summary>
 <div class="ans">
-<p>Прямой сэмплинг является стохастической операцией: через оператор сэмплирования невозможно пробросить аналитический градиент функции потерь к параметрам энкодера ($\mu$ и $\sigma$). Вычислительный граф оказывается разорван. Репараметризационный трюк выносит стохастичность во внешний независимый шум $\epsilon \sim \mathcal{N}(0, I)$, превращая $z = \mu + \sigma \odot \epsilon$ в детерминированную дифференцируемую операцию.</p>
+<p>Прямой сэмплинг стохастичен и разрывает вычислительный граф (градиент Backprop не проходит через случайный узел). Репараметризация $z = \mu + \sigma \odot \epsilon$ выносит случайность в $\epsilon \sim \mathcal{N}(0, I)$, делая $z$ детерминированной функцией параметров.</p>
 </div></details>
 
 <details class="qa"><summary>Почему энкодер VAE предсказывает log(σ²), а не саму дисперсию σ² или отклонение σ?</summary>
 <div class="ans">
-<p>Стандартное отклонение $\sigma > 0$ и дисперсия $\sigma^2 > 0$ обязаны быть строго положительными. Если заставить линейный слой нейросети предсказывать $\sigma$, веса в ходе оптимизации могут выдать отрицательное число $\sigma < 0$, что приведет к ошибкам (корень из отрицательного числа, невалидная матрица ковариации). Логарифм $\log(\sigma^2) \in (-\infty, +\infty)$ определен на всей вещественной прямой. При переходе $\sigma = \exp(0.5 \log\sigma^2)$ положительность гарантируется автоматически.</p>
+<p>Дисперсия $\sigma^2 > 0$ обязана быть строго положительной. Линейный слой сети может выдать отрицательное число. Предсказание $\log(\sigma^2) \in (-\infty, +\infty)$ с переходом $\sigma = \exp(0.5\log\sigma^2)$ автоматически гарантирует положительность $\sigma$.</p>
 </div></details>
 
 <details class="qa"><summary>Что такое Posterior Collapse (схлопывание апостериора) в VAE и как с ним бороться?</summary>
 <div class="ans">
-<p><strong>Posterior Collapse</strong> — ситуация, когда энкодер перестает извлекать полезную информацию из $x$ и выдает $\mu(x) \approx 0, \sigma^2(x) \approx 1 \implies q(z|x) \approx p(z)$. При этом $D_{\text{KL}} \to 0$, а декодер восстанавливает среднее изображение по выборке, полностью игнорируя $z$. Это происходит, если декодер слишком сильный (например, PixelCNN). <strong>Методы борьбы:</strong><br>
-1) <em>KL Annealing:</em> вес $\beta$ перед $D_{\text{KL}}$ плавно увеличивается от 0 до 1 в процессе эпох.<br>
-2) <em>Free Bits:</em> замена $\max(\tau, D_{\text{KL}})$ (не штрафовать, если KL меньше порога $\tau$).<br>
-3) Ослабление декодера или переход к VQ-VAE.</p>
+<p>Posterior Collapse — энкодер игнорирует $x$ ($q(z|x) \approx p(z), D_{\text{KL}} \to 0$), а декодер выдаёт среднее по выборке. Борьба: 1) KL Annealing (плавный рост веса $\beta$); 2) Free Bits ($\max(\tau, D_{\text{KL}})$); 3) ослабление декодера или переход к VQ-VAE.</p>
 </div></details>
 
 <details class="qa"><summary>Почему сгенерированные VAE изображения часто получаются размытыми (blurry)?</summary>
 <div class="ans">
-<p>1) <em>Свойства функции потерь L2 (MSE):</em> При наличии неопределенности в мелких высокочастотных деталях (текстуры, волоски, поры) L2-лосс минимизируется на <strong>условном математическом ожидании</strong> всех возможных продолжений, что приводит к усреднению (размытию) пикселей.<br>
-2) <em>Одномодальное Гауссовское априорное распределение</em> накладывает слишком гладкую структуру на многообразие данных.</p>
+<p>Пиксельные лоссы (L2/BCE) при неопределённости высокочастотных деталей оптимизируются на условном математическом ожидании всех вариантов, что приводит к усреднению (размытию) пикселей.</p>
 </div></details>
 
 <details class="qa"><summary>Что такое β-VAE и как параметр β управляет Disentanglement?</summary>
 <div class="ans">
-<p>В $\beta$-VAE целевая функция модифицируется: $\mathcal{L} = \text{Recon} + \beta \cdot D_{\text{KL}}$. При $\beta > 1$ на латентное пространство накладывается более сильное информационное ограничение (информационное горлышко). Сеть вынуждена упаковывать данные максимально независимо по осям $z$, что приводит к <strong>распутыванию признаков (Disentanglement)</strong>: отдельные координаты $z_j$ начинают отвечать за независимые семантические свойства (угол поворота, толщина, освещение).</p>
+<p>В $\beta$-VAE лосс равен $\text{Recon} + \beta D_{\text{KL}}$. При $\beta > 1$ строгое информационное горлышко заставляет сеть кодировать независимые семантические факторы (угол, толщина) в отдельные координаты $z$ (Disentanglement).</p>
 </div></details>
 
 <details class="qa"><summary>Как математически устроена условная генерация в CVAE?</summary>
 <div class="ans">
-<p>В CVAE вариационный вывод строится относительно условного распределения: энкодер приближает $q_\phi(z|x, y)$, а декодер восстанавливает $p_\theta(x|z, y)$. Вектор условия $y$ (например, One-Hot вектор метки класса) конкатенируется со входом $x$ на энкодере и с вектором $z$ на декодере. На этапе генерации мы сэмплируем $z \sim \mathcal{N}(0, I)$, конкатенируем с нужным классом $y$ и получаем объект строго заданного класса.</p>
+<p>В CVAE вариационный вывод строится от условного распределения: энкодер $q_\phi(z|x, y)$, декодер $p_\theta(x|z, y)$. Вектор условия $y$ конкатенируется с $x$ на входе энкодера и с $z$ на входе декодера, позволяя генерировать объекты заданного класса.</p>
 </div></details>
 
 <details class="qa"><summary>В чём разница между q(z|x) и p(z|x)? Как они связаны с ELBO?</summary>
 <div class="ans">
-<p><strong>$p(z|x)$</strong> — истинное теоретическое апостериорное распределение параметров, которое аналитически невозможно вычислить из-за интеграла $p(x) = \int p(x,z)dz$.<br>
-<strong>$q_\phi(z|x)$</strong> — параметрическое вариационное приближение (энкодер).<br>
-Связь: $\log p(x) = \text{ELBO} + D_{\text{KL}}(q_\phi(z|x) \parallel p(z|x))$. Зазор между истинным логарифмом правдоподобия и нижней оценкой ELBO в точности равен $D_{\text{KL}}$ между нашим приближением и истинным апостериором.</p>
+<p>$p(z|x)$ — истинный апостериор с неберущимся интегралом в знаменателе; $q_\phi(z|x)$ — параметрическое вариационное приближение (энкодер). Связь: $\log p(x) = \text{ELBO} + D_{\text{KL}}(q_\phi(z|x) \parallel p(z|x))$.</p>
 </div></details>
 
 <details class="qa"><summary>Как подавать условие y в CVAE на практике?</summary>
 <div class="ans">
-<p>1) <strong>Конкатенация:</strong> One-Hot вектор класса конкатенируется с вектором пикселей $x$ и латентом $z$.<br>
-2) <strong>Embedding Layer:</strong> Метка класса $y$ преобразуется через обучаемый слой `nn.Embedding(num_classes, emb_dim)` и складывается/конкатенируется со скрытыми признаками.<br>
-3) <strong>FiLM (Feature-wise Linear Modulation):</strong> Вектор $y$ предсказывает коэффициенты масштабирования $\gamma(y)$ и сдвига $\beta(y)$ для нормализационных слоев.</p>
+<p>1) Конкатенация One-Hot вектора с $x$ и $z$; 2) Embedding Layer $y \to e_y$ с добавлением к признакам; 3) FiLM-модуляция (предсказание масштаба $\gamma(y)$ и сдвига $\beta(y)$ для нормализации).</p>
 </div></details>
 
 <details class="qa"><summary>Почему репараметризационный трюк даёт меньшую дисперсию градиента, чем Score Function Estimator (REINFORCE)?</summary>
 <div class="ans">
-<p>В REINFORCE градиент оценивается как $\mathbb{E}[f(z) \nabla_\phi \log q_\phi(z)]$. Логарифмическая производная $\nabla_\phi \log q_\phi(z)$ обладает гигантской дисперсией, экспоненциально растущей с размерностью латента $d$. В репараметризации $z = \mu + \sigma \odot \epsilon$ градиент вычисляется через цепочку частных производных детерминированной функции $\nabla_z f(z) \nabla_\phi g(\epsilon, \phi)$, где стохастический шум $\epsilon$ выступает как фиксированный вход. Дисперсия такой оценки на порядки ниже.</p>
+<p>REINFORCE использует логарифмическую производную $\nabla_\phi \log q_\phi(z)$ с огромной дисперсией. Репараметризация вычисляет градиент через прямые частные производные $\nabla_z f(z) \nabla_\phi g(x, \epsilon)$, снижая дисперсию на порядки.</p>
 </div></details>
 
 <details class="qa"><summary>Что такое VQ-VAE и почему он используется в Stable Diffusion?</summary>
 <div class="ans">
-<p>В <strong>VQ-VAE (Vector Quantized VAE)</strong> латентное пространство дискретно: непрерывный выход энкодера заменяется на ближайший вектор из обучаемой таблицы квантования (Codebook). Это полностью устраняет Posterior Collapse и размытие.<br>
-<strong>Для Stable Diffusion (Latent Diffusion):</strong> VAE используется для сжатия исходных изображений $512 \times 512 \times 3$ в компактное латентное пространство $64 \times 64 \times 4$ (сжатие по площади в 64 раза). Диффузионный процесс запускается в этом латенте, что ускоряет инференс в десятки раз.</p>
+<p>В VQ-VAE латент квантуется по кодовой книге (Codebook), устраняя размытие. В Stable Diffusion VAE сжимает картинку $512\times512\times3$ в латент $64\times64\times4$, ускоряя процесс диффузии в 64 раза.</p>
 </div></details>
 
 <details class="qa"><summary>Что произойдет, если в функции потерь VAE полностью убрать KL-дивергенцию?</summary>
 <div class="ans">
-<p>Модель выродится в стандартный детерминированный автоэнкодер. Дисперсии $\sigma_j^2 \to 0$ схлопнутся в ноль, чтобы минимизировать шум при реконструкции, а средние $\mu(x)$ разлетятся по всему пространству $\mathbb{R}^d$ без привязки к началу координат. Пространство потеряет связность, и генерация через сэмплирование $z \sim \mathcal{N}(0, I)$ станет невозможной.</p>
+<p>Модель выродится в детерминированный AE: $\sigma_j^2 \to 0$, средние $\mu(x)$ разлетятся по $\mathbb{R}^d$, латент потеряет непрерывность, а генерация через сэмплирование $z \sim \mathcal{N}(0, I)$ станет невозможной.</p>
 </div></details>
 
 <!-- ============================================ -->
 <h2 id="tasks">7. 📝 Микро-задачи с решениями</h2>
 
 <div class="task">
-  <div class="tt">Задача 1. Расчет KL-дивергенции для 3D латентного распределения</div>
-  <p>Энкодер предсказал параметры: $\mu = [1.0, 0.0, -2.0]^\top$, $\log\sigma^2 = [0.0, 1.0, -1.0]^\top$. Приор $p(z) = \mathcal{N}(0, I)$. Рассчитайте суммарное значение $D_{\text{KL}}(q(z|x) \parallel p(z))$.</p>
+  <div class="tt">Задача 1. Расчёт KL-дивергенции для 3D латентного распределения</div>
+  <p>Параметры энкодера: $\mu = [1.0, 0.0, -2.0]^\top$, $\log\sigma^2 = [0.0, 1.0, -1.0]^\top$. Вычислите $D_{\text{KL}}(q(z|x) \parallel \mathcal{N}(0, I))$.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>Формула: $D_{\text{KL}} = -\frac{1}{2} \sum_{j=1}^3 (1 + \log\sigma_j^2 - \mu_j^2 - \sigma_j^2)$, где $\sigma_j^2 = \exp(\log\sigma_j^2)$.</p>
-    <p>1) $j=1$: $\mu_1=1.0, \log\sigma_1^2=0.0 \implies \sigma_1^2=1.0$<br>
-    $$\text{KL}_1 = -\frac{1}{2}(1 + 0.0 - 1.0^2 - 1.0) = -\frac{1}{2}(-1.0) = 0.5$$</p>
-    <p>2) $j=2$: $\mu_2=0.0, \log\sigma_2^2=1.0 \implies \sigma_2^2=e^1 \approx 2.71828$<br>
-    $$\text{KL}_2 = -\frac{1}{2}(1 + 1.0 - 0.0^2 - 2.71828) = -\frac{1}{2}(-0.71828) \approx 0.35914$$</p>
-    <p>3) $j=3$: $\mu_3=-2.0, \log\sigma_3^2=-1.0 \implies \sigma_3^2=e^{-1} \approx 0.36788$<br>
-    $$\text{KL}_3 = -\frac{1}{2}(1 + (-1.0) - (-2.0)^2 - 0.36788) = -\frac{1}{2}(-4.36788) \approx 2.18394$$</p>
-    <p><strong>Сумма:</strong> $D_{\text{KL}} = 0.5 + 0.35914 + 2.18394 = 3.04308 \approx 3.043$.</p>
+    <p>$D_{\text{KL}} = -\frac{1}{2}\sum_{j=1}^3 (1 + \log\sigma_j^2 - \mu_j^2 - \sigma_j^2)$:</p>
+    <p>1) $j=1$: $-\frac{1}{2}(1 + 0 - 1 - 1) = 0.5$.</p>
+    <p>2) $j=2$: $-\frac{1}{2}(1 + 1 - 0 - e^1) = -\frac{1}{2}(2 - 2.7183) \approx 0.3591$.</p>
+    <p>3) $j=3$: $-\frac{1}{2}(1 - 1 - 4 - e^{-1}) = -\frac{1}{2}(-4 - 0.3679) \approx 2.1839$.</p>
+    <p><strong>Ответ:</strong> $D_{\text{KL}} = 0.5 + 0.3591 + 2.1839 = 3.043$.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 2. Что случится при удалении KL-слагаемого?</div>
-  <p>Рассмотрите функцию потерь VAE, содержащую только член реконструкции: $\mathcal{L} = \mathcal{L}_{\text{recon}}$. Что выучит энкодер и останется ли модель генеративной?</p>
+  <p>Что выучит VAE при $\mathcal{L} = \mathcal{L}_{\text{recon}}$ без $D_{\text{KL}}$?</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>1) <strong>Что выучит энкодер:</strong> Энкодер с оптимизатором минимизируют дисперсию шума $\sigma \to 0$ (чтобы шум не мешал декодеру восстанавливать пиксели) и распределят средние $\mu(x)$ по изолированным точкам в $\mathbb{R}^d$.</p>
-    <p>2) <strong>Генеративность:</strong> Модель перестанет быть генеративной. Латентное пространство станет дырявым, как в классическом автоэнкодере. Сэмплирование $z \sim \mathcal{N}(0, I)$ попадет в неструктурированные пустоты и породит шум.</p>
+    <p>Дисперсии $\sigma \to 0$, средние $\mu(x)$ образуют дискретные кластеры. Пространство потеряет непрерывность, сэмплирование из $\mathcal{N}(0, I)$ даст шум.</p>
+    <p><strong>Ответ:</strong> Модель вырождается в негенеративный детерминированный AE.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 3. Подсчет параметров полносвязной сети VAE</div>
-  <p>Архитектура: вход $x \in \mathbb{R}^{784}$, скрытые слои энкодера $[784 \to 256 \to 128]$, латент $z \in \mathbb{R}^{64}$ (головы $\mu$ и $\log\sigma^2$), декодер $[64 \to 128 \to 256 \to 784]$. Посчитайте суммарное число обучаемых параметров (с учетом bias).</p>
+  <p>Архитектура: вход $784$, энкодер $[784 \to 256 \to 128]$, латент $64$ (головы $\mu$ и $\log\sigma^2$), декодер $[64 \to 128 \to 256 \to 784]$. Посчитайте параметры (с bias).</p>
   <details><summary>Решение</summary><div class="sol">
-    <p><strong>Энкодер:</strong><br>
-    - Слой 1: $784 \times 256 + 256 = 200\,704 + 256 = 200\,960$<br>
-    - Слой 2: $256 \times 128 + 128 = 32\,768 + 128 = 32\,896$</p>
-    <p><strong>Латентные проекции (из 128 в 64):</strong><br>
-    - Голова $\mu$: $128 \times 64 + 64 = 8\,192 + 64 = 8\,256$<br>
-    - Голова $\log\sigma^2$: $128 \times 64 + 64 = 8\,192 + 64 = 8\,256$</p>
-    <p><strong>Декодер:</strong><br>
-    - Слой 1: $64 \times 128 + 128 = 8\,192 + 128 = 8\,320$<br>
-    - Слой 2: $128 \times 256 + 256 = 32\,768 + 256 = 33\,024$<br>
-    - Слой 3: $256 \times 784 + 784 = 200\,704 + 784 = 201\,488$</p>
-    <p><strong>Итого:</strong> $200\,960 + 32\,896 + 8\,256 + 8\,256 + 8\,320 + 33\,024 + 201\,488 = 493\,200$ параметров.</p>
+    <p>Энкодер: $(784\cdot256 + 256) + (256\cdot128 + 128) = 200\,960 + 32\,896 = 233\,856$.</p>
+    <p>Головы: $2 \times (128\cdot64 + 64) = 2 \times 8\,256 = 16\,512$.</p>
+    <p>Декодер: $(64\cdot128+128) + (128\cdot256+256) + (256\cdot784+784) = 8\,320 + 33\,024 + 201\,488 = 242\,832$.</p>
+    <p><strong>Ответ:</strong> $233\,856 + 16\,512 + 242\,832 = 493\,200$ параметров.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 4. Репараметризационный трюк в Python</div>
-  <p>Реализуйте функцию `reparameterize(mu, logvar)`, принимающую батч параметров и возвращающую дифференцируемый сэмпл $z$.</p>
+  <p>Реализуйте функцию `reparameterize(mu, logvar)`, возвращающую дифференцируемый сэмпл $z$.</p>
   <details><summary>Решение</summary><div class="sol">
     <pre><code>def reparameterize(mu, logvar):
-    # logvar = log(sigma^2) -> sigma = exp(0.5 * logvar)
     std = torch.exp(0.5 * logvar)
-    # eps сэмплируется из N(0, I)
     eps = torch.randn_like(std)
-    # z = mu + sigma * eps
-    return mu + std * eps</code></pre>
-    <p>Математическое свойство: градиент $\nabla_\mu z = 1$, $\nabla_{\log\sigma^2} z = 0.5 \cdot \text{std} \cdot \epsilon$.</p>
+    return mu + eps * std</code></pre>
+    <p><strong>Ответ:</strong> Градиенты $\nabla_\mu z = 1$, $\nabla_{\log\sigma^2} z = 0.5 \cdot \text{std} \odot \epsilon$.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 5. Анализ потерь VAE и связь с вероятностями</div>
-  <p>Функция потерь VAE равна $\mathcal{L} = \text{Recon} + D_{\text{KL}}$. Пусть для батча $\text{Recon} = 150.0$, $D_{\text{KL}} = 12.5$. Чему равен ELBO для этого батча?</p>
+  <p>Для батча $\text{Recon} = 150.0$, $D_{\text{KL}} = 12.5$. Чему равен ELBO?</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>По определению: $\text{ELBO} = \mathbb{E}[\log p(x|z)] - D_{\text{KL}}$.</p>
-    <p>Потери VAE определяются как отрицательный ELBO: $\mathcal{L}_{\text{VAE}} = -\text{ELBO} = -\mathbb{E}[\log p(x|z)] + D_{\text{KL}} = \text{Recon} + D_{\text{KL}}$.</p>
-    <p>Следовательно: $\text{ELBO} = -\mathcal{L}_{\text{VAE}} = -(150.0 + 12.5) = -162.5$.</p>
+    <p>$\mathcal{L}_{\text{VAE}} = -\text{ELBO} = \text{Recon} + D_{\text{KL}} \implies \text{ELBO} = -(150.0 + 12.5) = -162.5$.</p>
     <p><strong>Ответ:</strong> $\text{ELBO} = -162.5$.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 6. Диагностика Posterior Collapse по логам обучения</div>
-  <p>В ходе обучения VAE после 15 эпох получены метрики: $\text{Recon}$ монотонно снизился с 200 до 85, а $D_{\text{KL}}$ упал с 15.0 до 0.002. Сгенерированные изображения представляют собой усредненную серую массу. Какая проблема возникла и как ее решить?</p>
+  <p>В обучении VAE Recon упал с 200 до 85, а $D_{\text{KL}}$ упал до 0.002. Картинки серые. Диагноз и лечение?</p>
   <details><summary>Решение</summary><div class="sol">
-    <p><strong>Диагноз: Posterior Collapse (схлопывание апостериора).</strong></p>
-    <p>Признаки: $D_{\text{KL}} \approx 0 \implies q(z|x) \approx \mathcal{N}(0, I)$, энкодер полностью проигнорировал вход $x$ и не передает информацию в латент, декодер генерирует безусловное математическое ожидание.</p>
-    <p><strong>Методы устранения:</strong><br>
-    1) Применить <em>KL Annealing</em>: умножить $D_{\text{KL}}$ на коэффициент $\beta_t$, плавно растущий от 0 до 1 в первые 10 эпох.<br>
-    2) Использовать порог <em>Free Bits</em>: $\max(\tau, D_{\text{KL}})$.<br>
-    3) Уменьшить емкость декодера.</p>
+    <p><strong>Диагноз:</strong> Posterior Collapse ($q(z|x) \approx \mathcal{N}(0, I)$, энкодер проигнорирован).</p>
+    <p><strong>Лечение:</strong> KL Annealing (плавный разогрев веса $\beta$), Free Bits ($\max(\tau, D_{\text{KL}})$), ослабление декодера.</p>
   </div></details>
 </div>
 
@@ -541,14 +399,14 @@ $$\mathcal{L}_{\text{VAE}} = \text{BCE} + D_{\text{KL}} = 1.0148 + 0.1983 = 1.21
 <h2 id="cheat">8. ⚡ Скелет ответа по билету</h2>
 
 <div class="cheat">
-  <div class="bt">Скелет устного ответа по билету 10: Автоэнкодеры, VAE, ELBO и репараметризация</div>
+  <div class="bt">Скелет ответа по билету 10: Автоэнкодеры, VAE, ELBO и репараметризация</div>
   <ol>
-    <li><strong>Проблема классического AE:</strong> Детерминированное отображение $x \to z$ создает разрывы в латентном пространстве $\mathbb{R}^d$, сэмплирование из которого дает шум. VAE решает это переходом к вероятностному латенту $q_\phi(z|x) = \mathcal{N}(\mu, \Sigma)$.</li>
-    <li><strong>Вероятностная постановка и вывод ELBO:</strong> Максимизируем $\log p(x) = \log \int p(x,z)dz$. По неравенству Йенсена выводим $\text{ELBO} = \mathbb{E}_{q_\phi(z|x)}[\log p_\theta(x|z)] - D_{\text{KL}}(q_\phi(z|x) \parallel p(z)) \le \log p(x)$. Зазор равен $D_{\text{KL}}(q_\phi(z|x) \parallel p_\theta(z|x))$.</li>
-    <li><strong>Аналитический расчет KL:</strong> Для диагональных Гауссиан $D_{\text{KL}} = -\frac{1}{2}\sum (1 + \log\sigma_j^2 - \mu_j^2 - \sigma_j^2)$. Предсказывается $\log\sigma^2 \in (-\infty, +\infty)$ для численной стабильности.</li>
-    <li><strong>Репараметризационный трюк:</strong> $z = \mu(x) + \sigma(x) \odot \epsilon$, где $\epsilon \sim \mathcal{N}(0, I)$. Стохастичность выносится из дифференцируемого графа вычислений, позволяя обучать всю сеть сквозным Backpropagation.</li>
-    <li><strong>Conditional VAE (CVAE):</strong> Конкатенация вектора метки/условия $y$ на входах энкодера $q_\phi(z|x,y)$ и декодера $p_\theta(x|z,y)$ для управляемой генерации конкретных классов.</li>
-    <li><strong>Проблемы и модификации:</strong> Posterior Collapse (лечится через KL Annealing/Free Bits), $\beta$-VAE для Disentanglement, VQ-VAE с дискретным кодовым словарем (базис Stable Diffusion).</li>
+    <li><strong>Проблема AE:</strong> Детерминированное сжатие $x \to z$ создаёт разрывы в латенте. VAE задаёт вероятностное отображение $q_\phi(z|x) = \mathcal{N}(\mu, \Sigma)$.</li>
+    <li><strong>Вывод ELBO:</strong> По неравенству Йенсена $\log p(x) \ge \text{ELBO} = \mathbb{E}_{q}[\log p_\theta(x|z)] - D_{\text{KL}}(q_\phi(z|x) \parallel p(z))$. Зазор равен $D_{\text{KL}}(q \parallel p(z|x))$.</li>
+    <li><strong>Аналитический KL:</strong> $D_{\text{KL}} = -\frac{1}{2}\sum (1 + \log\sigma_j^2 - \mu_j^2 - \sigma_j^2)$. Предсказание $\log\sigma^2$ обеспечивает $\sigma > 0$.</li>
+    <li><strong>Репараметризация:</strong> $z = \mu(x) + \sigma(x) \odot \epsilon$, $\epsilon \sim \mathcal{N}(0, I)$ сохраняет дифференцируемость для Backpropagation.</li>
+    <li><strong>CVAE:</strong> Конкатенация метки $y$ на входах энкодера $q(z|x,y)$ и декодера $p(x|z,y)$ для условного синтеза.</li>
+    <li><strong>Модификации:</strong> Posterior Collapse (KL Annealing/Free Bits), $\beta$-VAE для Disentanglement, VQ-VAE с Codebook (базис Stable Diffusion).</li>
   </ol>
 </div>
 

@@ -21,7 +21,7 @@ window.MathJax = {
 <header class="top"><div class="inner">
   <div class="kicker">Блок A · Основы · Билет 3</div>
   <h1>Лекция 3. Функции потерь: MSE, MAE, Cross-Entropy. Метод максимального правдоподобия (MLE) и связь с L2-нормой</h1>
-  <p class="sub">Вероятностный вывод функций потерь: от нормального и лапласовского шума к MSE/MAE, от распределений Бернулли и Мультинулли к Cross-Entropy, Байесовский вывод регуляризации MAP.</p>
+  <p class="sub">Вероятностный вывод Loss-функций: от нормального и лапласовского шума к MSE/MAE, от распределений Бернулли и Мультинулли к Cross-Entropy, Байесовский вывод MAP.</p>
   <div class="meta">
     <span class="pill">⏱ 2 ч</span>
     <span class="pill gray">11 вопросов препода</span>
@@ -51,24 +51,18 @@ window.MathJax = {
 <!-- ============================================ -->
 <h2 id="s1"><span class="num">1.</span> Интуиция и мотивация</h2>
 
-<p>Функция потерь ($\text{Loss } \mathcal{L}(\theta)$) — это скалярная мера рассогласования между предсказанием модели $\hat{y} = f_\theta(x)$ и истинным значением целевой переменной $y$.</p>
-
-<p><strong>Фундаментальное различие между Loss и метрикой качества:</strong></p>
-<ul>
-  <li><strong>Loss-функция:</strong> обязана быть аналитически гладкой и дифференцируемой почти всюду по параметрам $\theta$, чтобы формировать информативный градиент $\nabla_\theta \mathcal{L}$ для численного оптимизатора.</li>
-  <li><strong>Бизнес-метрика (Accuracy, F1, ROC-AUC, BLEU):</strong> оценивает прикладное качество работы системы. Чаще всего ступенчата, кусочно-постоянна или недифференцируема, поэтому не может быть напрямую оптимизирована градиентными методами.</li>
-</ul>
+<p><strong>Функция потерь ($\mathcal{L}(\theta)$)</strong> — скалярная мера ошибки предсказания $\hat{y} = f_\theta(x)$ относительно $y$. Она обязана быть гладкой и дифференцируемой для градиентной оптимизации, в отличие от кусочно-постоянных метрик (Accuracy, F1).</p>
 
 <div class="box idea">
   <div class="bt">💡 Вероятностный генезис функций потерь</div>
-  <p>Функции потерь в машинном обучении не придумываются эвристически. Каждая каноническая функция потерь строго эквивалентна <strong>отрицательному логарифму правдоподобия (Negative Log-Likelihood, NLL)</strong> при конкретной гипотезе о вероятностном распределении шума в данных:</p>
+  <p>Каждая каноническая функция потерь эквивалентна <strong>отрицательному логарифму правдоподобия (NLL)</strong> при конкретной гипотезе о распределении шума:</p>
   <ul>
-    <li>Нормальный (гауссовский) шум $\epsilon \sim \mathcal{N}(0, \sigma^2) \implies$ <strong>Mean Squared Error (MSE)</strong> / $L_2$-loss.</li>
-    <li>Шум распределения Лапласа $\epsilon \sim \text{Laplace}(0, b) \implies$ <strong>Mean Absolute Error (MAE)</strong> / $L_1$-loss.</li>
-    <li>Распределение Бернулли для бинарных меток $y \in \{0, 1\} \implies$ <strong>Binary Cross-Entropy (BCE)</strong>.</li>
-    <li>Категориальное распределение Мультинулли для $K$ классов $\implies$ <strong>Categorical Cross-Entropy (CCE)</strong>.</li>
-    <li>Априорное распределение весов Гаусса $w \sim \mathcal{N}(0, \sigma_w^2) \implies$ <strong>$L_2$-регуляризация (Weight Decay)</strong>.</li>
-    <li>Априорное распределение весов Лапласа $w \sim \text{Laplace}(0, b_w) \implies$ <strong>$L_1$-регуляризация (Lasso)</strong>.</li>
+    <li>Нормальный шум $\epsilon \sim \mathcal{N}(0, \sigma^2) \implies$ <strong>Mean Squared Error (MSE)</strong> / $L_2$-loss.</li>
+    <li>Шум Лапласа $\epsilon \sim \text{Laplace}(0, b) \implies$ <strong>Mean Absolute Error (MAE)</strong> / $L_1$-loss.</li>
+    <li>Распределение Бернулли ($y \in \{0, 1\}$) $\implies$ <strong>Binary Cross-Entropy (BCE)</strong>.</li>
+    <li>Категориальное распределение Мультинулли $\implies$ <strong>Categorical Cross-Entropy (CCE)</strong>.</li>
+    <li>Гауссов априор весов $w \sim \mathcal{N}(0, \sigma_w^2) \implies$ <strong>$L_2$-регуляризация (Weight Decay)</strong>.</li>
+    <li>Априор Лапласа $w \sim \text{Laplace}(0, b_w) \implies$ <strong>$L_1$-регуляризация (Lasso)</strong>.</li>
   </ul>
 </div>
 
@@ -79,23 +73,23 @@ window.MathJax = {
 
 <div class="scheme">
   Loss L(e) ▲
-            │                        MSE: L(e) = e²  (квадратичный взрыв при выбросах)
+            │                        MSE: L(e) = e² (квадратичный рост на выбросах)
          4.0├         \            /
             │          \  MAE     /
-         2.0├─────      \  |e|   /  ────── Huber: гладкий в нуле (|e|≤δ), линейный дальше
+         2.0├─────      \  |e|   /  ────── Huber: парабола в нуле (|e|≤δ), прямые дальше
             │     \      \      /      /
          1.0├      \      \    /      /
             │       \______\  /______/
          0.0└───────────────┴───────────────▶ e = y - ŷ
            -3.0   -2.0   -1.0 0 1.0  2.0   3.0
-<span class="cap">Рис. 1. Профили функций потерь регрессии: MSE резко наказывает большие ошибки, MAE сохраняет постоянный градиент $\pm 1$, Huber комбинирует гладкость в окрестности нуля и линейность на хвостах.</span></div>
+<span class="cap">Рис. 1. Профили потерь: MSE штрафует выбросы квадратично, MAE сохраняет градиент $\pm 1$, Huber комбинирует гладкость и робастность.</span></div>
 
 <h3>2.2 Механизм Focal Loss для несбалансированных задач</h3>
 
 <div class="scheme">
   Loss ▲
        │
-    5.0├──────  CE: -log(p_t)  (сильный шум от миллиардов простых фоновых примеров)
+    5.0├──────  CE: -log(p_t) (миллиарды простых фоновых примеров забивают градиент)
        │      ╲
     2.0├       ╲
        │        ╲
@@ -111,163 +105,97 @@ window.MathJax = {
 <!-- ============================================ -->
 <h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
 
-<h3>3.1 Принцип максимального правдоподобия (Maximum Likelihood Estimation, MLE)</h3>
+<h3>3.1 Принцип максимального правдоподобия (MLE)</h3>
 
-<p>Пусть выборка $\mathcal{D} = \{(x_i, y_i)\}_{i=1}^N$ состоит из независимых одинаково распределенных (i.i.d.) наблюдений, порожденных параметрическим распределением $p(y | x; \theta)$. Функция правдоподобия:</p>
-
+<p>Для независимой выборки $\mathcal{D} = \{(x_i, y_i)\}_{i=1}^N$ функция правдоподобия:</p>
 <div class="math-scroll-wrapper">
-$$ L(\theta) = \prod_{i=1}^N p(y_i | x_i; \theta) $$
-</div>
-
-<p>Логарифмируя и меняя знак, переходим к задаче минимизации отрицательного логарифма правдоподобия (NLL):</p>
-<div class="math-scroll-wrapper">
-$$ \theta_{\text{MLE}} = \arg\max_\theta L(\theta) = \arg\min_\theta \text{NLL}(\theta) = \arg\min_\theta \left[ -\sum_{i=1}^N \log p(y_i | x_i; \theta) \right] $$
+$$ L(\theta) = \prod_{i=1}^N p(y_i | x_i; \theta) \implies \theta_{\text{MLE}} = \arg\min_\theta \text{NLL}(\theta) = \arg\min_\theta \left[ -\sum_{i=1}^N \log p(y_i | x_i; \theta) \right] $$
 </div>
 
 <h3>3.2 Строгий вывод MSE из нормального распределения ошибок</h3>
 
-<p>Предположим аддитивную модель регрессии $y = f(x; w) + \epsilon$, где шум некоррелирован и нормально распределен: $\epsilon \sim \mathcal{N}(0, \sigma^2)$. Плотность вероятности отклика $y_i$ при заданном $x_i$:</p>
-
+<p>Для $y = f(x; w) + \epsilon$, где $\epsilon \sim \mathcal{N}(0, \sigma^2)$:</p>
 <div class="math-scroll-wrapper">
 $$ p(y_i | x_i; w, \sigma^2) = \frac{1}{\sqrt{2\pi\sigma^2}} \exp\left( -\frac{(y_i - f(x_i; w))^2}{2\sigma^2} \right) $$
 </div>
-
-<p>Логарифмическая функция правдоподобия всей выборки:</p>
 <div class="math-scroll-wrapper">
-$$ \log L(w) = \sum_{i=1}^N \left[ -\frac{1}{2}\log(2\pi\sigma^2) - \frac{(y_i - f(x_i; w))^2}{2\sigma^2} \right] = -\frac{N}{2}\log(2\pi\sigma^2) - \frac{1}{2\sigma^2} \sum_{i=1}^N (y_i - f(x_i; w))^2 $$
+$$ \log L(w) = -\frac{N}{2}\log(2\pi\sigma^2) - \frac{1}{2\sigma^2} \sum_{i=1}^N (y_i - f(x_i; w))^2 \implies \arg\max_w \log L(w) = \arg\min_w \text{MSE}(w) $$
 </div>
-
-<p>Максимизируя $\log L(w)$ по весам $w$ при постоянной дисперсии шума $\sigma^2$:</p>
-<div class="math-scroll-wrapper">
-$$ \arg\max_w \log L(w) = \arg\min_w \sum_{i=1}^N (y_i - f(x_i; w))^2 = \arg\min_w \text{MSE}(w) $$
-</div>
-<p><em>Вывод: Минимизация среднеквадратичной ошибки MSE строго эквивалентна оценке максимального правдоподобия при гауссовском распределении шума.</em></p>
 
 <h3>3.3 Строгий вывод MAE из распределения Лапласа</h3>
 
-<p>Если шум подчиняется распределению Лапласа $\epsilon \sim \text{Laplace}(0, b)$ с плотностью $p(\epsilon) = \frac{1}{2b}\exp(-\frac{|\epsilon|}{b})$:</p>
-
+<p>Для шума Лапласа $\epsilon \sim \text{Laplace}(0, b)$ с плотностью $p(\epsilon) = \frac{1}{2b}\exp(-\frac{|\epsilon|}{b})$:</p>
 <div class="math-scroll-wrapper">
-$$ \log L(w) = \sum_{i=1}^N \left[ -\log(2b) - \frac{|y_i - f(x_i; w)|}{b} \right] = -N\log(2b) - \frac{1}{b}\sum_{i=1}^N |y_i - f(x_i; w)| $$
-</div>
-<div class="math-scroll-wrapper">
-$$ \arg\max_w \log L(w) = \arg\min_w \sum_{i=1}^N |y_i - f(x_i; w)| = \arg\min_w \text{MAE}(w) $$
+$$ \log L(w) = -N\log(2b) - \frac{1}{b}\sum_{i=1}^N |y_i - f(x_i; w)| \implies \arg\max_w \log L(w) = \arg\min_w \text{MAE}(w) $$
 </div>
 
 <h3>3.4 Оптимумы MSE и MAE: Среднее против Медианы</h3>
 
 <ul>
-  <li><strong>Для MSE:</strong> Целевая функция $\mathbb{E}[(y - c)^2]$. Дифференцируя по константе $c$: $\frac{d}{dc}\mathbb{E}[(y - c)^2] = -2\mathbb{E}[y - c] = 0 \implies c^* = \mathbb{E}[y | x]$ (условное математическое ожидание).</li>
-  <li><strong>Для MAE:</strong> Целевая функция $\mathbb{E}[|y - c|]$. Дифференцируя: $\frac{d}{dc}\mathbb{E}[|y - c|] = P(y < c) - P(y > c) = 0 \implies P(y < c^*) = P(y > c^*) = 0.5 \implies c^* = \text{Med}(y | x)$ (условная медиана).</li>
+  <li><strong>MSE:</strong> $\arg\min_c \mathbb{E}[(y - c)^2] \implies \frac{d}{dc}\mathbb{E}[(y - c)^2] = -2\mathbb{E}[y - c] = 0 \implies c^* = \mathbb{E}[y | x]$ (условное среднее).</li>
+  <li><strong>MAE:</strong> $\arg\min_c \mathbb{E}[|y - c|] \implies P(y < c^*) = P(y > c^*) = 0.5 \implies c^* = \text{Med}(y | x)$ (условная медиана).</li>
 </ul>
 
 <h3>3.5 Кросс-энтропия и связь с дивергенцией Кульбака-Лейблера</h3>
 
-<p>Для бинарной классификации ($y \in \{0, 1\}$) отклик модели трактуется как параметр распределения Бернулли $\hat{p} = P(y=1|x) = \sigma(z)$:</p>
+<p>Для бинарной классификации ($y \in \{0, 1\}, \hat{p} = \sigma(z)$):</p>
 <div class="math-scroll-wrapper">
-$$ p(y | x) = \hat{p}^y (1 - \hat{p})^{1-y} \implies \mathcal{L}_{\text{BCE}} = -\log p(y | x) = -y \log \hat{p} - (1 - y) \log (1 - \hat{p}) $$
+$$ \mathcal{L}_{\text{BCE}} = -y \log \hat{p} - (1 - y) \log (1 - \hat{p}) $$
 </div>
-
-<p>Для $K$ взаимоисключающих классов ($y$ — one-hot вектор):</p>
+<p>Для $K$ классов ($\hat{p}_k = \text{Softmax}(z)_k$):</p>
 <div class="math-scroll-wrapper">
-$$ \mathcal{L}_{\text{CCE}} = -\sum_{k=1}^K y_k \log \hat{p}_k, \quad \text{где } \hat{p}_k = \frac{e^{z_k}}{\sum_{j=1}^K e^{z_j}} $$
+$$ \mathcal{L}_{\text{CCE}} = -\sum_{k=1}^K y_k \log \hat{p}_k = D_{\text{KL}}(y \parallel \hat{p}) + H(y) $$
 </div>
-<p>Связь с дивергенцией Кульбака-Лейблера $D_{\text{KL}}(P \parallel Q)$:</p>
-<div class="math-scroll-wrapper">
-$$ D_{\text{KL}}(y \parallel \hat{p}) = \sum_{k=1}^K y_k \log\left( \frac{y_k}{\hat{p}_k} \right) = \sum_{k=1}^K y_k \log y_k - \sum_{k=1}^K y_k \log \hat{p}_k = -H(y) + \mathcal{L}_{\text{CCE}} $$
-</div>
-<p>Поскольку энтропия истинного распределения $H(y) = \text{const}$ (для фиксированной выборки), минимизация Cross-Entropy строго эквивалентна минимизации KL-дивергенции между истинным и модельным распределениями.</p>
+<p>Поскольку $H(y) = \text{const}$, минимизация Cross-Entropy строго эквивалентна минимизации KL-дивергенции $D_{\text{KL}}(y \parallel \hat{p})$.</p>
 
 <h3>3.6 Байесовский вывод: связь L2/L1 регуляризации с MAP</h3>
 
-<p>Оценка максимального апостериорного правдоподобия (Maximum A Posteriori, MAP) по теореме Байеса:</p>
-<div class="math-scroll-wrapper">
-$$ p(w | \mathcal{D}) = \frac{p(\mathcal{D} | w) p(w)}{p(\mathcal{D})} \implies \arg\max_w \log p(w | \mathcal{D}) = \arg\max_w \left[ \log L(w) + \log p(w) \right] $$
-</div>
-
+<p>Оценка Maximum A Posteriori (MAP): $\arg\max_w [\log L(w) + \log p(w)]$.</p>
 <ul>
-  <li><strong>Гауссов априор $w \sim \mathcal{N}(0, \sigma_w^2 I)$:</strong>
-    <div class="math-scroll-wrapper">
-    $$ \log p(w) = -\frac{\|w\|_2^2}{2\sigma_w^2} - \frac{P}{2}\log(2\pi\sigma_w^2) \implies \arg\min_w \left[ \text{MSE}(w) + \frac{\sigma^2}{\sigma_w^2} \|w\|_2^2 \right] \iff \text{L2-регуляризация (Ridge / Weight Decay)} $$
-    </div>
-  </li>
-  <li><strong>Априор Лапласа $w \sim \text{Laplace}(0, b_w)$:</strong>
-    <div class="math-scroll-wrapper">
-    $$ \log p(w) = -\frac{\|w\|_1}{b_w} - P\log(2b_w) \implies \arg\min_w \left[ \text{MSE}(w) + \frac{2\sigma^2}{b_w} \|w\|_1 \right] \iff \text{L1-регуляризация (Lasso)} $$
-    </div>
-  </li>
+  <li><strong>Гауссов априор $w \sim \mathcal{N}(0, \sigma_w^2 I)$:</strong> $\log p(w) = -\frac{\|w\|_2^2}{2\sigma_w^2} + C \implies \text{MSE} + \lambda \|w\|_2^2$ ($L_2$, Weight Decay).</li>
+  <li><strong>Априор Лапласа $w \sim \text{Laplace}(0, b_w)$:</strong> $\log p(w) = -\frac{\|w\|_1}{b_w} + C \implies \text{MSE} + \lambda \|w\|_1$ ($L_1$, Lasso).</li>
 </ul>
 
 <h3>3.7 Focal Loss</h3>
 
-<p>Для бинарной классификации определим $p_t = \hat{p}$ если $y=1$, и $p_t = 1 - \hat{p}$ если $y=0$:</p>
+<p>Для $p_t = \hat{p}$ при $y=1$ и $p_t = 1-\hat{p}$ при $y=0$:</p>
 <div class="math-scroll-wrapper">
 $$ \text{FL}(p_t) = -\alpha_t (1 - p_t)^\gamma \log(p_t) $$
 </div>
-<p>где $\gamma \ge 0$ — фокусирующий параметр ($\gamma=2$ канонически), $\alpha_t \in [0, 1]$ — весовой балансировочный коэффициент.</p>
 
 <!-- ============================================ -->
 <h2 id="s4"><span class="num">4.</span> Пошаговый числовой пример</h2>
 
-<h3>Пример 1. Сравнение MSE и MAE на выборке с выбросом</h3>
-
-<p>Даны истинные значения $y = [2.0, 3.0, 4.0, 100.0]$. Сравним две модели:<br>
-Модель A (робастная, ошиблась только на аномалии): $\hat{y}_A = [2.0, 3.0, 4.0, 4.0]$.<br>
-Модель B (смещенная в сторону выброса): $\hat{y}_B = [10.0, 10.0, 10.0, 100.0]$.</p>
-
-<p><strong>Ошибки модели A:</strong> $e_A = [0.0, 0.0, 0.0, -96.0]$.</p>
+<p><strong>1. Сравнение MSE и MAE на выбросе:</strong> $y = [2.0, 3.0, 4.0, 100.0]$.</p>
+<p>Модель A (робастная, ошибка на выбросе): $\hat{y}_A = [2.0, 3.0, 4.0, 4.0]$, ошибки $e = [0, 0, 0, -96]$.</p>
 <div class="math-scroll-wrapper">
-$$ \text{MSE}_A = \frac{0^2 + 0^2 + 0^2 + (-96)^2}{4} = \frac{9216}{4} = 2304.0 $$
+$$ \text{MSE}_A = \frac{0^2 + 0^2 + 0^2 + 96^2}{4} = 2304.0, \qquad \text{MAE}_A = \frac{96}{4} = 24.0 $$
 </div>
+<p>Модель B (смещена к выбросу): $\hat{y}_B = [10.0, 10.0, 10.0, 100.0]$, ошибки $e = [8, 7, 6, 0]$.</p>
 <div class="math-scroll-wrapper">
-$$ \text{MAE}_A = \frac{0 + 0 + 0 + 96}{4} = \frac{96}{4} = 24.0 $$
+$$ \text{MSE}_B = \frac{64 + 49 + 36 + 0}{4} = 37.25, \qquad \text{MAE}_B = \frac{8 + 7 + 6 + 0}{4} = 5.25 $$
 </div>
+<p>MSE вынуждает модель ломать прогноз нормальных точек ради 1 выброса ($2304$ vs $37.25$). MAE линейна и робастна.</p>
 
-<p><strong>Ошибки модели B:</strong> $e_B = [8.0, 7.0, 6.0, 0.0]$.</p>
-<div class="math-scroll-wrapper">
-$$ \text{MSE}_B = \frac{8^2 + 7^2 + 6^2 + 0^2}{4} = \frac{64 + 49 + 36 + 0}{4} = \frac{149}{4} = 37.25 $$
-</div>
-<div class="math-scroll-wrapper">
-$$ \text{MAE}_B = \frac{8 + 7 + 6 + 0}{4} = \frac{21}{4} = 5.25 $$
-</div>
-
-<p><em>Анализ: MSE модели A колоссален ($2304$) из-за возведения ошибки $96$ в квадрат, что вынуждает оптимизатор разрушать точность на нормальных данных ради подгонки под единичный выброс. MAE растет линейно, сохраняя устойчивость.</em></p>
-
-<h3>Пример 2. Расчет Focal Loss против Cross-Entropy</h3>
-
-<p>Сравним два примера при $\gamma = 2.0, \alpha = 1.0$:</p>
-<ol>
-  <li>Простой пример (модель уверена на $90\%$): $p_t = 0.9$.
-    <div class="math-scroll-wrapper">
-    $$ \text{CE} = -\log(0.9) \approx 0.1054 $$
-    </div>
-    <div class="math-scroll-wrapper">
-    $$ \text{FL} = -(1 - 0.9)^2 \log(0.9) = 0.01 \cdot 0.1054 = 0.001054 \quad (\text{подавление ошибки в 100 раз!}) $$
-    </div>
-  </li>
-  <li>Сложный пример (модель сомневается, $p_t = 0.2$):
-    <div class="math-scroll-wrapper">
-    $$ \text{CE} = -\log(0.2) \approx 1.6094 $$
-    </div>
-    <div class="math-scroll-wrapper">
-    $$ \text{FL} = -(1 - 0.2)^2 \log(0.2) = 0.64 \cdot 1.6094 \approx 1.0300 \quad (\text{сохраняет 64\% веса}) $$
-    </div>
-  </li>
-</ol>
+<p><strong>2. Расчёт Focal Loss ($\gamma = 2.0, \alpha = 1.0$):</strong></p>
+<ul>
+  <li>Простой пример ($p_t = 0.9$): $\text{FL} = -(1-0.9)^2 \log(0.9) = 0.01 \cdot 0.1054 = 0.001054$ (подавление в 100 раз).</li>
+  <li>Сложный пример ($p_t = 0.2$): $\text{FL} = -(1-0.2)^2 \log(0.2) = 0.64 \cdot 1.6094 \approx 1.0300$ (сохраняет $64\%$ веса).</li>
+</ul>
 
 <!-- ============================================ -->
 <h2 id="s5"><span class="num">5.</span> Преимущества, недостатки и применимость</h2>
 
 <div class="table-scroll-wrapper">
 <table>
-<thead><tr><th>Функция потерь</th><th>Вероятностный базис</th><th>Производная по ошибке $\frac{\partial \mathcal{L}}{\partial e}$</th><th>Преимущества</th><th>Недостатки и риски</th></tr></thead>
+<thead><tr><th>Loss</th><th>Вероятностный базис</th><th>Производная $\frac{\partial \mathcal{L}}{\partial e}$</th><th>Преимущества</th><th>Недостатки</th></tr></thead>
 <tbody>
-<tr><td><strong>MSE ($L_2$)</strong></td><td>Гауссовский шум $\mathcal{N}(0, \sigma^2)$</td><td>$e = \hat{y} - y$ (линейная)</td><td>Гладкая всюду, строго выпуклая, единственное аналитическое решение в линейных моделях</td><td>Неустойчива к аномальным выбросам ($e^2$)</td></tr>
-<tr><td><strong>MAE ($L_1$)</strong></td><td>Шум Лапласа $\text{Laplace}(0, b)$</td><td>$\text{sign}(e) = \pm 1$ (константа)</td><td>Робастна к выбросам, восстанавливает медиану</td><td>Недифференцируема в $e=0$, медленная сходимость в окрестности оптимума</td></tr>
-<tr><td><strong>Huber / Smooth L1</strong></td><td>Гибрид Гаусс + Лаплас</td><td>$\begin{cases} e, & |e|\le\delta \\ \delta\text{sign}(e), & |e|>\delta \end{cases}$</td><td>Сочетает гладкость MSE при малых ошибках и робастность MAE при больших</td><td>Требует подбора гиперпараметра порога $\delta$</td></tr>
-<tr><td><strong>Binary Cross-Entropy</strong></td><td>Распределение Бернулли</td><td>$\hat{p} - y$ (при Sigmoid)</td><td>Выпукла относительно логитов, строгий вероятностный смысл</td><td>Чувствительна к тяжелому дисбалансу классов</td></tr>
-<tr><td><strong>Categorical Cross-Entropy</strong></td><td>Мультиномиальное (Мультинулли)</td><td>$\hat{p}_k - y_k$ (при Softmax)</td><td>Стандарт классификации, градиент равен ошибке вероятности</td><td>Overconfidence при шуме разметки (лечится Label Smoothing)</td></tr>
-<tr><td><strong>Focal Loss</strong></td><td>Модифицированный NLL</td><td>$-(1-p_t)^\gamma \frac{1}{p_t} + \gamma(1-p_t)^{\gamma-1}\log(p_t)$</td><td>Решает проблему жесткого дисбаланса foreground/background</td><td>Дополнительный гиперпараметр $\gamma$, сложнее калибровка вероятностей</td></tr>
+<tr><td><strong>MSE ($L_2$)</strong></td><td>Гауссов шум $\mathcal{N}(0, \sigma^2)$</td><td>$e = \hat{y} - y$</td><td>Гладкая, строго выпуклая, оптимум — условное среднее</td><td>Чувствительна к выбросам ($e^2$)</td></tr>
+<tr><td><strong>MAE ($L_1$)</strong></td><td>Шум Лапласа $\text{Laplace}(0, b)$</td><td>$\text{sign}(e) = \pm 1$</td><td>Робастна, оптимум — условная медиана</td><td>Недифференцируема в нуле</td></tr>
+<tr><td><strong>Huber</strong></td><td>Гибрид Гаусс + Лаплас</td><td>$e$ при $|e|\le\delta$, $\delta\text{sign}(e)$ дальше</td><td>Гладкость в нуле + робастность на хвостах</td><td>Гиперпараметр $\delta$</td></tr>
+<tr><td><strong>BCE</strong></td><td>Бернулли ($y \in \{0, 1\}$)</td><td>$\hat{p} - y$ (при Sigmoid)</td><td>Выпукла относительно логитов</td><td>Чувствительна к дисбалансу</td></tr>
+<tr><td><strong>CCE</strong></td><td>Мультинулли ($K$ классов)</td><td>$\hat{p}_k - y_k$ (при Softmax)</td><td>Стандарт многоклассовой классификации</td><td>Overconfidence (лечится Label Smoothing)</td></tr>
+<tr><td><strong>Focal Loss</strong></td><td>Модифицированный NLL</td><td>$-(1-p_t)^\gamma \nabla \log p_t$</td><td>Подавляет простые фоновые примеры</td><td>Гиперпараметр $\gamma$</td></tr>
 </tbody>
 </table>
 </div>
@@ -277,126 +205,115 @@ $$ \text{MAE}_B = \frac{8 + 7 + 6 + 0}{4} = \frac{21}{4} = 5.25 $$
 
 <details class="qa"><summary>Как метод максимального правдоподобия (MLE) связан с минимизацией MSE?</summary>
 <div class="ans">
-<p>Если предположить, что шум измерений аддитивен, некоррелирован и распределен нормально $y = f(x; w) + \epsilon$, где $\epsilon \sim \mathcal{N}(0, \sigma^2)$, то логарифмическая функция правдоподобия выборки равна $\log L(w) = -\frac{N}{2}\log(2\pi\sigma^2) - \frac{1}{2\sigma^2}\sum_{i=1}^N (y_i - f(x_i; w))^2$. Константа и масштабный множитель не влияют на положение экстремума, поэтому задача максимизации $\log L(w)$ математически строго тождественна минимизации суммы квадратов остатков $\sum (y_i - f(x_i; w))^2 = N \cdot \text{MSE}$.</p>
+<p>При аддитивном некоррелированном гауссовском шуме $\epsilon \sim \mathcal{N}(0, \sigma^2)$ логарифм правдоподобия равен $\log L(w) = -\frac{N}{2}\log(2\pi\sigma^2) - \frac{1}{2\sigma^2}\sum (y_i - f(x_i))^2$. Константы не влияют на аргумент максимума, поэтому максимизация $\log L(w)$ математически строго тождественна минимизации суммы квадратов остатков $\sum (y_i - f(x_i))^2 = N \cdot \text{MSE}$.</p>
 </div></details>
 
 <details class="qa"><summary>Почему априорное распределение Гаусса над весами эквивалентно L2-регуляризации, а Лапласа — L1?</summary>
 <div class="ans">
-<p>В Байесовской парадигме максимизация апостериорной плотности (MAP) максимизирует $\log p(w|\mathcal{D}) = \log L(w) + \log p(w)$. Гауссовский априор $p(w) \propto \exp(-\frac{\|w\|_2^2}{2\sigma_w^2})$ дает логарифм $\log p(w) = -\frac{1}{2\sigma_w^2}\|w\|_2^2 + C$, что в оптимизационной задаче соответствует штрафу за $L_2$-норму весов (Weight Decay). Априор Лапласа $p(w) \propto \exp(-\frac{\|w\|_1}{b_w})$ порождает штраф $\log p(w) = -\frac{1}{b_w}\|w\|_1 + C$, что в точности соответствует $L_1$-регуляризации Lasso.</p>
+<p>В схеме MAP максимизируется $\log L(w) + \log p(w)$. Гауссовский априор $p(w) \propto e^{-\frac{\|w\|_2^2}{2\sigma_w^2}}$ даёт логарифм $-\frac{\|w\|_2^2}{2\sigma_w^2} + C$, что в оптимизации задаёт штраф за $L_2$-норму (Weight Decay). Априор Лапласа $p(w) \propto e^{-\frac{\|w\|_1}{b_w}}$ порождает штраф $-\frac{\|w\|_1}{b_w} + C$, в точности соответствующий $L_1$-регуляризации Lasso.</p>
 </div></details>
 
 <details class="qa"><summary>Почему нельзя использовать MSE для обучения классификатора с сигмоидой на выходе?</summary>
 <div class="ans">
-<p>Если использовать $\mathcal{L} = \frac{1}{2}(\sigma(z) - y)^2$, градиент по входному логиту равен $\frac{\partial \mathcal{L}}{\partial z} = (\sigma(z) - y)\sigma'(z) = (\sigma(z) - y)\sigma(z)(1 - \sigma(z))$. Если модель грубо ошиблась (например, истинный класс $y=1$, а предсказание $z=-10 \implies \sigma(z) \approx 0$), то множитель $\sigma(z) \approx 0$ зануляет градиент: $\frac{\partial \mathcal{L}}{\partial z} \approx (0 - 1) \cdot 0 \cdot 1 = 0$. Возникает парадокс: при максимальной ошибке модель не получает градиента и не обучается. В связке с Cross-Entropy множитель $\sigma'(z)$ сокращается, и градиент равен $\sigma(z) - y = -1$, обеспечивая мощный обучающий импульс.</p>
+<p>Для $\mathcal{L} = \frac{1}{2}(\sigma(z)-y)^2$ градиент по логиту равен $(\sigma(z)-y)\sigma'(z)$. При грубой ошибке (например, $y=1, z=-10 \implies \sigma(z) \approx 0$) множитель $\sigma'(z) \approx 0$ зануляет градиент: сеть не обучается при максимальной ошибке. В связке с Cross-Entropy производная $\sigma'$ сокращается, давая градиент $\sigma(z) - y = -1$.</p>
 </div></details>
 
 <details class="qa"><summary>Что такое LogSumExp трюк и как он предотвращает численный underflow в Cross-Entropy?</summary>
 <div class="ans">
-<p>Вычисление $\log(\text{Softmax}(z)_i) = \log\left(\frac{e^{z_i}}{\sum e^{z_j}}\right) = z_i - \log\left(\sum_{j=1}^K e^{z_j}\right)$. При больших $|z_j|$ прямое вычисление $e^{z_j}$ приводит к переполнению float (overflow при $z>88$ для float32) или занулению (underflow). Трюк LogSumExp вычитает максимум $c = \max_k z_k$: $\log\left(\sum e^{z_j}\right) = c + \log\left(\sum e^{z_j - c}\right)$. Это гарантирует, что максимальный показатель экспоненты равен $0$, исключая переполнение и сохраняя стабильность.</p>
+<p>Прямой расчёт $\log\sum e^{z_j}$ приводит к переполнению float при $z > 88$. Трюк LogSumExp вычитает максимум $c = \max_k z_k$: $\log(\sum e^{z_j}) = c + \log(\sum e^{z_j - c})$. Максимальный показатель экспоненты равен 0, что гарантирует стабильность вычислений без переполнения.</p>
 </div></details>
 
 <details class="qa"><summary>Почему минимум MSE — это условное среднее $\mathbb{E}[y|x]$, а MAE — условная медиана $\text{Med}(y|x)$?</summary>
 <div class="ans">
-<p>Для произвольного распределения отклика $p(y|x)$ константа $c$, минимизирующая ожидаемую потерю $\mathbb{E}[(y-c)^2]$, находится дифференцированием: $\frac{d}{dc}\int (y-c)^2 p(y|x)dy = -2\int (y-c)p(y|x)dy = -2(\mathbb{E}[y|x] - c) = 0 \implies c = \mathbb{E}[y|x]$. Для MAE минимизируется $\mathbb{E}[|y-c|]$: $\frac{d}{dc}\int |y-c|p(y|x)dy = \int_{-\infty}^c p(y|x)dy - \int_c^{+\infty} p(y|x)dy = P(y \le c) - P(y \ge c) = 0 \implies P(y \le c) = 0.5 \implies c = \text{Med}(y|x)$.</p>
+<p>Дифференцируя $\mathbb{E}[(y-c)^2]$ по $c$, получаем $-2\mathbb{E}[y-c] = 0 \implies c^* = \mathbb{E}[y|x]$. Для MAE дифференцирование $\mathbb{E}[|y-c|]$ даёт $P(y < c) - P(y > c) = 0 \implies P(y \le c^*) = 0.5 \implies c^* = \text{Med}(y|x)$.</p>
 </div></details>
 
-<details class="qa"><summary>Как дивергенция Кульбака-Лейблера связана с перекрестной энтропией (Cross-Entropy)?</summary>
+<details class="qa"><summary>Как дивергенция Кульбака-Лейблера связана с перекрёстной энтропией (Cross-Entropy)?</summary>
 <div class="ans">
-<p>Дивергенция Кульбака-Лейблера $D_{\text{KL}}(P \parallel Q) = \sum P(x)\log\frac{P(x)}{Q(x)} = \sum P(x)\log P(x) - \sum P(x)\log Q(x) = -H(P) + H(P, Q)$. Здесь $H(P)$ — собственная энтропия истинного распределения меток, а $H(P, Q)$ — перекрестная энтропия. Поскольку обучающая выборка фиксирована, $H(P) = \text{const}$. Следовательно, $\arg\min_Q D_{\text{KL}}(P \parallel Q) = \arg\min_Q H(P, Q)$. Минимизируя Cross-Entropy, мы минимизируем расстояние Кульбака-Лейблера от истинного распределения данных до модельного.</p>
+<p>$D_{\text{KL}}(P \parallel Q) = \sum P \log\frac{P}{Q} = -H(P) + H(P, Q)$. Так как распределение истинных меток фиксировано ($H(P) = \text{const}$), минимизация Cross-Entropy $H(P, Q)$ тождественна минимизации KL-дивергенции от истинного распределения до модельного.</p>
 </div></details>
 
 <details class="qa"><summary>Зачем нужен параметр $\gamma$ в Focal Loss и как он решает проблему дисбаланса классов?</summary>
 <div class="ans">
-<p>В задачах плотной детекции (RetinaNet) на 1 объект переднего плана приходятся $10^5$ фоновых легко распознаваемых окон ($p_t \ge 0.95$). Суммарный градиент от миллионов простых примеров подавляет градиент от редких целевых объектов. Параметр $\gamma$ вводит модулятор $(1 - p_t)^\gamma$. При $\gamma = 2$ для простого примера с $p_t = 0.95$ весовой множитель равен $(1 - 0.95)^2 = 0.0025$ (ошибка подавляется в 400 раз). Для сложного примера ($p_t = 0.2$) множитель равен $(1 - 0.2)^2 = 0.64$. Фокус градиентного спуска смещается на трудные объекты.</p>
+<p>В детекторах миллионы простых фоновых примеров ($p_t \ge 0.95$) забивают градиент редких объектов. Множитель $(1 - p_t)^\gamma$ при $\gamma = 2$ подавляет ошибку простого примера в $(1 - 0.95)^2 = 400$ раз, сохраняя веса трудных объектов ($p_t = 0.2 \implies 0.64$).</p>
 </div></details>
 
-<details class="qa"><summary>В чем преимущество Huber Loss над MSE и MAE в задачах детекции (регрессия bounding box)?</summary>
+<details class="qa"><summary>В чём преимущество Huber Loss над MSE и MAE в задачах детекции (регрессия bounding box)?</summary>
 <div class="ans">
-<p>Huber Loss сочетает преимущества обеих функций: в окрестности нуля ($|e| \le \delta$) он ведет себя как $\frac{1}{2}e^2$, обеспечивая строгую дифференцируемость, плавное замедление градиента и отсутствие осцилляций в оптимуме (в отличие от MAE, чей градиент $\pm 1$ «скачет» вокруг нуля). На хвостах ($|e| > \delta$) Huber Loss переходит в линейную функцию $\delta(|e| - \frac{1}{2}\delta)$, гарантируя, что грубые аномалии разметки рамок не взорвут градиенты (в отличие от MSE).</p>
+<p>При малых ошибках ($|e| \le \delta$) Huber Loss квадратичен ($\frac{1}{2}e^2$), обеспечивая гладкую сходимость в нуле без осцилляций MAE. При больших ошибках ($|e| > \delta$) он линеен, защищая оптимизатор от взрыва градиентов на грубых аномалиях разметки (в отличие от MSE).</p>
 </div></details>
 
 <details class="qa"><summary>Что такое Label Smoothing и как он предотвращает переобучение модели (Overconfidence)?</summary>
 <div class="ans">
-<p>В классическом one-hot векторе истинный класс равен 1, а остальные 0. Для достижения $\hat{p}_k = 1$ в Softmax входные логиты $z_k$ должны стремиться к $+\infty$, что вынуждает веса расти до бесконечности и делает сеть overconfident. Label Smoothing заменяет жесткий таргет на смесь: $y_k^{\text{smooth}} = (1 - \epsilon)y_k + \frac{\epsilon}{K}$. Модель обучается предсказывать вероятность $1 - \epsilon + \frac{\epsilon}{K} < 1$, что удерживает логиты в конечных границах и действует как мощный регуляризатор.</p>
+<p>Для достижения вероятности 1 в Softmax логиты должны стремиться к $+\infty$, раздувая веса. Label Smoothing заменяет one-hot на $y_k^{\text{smooth}} = (1 - \epsilon)y_k + \frac{\epsilon}{K}$. Модель предсказывает ограниченную вероятность $< 1$, удерживая нормы весов и регуляризуя сеть.</p>
 </div></details>
 
-<details class="qa"><summary>В чем концептуальная разница между MLE и MAP оценками?</summary>
+<details class="qa"><summary>В чём концептуальная разница между MLE и MAP оценками?</summary>
 <div class="ans">
-<p>MLE (Maximum Likelihood Estimation) ищет параметры, при которых наблюдаемые данные наиболее вероятны: $\theta_{\text{MLE}} = \arg\max \log p(\mathcal{D}|\theta)$. Она опирается исключительно на выборку и склонна к переобучению при малом объеме данных. MAP (Maximum A Posteriori) учитывает априорное знание о вероятности самих параметров: $\theta_{\text{MAP}} = \arg\max [\log p(\mathcal{D}|\theta) + \log p(\theta)]$. Добавление априора $p(\theta)$ математически строго эквивалентно введению регуляризатора (штрафа за сложность весов).</p>
+<p>MLE максимизирует правдоподобие данных $\arg\max \log p(\mathcal{D}|\theta)$ и опирается только на выборку. MAP максимизирует апостериорную вероятность $\arg\max [\log p(\mathcal{D}|\theta) + \log p(\theta)]$, где априор $p(\theta)$ выступает регуляризатором сложности весов.</p>
 </div></details>
 
 <details class="qa"><summary>Почему Cross-Entropy в связке с Softmax выпукла относительно логитов?</summary>
 <div class="ans">
-<p>Функция потерь относительно вектора логитов $z$ имеет вид: $\mathcal{L}(z) = -\sum_k y_k z_k + \log\left(\sum_j e^{z_j}\right)$. Первое слагаемое $-\sum y_k z_k$ линейно (и, следовательно, выпукло). Второе слагаемое $\log(\sum e^{z_j})$ (функция LogSumExp) имеет матрицу вторых производных (Гессиан) $H_{ij} = p_i \delta_{ij} - p_i p_j = \text{diag}(p) - p p^\top$. Для любого вектора $v$: $v^\top H v = \sum p_i v_i^2 - (\sum p_i v_i)^2 = \mathbb{D}_p[v] \ge 0$ по неравенству Коши-Буняковского. Гессиан неотрицательно определен, функция строго выпукла, локальный минимум единственен.</p>
+<p>$\mathcal{L}(z) = -\sum y_k z_k + \log(\sum e^{z_j})$. Первое слагаемое линейно, а второе имеет матрицу Гессе $H = \text{diag}(p) - p p^\top$. Для любого $v$: $v^\top H v = \mathbb{D}_p[v] \ge 0$. Гессиан неотрицательно определен, что гарантирует строгую выпуклость и единственный минимум.</p>
 </div></details>
 
 <!-- ============================================ -->
 <h2 id="tasks"><span class="num">7.</span> 📝 Микро-задачи с решениями</h2>
 
 <div class="task">
-  <div class="tt">Задача 1. Расчет Negative Log-Likelihood для нормального распределения</div>
-  <p>Имеются 3 одномерных замера $y = [2.0, 3.0, 4.0]$. Модель предсказывает среднее $\mu = 3.0$ при известной дисперсии шума $\sigma^2 = 1.0$. Вычислите отрицательный логарифм правдоподобия (NLL) выборки.</p>
+  <div class="tt">Задача 1. Расчёт Negative Log-Likelihood для нормального распределения</div>
+  <p>Замеры $y = [2.0, 3.0, 4.0]$, предсказание $\mu = 3.0$, $\sigma^2 = 1.0$. Вычислите NLL выборки.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>Формула NLL для выборки из $N=3$ объектов при $\sigma^2 = 1.0$:</p>
-    <p>$\text{NLL} = \dfrac{N}{2}\ln(2\pi\sigma^2) + \dfrac{1}{2\sigma^2}\sum_{i=1}^N (y_i - \mu)^2$</p>
-    <p>1. Сумма квадратов остатков: $(2-3)^2 + (3-3)^2 + (4-3)^2 = 1 + 0 + 1 = 2.0$.</p>
-    <p>2. Член нормализации: $\dfrac{3}{2}\ln(2\pi \cdot 1) = 1.5 \cdot \ln(6.2832) \approx 1.5 \cdot 1.8379 = 2.7568$.</p>
-    <p>3. Сумма: $\text{NLL} = 2.7568 + \dfrac{2.0}{2 \cdot 1.0} = 2.7568 + 1.0 = 3.7568$.</p>
+    <p>1. Сумма квадратов: $(2-3)^2 + (3-3)^2 + (4-3)^2 = 2.0$.</p>
+    <p>2. Нормировка: $\dfrac{3}{2}\ln(2\pi) \approx 1.5 \cdot 1.8379 = 2.7568$.</p>
+    <p>3. $\text{NLL} = 2.7568 + \dfrac{2.0}{2 \cdot 1.0} = 3.7568$.</p>
   </div></details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 2. Ручной расчет Binary Cross-Entropy</div>
-  <p>Для батча из 3 объектов истинные метки $y = [1, 0, 1]$, предсказанные вероятности модели $\hat{p} = [0.90, 0.20, 0.40]$. Рассчитайте среднее значение Binary Cross-Entropy.</p>
+  <div class="tt">Задача 2. Ручной расчёт Binary Cross-Entropy</div>
+  <p>Метки $y = [1, 0, 1]$, вероятности $\hat{p} = [0.90, 0.20, 0.40]$. Рассчитайте средний BCE.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>Потери на каждом объекте $\ell_i = -y_i \ln(\hat{p}_i) - (1 - y_i)\ln(1 - \hat{p}_i)$:</p>
-    <p>$\ell_1 = -\ln(0.90) \approx 0.1054$</p>
-    <p>$\ell_2 = -\ln(1 - 0.20) = -\ln(0.80) \approx 0.2231$</p>
-    <p>$\ell_3 = -\ln(0.40) \approx 0.9163$</p>
-    <p>Средняя потеря: $\mathcal{L}_{\text{BCE}} = \dfrac{0.1054 + 0.2231 + 0.9163}{3} = \dfrac{1.2448}{3} \approx 0.4149$.</p>
+    <p>$\ell_1 = -\ln(0.90) \approx 0.1054$, $\quad \ell_2 = -\ln(0.80) \approx 0.2231$, $\quad \ell_3 = -\ln(0.40) \approx 0.9163$.</p>
+    <p>$\mathcal{L}_{\text{BCE}} = \dfrac{0.1054 + 0.2231 + 0.9163}{3} \approx 0.4149$.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 3. Градиент связки Softmax + Cross-Entropy</div>
-  <p>В трехклассовой задаче истинный класс объекта $y = [0, 1, 0]^\top$. Логиты модели $z = [1.0, 2.0, 0.0]^\top$. Вычислите вектор вероятностей $\hat{p}$ и точный градиент функции потерь по вектору логитов $\frac{\partial \mathcal{L}}{\partial z}$.</p>
+  <p>Истинный класс $y = [0, 1, 0]^\top$, логиты $z = [1.0, 2.0, 0.0]^\top$. Вычислите $\hat{p}$ и $\frac{\partial \mathcal{L}}{\partial z}$.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>1. Экспоненты логитов: $e^1 \approx 2.7183, \; e^2 \approx 7.3891, \; e^0 = 1.0$. Сумма: $S = 2.7183 + 7.3891 + 1.0 = 11.1074$.</p>
-    <p>2. Вероятности Softmax: $\hat{p} = \left[ \dfrac{2.7183}{11.1074}, \dfrac{7.3891}{11.1074}, \dfrac{1.0}{11.1074} \right]^\top \approx [0.2447, 0.6652, 0.0900]^\top$.</p>
-    <p>3. Градиент: $\frac{\partial \mathcal{L}}{\partial z} = \hat{p} - y = \begin{bmatrix} 0.2447 - 0 \\ 0.6652 - 1 \\ 0.0900 - 0 \end{bmatrix} = \begin{bmatrix} 0.2447 \\ -0.3348 \\ 0.0900 \end{bmatrix}$.</p>
+    <p>1. $e^1 \approx 2.7183, e^2 \approx 7.3891, e^0 = 1.0 \implies \sum = 11.1074$.</p>
+    <p>2. $\hat{p} = [0.2447, 0.6652, 0.0900]^\top$.</p>
+    <p>3. $\frac{\partial \mathcal{L}}{\partial z} = \hat{p} - y = [0.2447, -0.3348, 0.0900]^\top$.</p>
   </div></details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 4. Численный расчет весов Focal Loss</div>
-  <p>При параметре $\gamma = 2.0$ найдите отношение весовых коэффициентов Focal Loss $\text{FL}(p_1) / \text{FL}(p_2)$ для сложного объекта с уверенностью $p_1 = 0.10$ и простого объекта с уверенностью $p_2 = 0.90$.</p>
+  <div class="tt">Задача 4. Численный расчёт весов Focal Loss</div>
+  <p>При $\gamma = 2.0$ найдите отношение весов $\text{FL}(0.10) / \text{FL}(0.90)$.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>$\text{FL}(0.10) = -(1 - 0.10)^2 \ln(0.10) = 0.90^2 \cdot (-\ln(0.10)) = 0.81 \cdot 2.3026 \approx 1.8651$.</p>
-    <p>$\text{FL}(0.90) = -(1 - 0.90)^2 \ln(0.90) = 0.10^2 \cdot (-\ln(0.90)) = 0.01 \cdot 0.1054 \approx 0.001054$.</p>
-    <p><strong>Отношение:</strong> $\dfrac{\text{FL}(0.10)}{\text{FL}(0.90)} = \dfrac{1.8651}{0.001054} \approx 1769.5$.</p>
-    <p>Сложный пример получает в $1770$ раз больший вклад в градиент, чем простой.</p>
+    <p>$\text{FL}(0.10) = 0.9^2 (-\ln 0.1) = 0.81 \cdot 2.3026 \approx 1.8651$.</p>
+    <p>$\text{FL}(0.90) = 0.1^2 (-\ln 0.9) = 0.01 \cdot 0.1054 \approx 0.001054$.</p>
+    <p>Отношение: $\dfrac{1.8651}{0.001054} \approx 1769.5$ (градиент сложного объекта усилен в 1770 раз).</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 5. Связь коэффициента L2-регуляризации с дисперсией априора</div>
-  <p>Регрессионная модель имеет дисперсию шума данных $\sigma^2 = 2.0$. Инженер ввел гауссовский априор на веса $w \sim \mathcal{N}(0, \sigma_w^2 I)$ с $\sigma_w^2 = 0.5$. Чему равен теоретический коэффициент регуляризации $\lambda$ в формуле $\mathcal{L} = \text{MSE} + \lambda \|w\|_2^2$?</p>
+  <p>Шум данных $\sigma^2 = 2.0$, априор $w \sim \mathcal{N}(0, \sigma_w^2 I)$ с $\sigma_w^2 = 0.5$. Найдите $\lambda = \frac{\sigma^2}{\sigma_w^2}$.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>Из вывода MAP: логарифм апостериорной плотности $\log p(w|\mathcal{D}) = -\frac{1}{2\sigma^2}\sum (y - f)^2 - \frac{1}{2\sigma_w^2}\|w\|_2^2 + C$.</p>
-    <p>Умножая на $\frac{2\sigma^2}{N}$, получаем задачу: $\text{MSE}(w) + \dfrac{\sigma^2}{N \sigma_w^2}\|w\|_2^2$.</p>
-    <p>Для одного объекта: $\lambda = \dfrac{\sigma^2}{\sigma_w^2} = \dfrac{2.0}{0.5} = 4.0$.</p>
+    <p>Из вывода MAP: $\lambda = \dfrac{\sigma^2}{\sigma_w^2} = \dfrac{2.0}{0.5} = 4.0$.</p>
   </div></details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 6. Расчет потерь Huber Loss</div>
-  <p>Вычислите значение Huber Loss при пороговом параметре $\delta = 1.0$ для двух величин ошибок прогноза: $e_1 = 0.40$ и $e_2 = 3.00$.</p>
+  <div class="tt">Задача 6. Расчёт потерь Huber Loss</div>
+  <p>Найдите Huber Loss при $\delta = 1.0$ для ошибок $e_1 = 0.40$ и $e_2 = 3.00$.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>Формула Huber Loss при $\delta = 1.0$:</p>
-    <p>$L_\delta(e) = \begin{cases} \frac{1}{2}e^2, & |e| \le 1.0 \\ 1.0 \cdot (|e| - 0.5), & |e| > 1.0 \end{cases}$</p>
-    <p>1. Для $e_1 = 0.40 \le 1.0$: $L_\delta(0.40) = \frac{1}{2}(0.40)^2 = \frac{1}{2}(0.16) = 0.08$.</p>
-    <p>2. Для $e_2 = 3.00 > 1.0$: $L_\delta(3.00) = 1.0 \cdot (3.00 - 0.5) = 2.50$.</p>
-    <p>Сравнение: MSE для $e_2$ дал бы $\frac{1}{2}(3^2) = 4.50$, Huber ограничил рост потерь линейным значением $2.50$.</p>
+    <p>1. Для $e_1 = 0.40 \le 1.0$: $L = \frac{1}{2}(0.40)^2 = 0.08$.</p>
+    <p>2. Для $e_2 = 3.00 > 1.0$: $L = 1.0 \cdot (3.00 - 0.5) = 2.50$ (против $4.50$ в MSE).</p>
   </div></details>
 </div>
 
@@ -404,18 +321,18 @@ $$ \text{MAE}_B = \frac{8 + 7 + 6 + 0}{4} = \frac{21}{4} = 5.25 $$
 <h2 id="cheat"><span class="num">8.</span> ⚡ Скелет ответа по билету</h2>
 
 <div class="cheat">
-  <div class="bt">Краткий конспект для 5-минутного ответа по Билету 3</div>
+  <div class="bt">Краткий конспект для ответа по Билету 3</div>
   <ol>
-    <li><strong>Loss vs Метрика:</strong> Loss — гладкая дифференцируемая целевая функция для оптимизатора ($\nabla_\theta \mathcal{L}$). Метрика — интерпретируемая мера качества (Accuracy, F1, MAE), часто недифференцируема.</li>
-    <li><strong>Принцип MLE:</strong> Оценка максимального правдоподобия $\arg\max \prod p(y_i|x_i; \theta) \iff \arg\min \sum -\log p(y_i|x_i;\theta) = \text{NLL}$.</li>
-    <li><strong>Вывод MSE:</strong> Аддитивный гауссов шум $\epsilon \sim \mathcal{N}(0, \sigma^2) \implies \text{NLL} \propto \frac{1}{2\sigma^2}\sum (y_i - f(x_i))^2 \implies \arg\min \text{MSE}$. Минимум MSE = условное среднее $\mathbb{E}[y|x]$. Неустойчив к выбросам.</li>
-    <li><strong>Вывод MAE:</strong> Шум Лапласа $\epsilon \sim \text{Laplace}(0, b) \implies \text{NLL} \propto \frac{1}{b}\sum |y_i - f(x_i)| \implies \arg\min \text{MAE}$. Минимум MAE = условная медиана $\text{Med}(y|x)$. Робастен к выбросам.</li>
-    <li><strong>Huber / Smooth L1:</strong> Квадратичный при $|e|\le\delta$, линейный при $|e|>\delta$. Сочетает сходимость MSE и робастность MAE. Стандарт в детекции (bounding box regression).</li>
-    <li><strong>Вывод Cross-Entropy:</strong> Распределение Бернулли ($y \in \{0, 1\}$) $\implies$ $\mathcal{L}_{\text{BCE}} = -y \log \hat{p} - (1-y)\log(1-\hat{p})$. Распределение Мультинулли $\implies \mathcal{L}_{\text{CCE}} = -\sum y_k \log \hat{p}_k$. Эквивалентно минимизации KL-дивергенции $D_{\text{KL}}(y \parallel \hat{p})$.</li>
-    <li><strong>Связка Softmax + CCE:</strong> Градиент по логитам $\frac{\partial \mathcal{L}}{\partial z_i} = \hat{p}_i - y_i$. Функция выпукла относительно логитов $z$.</li>
-    <li><strong>Байесовский вывод (MAP):</strong> $\log p(w|\mathcal{D}) = \log L(w) + \log p(w)$. Гауссов априор $w \sim \mathcal{N}(0, \sigma_w^2) \implies L_2$-регуляризация (Ridge/Weight Decay). Априор Лапласа $w \sim \text{Laplace}(0, b_w) \implies L_1$-регуляризация (Lasso, разреженность).</li>
-    <li><strong>Focal Loss:</strong> $\text{FL}(p_t) = -\alpha_t (1 - p_t)^\gamma \log(p_t)$. Подавляет вклад простых примеров ($p_t \to 1$), решая жесткий дисбаланс foreground/background.</li>
-    <li><strong>Численная стабильность:</strong> LogSumExp трюк $\log(\sum e^{z_j}) = c + \log(\sum e^{z_j - c})$ исключает переполнение (overflow/underflow) экспоненты. Label Smoothing предотвращает Overconfidence.</li>
+    <li><strong>Loss vs Метрика:</strong> Loss — гладкая дифференцируемая цель для $\nabla_\theta \mathcal{L}$. Метрика — прикладное качество (Accuracy, F1).</li>
+    <li><strong>Принцип MLE:</strong> $\arg\max \prod p(y_i|x_i;\theta) \iff \arg\min \sum -\log p(y_i|x_i;\theta) = \text{NLL}$.</li>
+    <li><strong>Вывод MSE:</strong> Гауссов шум $\epsilon \sim \mathcal{N}(0, \sigma^2) \implies \text{NLL} \propto \text{MSE}$. Оптимум = условное среднее $\mathbb{E}[y|x]$. Чувствителен к выбросам.</li>
+    <li><strong>Вывод MAE:</strong> Шум Лапласа $\epsilon \sim \text{Laplace}(0, b) \implies \text{NLL} \propto \text{MAE}$. Оптимум = условная медиана $\text{Med}(y|x)$. Робастен.</li>
+    <li><strong>Huber Loss:</strong> $\frac{1}{2}e^2$ при $|e|\le\delta$ и $\delta(|e|-\frac{1}{2}\delta)$ дальше. Сочетает гладкость MSE и робастность MAE.</li>
+    <li><strong>Вывод Cross-Entropy:</strong> Бернулли $\implies \mathcal{L}_{\text{BCE}}$; Мультинулли $\implies \mathcal{L}_{\text{CCE}} = D_{\text{KL}}(y \parallel \hat{p}) + \text{const}$.</li>
+    <li><strong>Softmax + CCE:</strong> Градиент по логитам $\frac{\partial \mathcal{L}}{\partial z} = \hat{p} - y$. Выпукла по $z$.</li>
+    <li><strong>Байесовский вывод (MAP):</strong> $\log p(w|\mathcal{D}) = \log L + \log p(w)$. Гаусс $w \sim \mathcal{N}(0, \sigma_w^2) \implies L_2$ (Weight Decay); Лаплас $w \sim \text{Laplace} \implies L_1$ (Lasso).</li>
+    <li><strong>Focal Loss:</strong> $\text{FL}(p_t) = -(1-p_t)^\gamma \log(p_t)$. Подавляет вклад простых примеров при жёстком дисбалансе.</li>
+    <li><strong>Стабильность:</strong> LogSumExp $c + \log(\sum e^{z_j - c})$ исключает переполнение; Label Smoothing подавляет Overconfidence.</li>
   </ol>
 </div>
 

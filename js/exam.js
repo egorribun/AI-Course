@@ -39,11 +39,9 @@
   // Topic classification helper for backwards compatibility
   function getLectureTopic(lecId) {
     const block = getLectureBlock(lecId);
-    if (block === 'block-a') return 'cv';
-    if (block === 'block-b') return 'cv';
+    if (block === 'block-a' || block === 'block-b') return 'cv';
     if (block === 'block-c') return 'nlp';
-    if (block === 'block-d') return 'rl';
-    return 'math';
+    return 'rl';
   }
 
   // Match block or topic filter
@@ -207,9 +205,9 @@
   }
 
   function setupTicketSelector() {
-    const selectEl = document.getElementById('ticket-select-dropdown');
+    const selectEl = /** @type {HTMLSelectElement | null} */ (document.getElementById('ticket-select-dropdown'));
     const drawBtn = document.getElementById('draw-ticket-btn');
-    const blockSelect = document.getElementById('ticket-topic-filter');
+    const blockSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('ticket-topic-filter'));
     const data = window.EXAM_DATA || [];
 
     if (selectEl && data.length > 0) {
@@ -219,7 +217,7 @@
         }).join('');
 
       selectEl.addEventListener('change', (e) => {
-        const val = e.target.value;
+        const val = /** @type {HTMLSelectElement} */ (e.target).value;
         if (!val) return;
         const chosen = data.find(d => d.id === val);
         if (chosen) renderRandomTicket(chosen);
@@ -340,10 +338,6 @@
         });
       }
       return;
-    }
-
-    if (currentCardIndex >= activeCardsQueue.length) {
-      currentCardIndex = 0;
     }
 
     const card = activeCardsQueue[currentCardIndex];
@@ -641,7 +635,7 @@
     `;
 
     const startBtn = document.getElementById('blitz-start-btn');
-    const topicSelect = document.getElementById('blitz-topic-select');
+    const topicSelect = /** @type {HTMLSelectElement | null} */ (document.getElementById('blitz-topic-select'));
     if (startBtn) {
       startBtn.addEventListener('click', () => {
         const topic = topicSelect ? topicSelect.value : 'all';

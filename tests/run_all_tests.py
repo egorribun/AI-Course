@@ -18,6 +18,7 @@ if str(COURSE_ROOT) not in sys.path:
 # Tier 1 Imports
 from tests.test_tier1_tools import TestTier1ToolsCoverage
 from tests.test_build_exam_data import TestBuildExamData
+from tests.test_export_anki import TestExportAnki
 
 # Tier 2 Imports
 from tests.test_tier2_static_ast import TestTier2StaticAST
@@ -123,6 +124,7 @@ TIER_DEFINITIONS: List[Tuple[str, List[Tuple[Any, str]]]] = [
         [
             (TestTier1ToolsCoverage, "Tier 1: build_exam_data & Common Utilities"),
             (TestBuildExamData, "Tier 1: Exam Data Builder Integration"),
+            (TestExportAnki, "Tier 1: Anki TSV Exporter Coverage"),
         ],
     ),
     (
@@ -148,7 +150,10 @@ TIER_DEFINITIONS: List[Tuple[str, List[Tuple[Any, str]]]] = [
             (TestKeyboardShortcutsAndInteraction, "UX: Keyboard Shortcuts & Focus Visible"),
             (TestLighthouseAndWebVitals, "Quality: Lighthouse CI & Web Vitals Invariants"),
             (TestMilestone1ResponsiveNav, "UI/UX: Universal 3-Item Bottom Nav Bar across 30 Pages"),
-            (TestE2EPlatformRequirements, "Architecture: Comprehensive 16-Feature E2E Requirements"),
+            (
+                TestE2EPlatformRequirements,
+                "Architecture: Comprehensive 16-Feature E2E Requirements",
+            ),
         ],
     ),
     (

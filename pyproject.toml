@@ -69,6 +69,8 @@ exclude = [
     ".venv",
     "dl_guu-dl_26",
     "__pycache__",
+    "node_modules",
+    "anki_decks",
 ]
 
 [tool.ruff.lint]

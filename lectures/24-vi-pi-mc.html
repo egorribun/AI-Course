@@ -21,7 +21,7 @@ window.MathJax = {
 <header class="top"><div class="inner">
   <div class="kicker">Блок D · Reinforcement Learning · Вопрос 22 (Часть 2)</div>
   <h1>Лекция 24. Итерации по ценностям (VI), итерации по стратегиям (PI) и методы Монте-Карло (MC)</h1>
-  <p class="sub">Динамическое программирование в известных MDP: Policy Iteration, Value Iteration, теорема об улучшении стратегии, Generalized Policy Iteration (GPI), методы Монте-Карло без модели: First-Visit vs Every-Visit, важностное сэмплирование (Importance Sampling).</p>
+  <p class="sub">Динамическое программирование в известных MDP: Policy Iteration, Value Iteration, теорема об улучшении стратегии, Generalized Policy Iteration (GPI), методы Монте-Карло: First-Visit vs Every-Visit, важностное сэмплирование.</p>
   <div class="meta">
     <span class="pill">⏱ 2 ч 30 мин</span>
     <span class="pill gray">10 вопросов препода</span>
@@ -37,10 +37,10 @@ window.MathJax = {
 <nav class="toc">
   <div class="bt">Содержание лекции</div>
   <ol>
-    <li><a href="#s1">Интуиция и мотивация: планирование (DP) vs обучение по опыту (MC)</a></li>
-    <li><a href="#s2">Архитектура и схема: парадигма Generalized Policy Iteration (GPI)</a></li>
-    <li><a href="#s3">Математический аппарат: Policy Iteration, Value Iteration и Monte Carlo</a></li>
-    <li><a href="#s4">Пошаговый числовой пример: GridWorld DP и Monte Carlo обновления</a></li>
+    <li><a href="#s1">Интуиция и мотивация</a></li>
+    <li><a href="#s2">Архитектура и схема</a></li>
+    <li><a href="#s3">Математический аппарат</a></li>
+    <li><a href="#s4">Пошаговый числовой пример</a></li>
     <li><a href="#s5">Преимущества, недостатки и применимость</a></li>
     <li><a href="#qa">🎯 Препод спросит</a></li>
     <li><a href="#tasks">📝 Микро-задачи с решениями</a></li>
@@ -51,25 +51,23 @@ window.MathJax = {
 <!-- ============================================ -->
 <h2 id="s1"><span class="num">1.</span> Интуиция и мотивация</h2>
 
-<p>Когда математическая модель среды известна (заданы матрицы переходов $\mathcal{P}(s'|s, a)$ и наград $\mathcal{R}(s, a)$), задача нахождения оптимального поведения называется <strong>планированием (Planning)</strong> и решается методами динамического программирования (Dynamic Programming, DP).</p>
-
-<p>Однако в реальном мире (управление роботом, беспилотный автомобиль, финансовые рынки) точные уравнения физики и поведения мира неизвестны. В этом случае агент может обучаться только на основе <strong>сэмплирования реальных траекторий методом Монте-Карло (Monte Carlo, MC)</strong>.</p>
+<p>Когда модель среды известна ($\mathcal{P}$ и $\mathcal{R}$ заданы), поиск оптимальной политики называется <strong>планированием (Planning)</strong> и решается методами динамического программирования (DP). Если модель неизвестна, агент обучается по сэмплированным траекториям методами <strong>Монте-Карло (Monte Carlo, MC)</strong>.</p>
 
 <div class="box idea">
-  <div class="bt">💡 Две фундаментальные парадигмы оценивания ценности</div>
+  <div class="bt">💡 Две парадигмы оценивания ценности</div>
   <ul>
-    <li><strong>Динамическое программирование (DP / Bootstrapping):</strong> Вычисляет ценность $V(s)$ через <em>математическое ожидание по всем возможным ветвям преемников</em>, опираясь на текущие оценки $V(s')$. Требует знания модели среды $\mathcal{P}$. Нулевая дисперсия, но зависит от точности модели.</li>
-    <li><strong>Методы Монте-Карло (MC / Sampling):</strong> Оценивают ценность $V(s)$ путем <em>эмпирического усреднения фактических накопленных доходов $G_t$</em> по завершенным эпизодам. Модель среды $\mathcal{P}$ <strong>не требуется вовсе</strong>. Оценка абсолютно несмещенная ($\mathbb{E}[G_t] = V(s)$), но обладает высокой дисперсией.</li>
+    <li><strong>Динамическое программирование (DP / Bootstrapping):</strong> Вычисляет $V(s)$ через <em>математическое ожидание по ветвям преемников</em>, опираясь на текущие оценки $V(s')$. Требует знания модели $\mathcal{P}$. Нулевая дисперсия, но зависит от точности модели.</li>
+    <li><strong>Методы Монте-Карло (MC / Sampling):</strong> Оценивают $V(s)$ путём <em>усреднения фактических накопленных доходов $G_t$</em> по завершённым эпизодам. Модель $\mathcal{P}$ <strong>не требуется</strong>. Оценка строго несмещённая ($\mathbb{E}[G_t] = V(s)$), но обладает высокой дисперсией.</li>
   </ul>
 </div>
 
 <!-- ============================================ -->
-<h2 id="s2"><span class="num">2.</span> Архитектура и схема: Generalized Policy Iteration (GPI)</h2>
+<h2 id="s2"><span class="num">2.</span> Архитектура и схема</h2>
 
-<p><strong>Generalized Policy Iteration (GPI)</strong> — концептуальный каркас, объединяющий почти все алгоритмы RL. Он описывает непрерывное взаимодействие двух конкурирующих процессов:</p>
+<p><strong>Generalized Policy Iteration (GPI)</strong> — концептуальный каркас RL, описывающий взаимодействие двух процессов:</p>
 <ol>
-  <li><strong>Policy Evaluation (Оценка стратегии):</strong> Фиксируем стратегию $\pi$ и подгоняем функцию ценности $V \to V^\pi$.</li>
-  <li><strong>Policy Improvement (Улучшение стратегии):</strong> Фиксируем функцию ценности $V$ и делаем стратегию жадной относительно нее $\pi \leftarrow \text{greedy}(V)$.</li>
+  <li><strong>Policy Evaluation (Оценка):</strong> Фиксируем $\pi$, вычисляем $V \to V^\pi$.</li>
+  <li><strong>Policy Improvement (Улучшение):</strong> Фиксируем $V$, строим жадную стратегию $\pi \leftarrow \text{greedy}(V)$.</li>
 </ol>
 
 <div class="scheme">
@@ -81,7 +79,7 @@ window.MathJax = {
                  │                                   ▼ (Improvement)
                  π* ◀─────────────────────────────── π'
                         Сходимость в точке (π*, V*)
-<span class="cap">GPI: Процессы оценки и улучшения подталкивают друг друга к глобальной оптимальной паре (π*, V*).</span></div>
+<span class="cap">GPI: Процессы оценки и улучшения сходятся к оптимальной паре $(\pi^*, V^*)$.</span></div>
 
 <div class="scheme">
   СРАВНЕНИЕ ПУТЕЙ ОБНОВЛЕНИЯ:
@@ -93,34 +91,30 @@ window.MathJax = {
   V_0 ──1 шаг max_a──▶ V_1 ──1 шаг max_a──▶ V_2 ──1 шаг max_a──▶ ... ──▶ V* ──1 Improvement──▶ π*
 
   Monte Carlo (MC):
-  Сэмплирование эпизода τ = (S_0, A_0, R_1, ..., S_T) ──▶ Накопление G_t ──▶ V(S_t) ← V(S_t) + α(G_t - V(S_t))
-<span class="cap">Policy Iteration выполняет полную оценку на каждом шаге; Value Iteration объединяет оценку и улучшение в 1 шаг; Monte Carlo учится по реальным траекториям без модели.</span></div>
+  Сэмплирование τ = (S_0, A_0, R_1, ..., S_T) ──▶ Накопление G_t ──▶ V(S_t) ← V(S_t) + α(G_t - V(S_t))
+<span class="cap">Policy Iteration оценивает стратегию полностью; Value Iteration делает 1 шаг $\max$; Monte Carlo учится по реальным эпизодам без модели.</span></div>
 
 <!-- ============================================ -->
 <h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
 
 <h3>1. Policy Iteration (Итерация по стратегиям)</h3>
-<p>Алгоритм состоит из чередования двух фаз:</p>
+<p>Алгоритм чередует две фазы:</p>
 <ol>
-  <li><strong>Фаза 1: Оценка стратегии (Policy Evaluation).</strong> Итеративно решается линейное уравнение Беллмана до сходимости ($\max_s |V_{k+1}(s) - V_k(s)| < \theta$):
+  <li><strong>Оценка (Policy Evaluation):</strong> Решение уравнения Беллмана до сходимости ($\max_s |V_{k+1}(s) - V_k(s)| < \theta$):
     <div class="math-scroll-wrapper">
     $$ V_{k+1}(s) = \sum_{a \in \mathcal{A}} \pi(a \mid s) \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \left[ \mathcal{R}(s, a, s') + \gamma V_k(s') \right] $$
     </div>
   </li>
-  <li><strong>Фаза 2: Улучшение стратегии (Policy Improvement).</strong> Жадный выбор действия по вычисленной функции ценности:
+  <li><strong>Улучшение (Policy Improvement):</strong> Жадный выбор действия:
     <div class="math-scroll-wrapper">
-    $$ \pi_{\text{new}}(s) = \arg\max_{a \in \mathcal{A}} Q^{\pi}(s, a) = \arg\max_{a \in \mathcal{A}} \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \left[ \mathcal{R}(s, a, s') + \gamma V^\pi(s') \right] $$
+    $$ \pi_{\text{new}}(s) = \arg\max_{a \in \mathcal{A}} \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \left[ \mathcal{R}(s, a, s') + \gamma V^\pi(s') \right] $$
     </div>
   </li>
 </ol>
 
 <div class="box mathbox">
   <div class="bt">📐 Теорема об улучшении стратегии (Policy Improvement Theorem)</div>
-  <p>Пусть $\pi$ и $\pi'$ — две детерминированные стратегии такие, что для всех $s \in \mathcal{S}$ выполняется:</p>
-  <div class="math-scroll-wrapper">
-  $$ Q^\pi(s, \pi'(s)) \ge V^\pi(s) $$
-  </div>
-  <p>Тогда стратегия $\pi'$ гарантированно не хуже стратегии $\pi$ во всех состояниях: $V^{\pi'}(s) \ge V^\pi(s) \quad \forall s \in \mathcal{S}$.</p>
+  <p>Если для двух стратегий $\pi, \pi'$ выполняется $Q^\pi(s, \pi'(s)) \ge V^\pi(s) \quad \forall s \in \mathcal{S}$, то $V^{\pi'}(s) \ge V^\pi(s) \quad \forall s \in \mathcal{S}$.</p>
   <p><em>Доказательство:</em></p>
   <div class="math-scroll-wrapper">
   $$ V^\pi(s) \le Q^\pi(s, \pi'(s)) = \mathbb{E}_{\pi'} [R_{t+1} + \gamma V^\pi(S_{t+1}) \mid S_t = s] \le \mathbb{E}_{\pi'} [R_{t+1} + \gamma Q^\pi(S_{t+1}, \pi'(S_{t+1})) \mid S_t = s] \le \dots \le V^{\pi'}(s) $$
@@ -128,47 +122,38 @@ window.MathJax = {
 </div>
 
 <h3>2. Value Iteration (Итерация по ценностям)</h3>
-<p>Value Iteration объединяет фазу оценки и улучшения в <strong>один шаг обновления с оператором максимума</strong>, применяя оператор оптимальности Беллмана $\mathcal{T}^*$:</p>
+<p>Value Iteration объединяет оценку и улучшение в <strong>один шаг обновления с оператором $\max$</strong>:</p>
 
 <div class="math-scroll-wrapper">
 $$ V_{k+1}(s) \leftarrow \max_{a \in \mathcal{A}} \sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) \left[ \mathcal{R}(s, a, s') + \gamma V_k(s') \right] $$
 </div>
-<p>Критерий остановки: $\max_{s \in \mathcal{S}} |V_{k+1}(s) - V_k(s)| < \frac{\epsilon(1 - \gamma)}{2\gamma}$, что гарантирует $\|V_{k+1} - V^*\|_\infty \le \epsilon$. После сходимости оптимальная стратегия извлекается за 1 жадный шаг: $\pi^*(s) = \arg\max_a \sum_{s'} \mathcal{P}(s'|s, a) [\mathcal{R} + \gamma V^*(s')]$.</p>
+<p>Остановка при $\max_s |V_{k+1}(s) - V_k(s)| < \frac{\epsilon(1-\gamma)}{2\gamma}$, гарантирующая $\|V_{k+1} - V^*\|_\infty \le \epsilon$. Затем $\pi^*(s) = \arg\max_a \sum_{s'} \mathcal{P}(s'|s, a) [\mathcal{R} + \gamma V^*(s')]$.</p>
 
-<h3>3. Методы Монте-Карло (Monte Carlo Methods)</h3>
-<p>Методы Монте-Карло не требуют знания $\mathcal{P}$ и $\mathcal{R}$. Обучение происходит на основе сгенерированных эпизодов $\tau = (S_0, A_0, R_1, S_1, A_1, \dots, S_T)$:</p>
-<div class="math-scroll-wrapper">
-$$ G_t = \sum_{k=0}^{T - t - 1} \gamma^k R_{t+k+1} $$
-</div>
+<h3>3. Методы Монте-Карло (Monte Carlo)</h3>
+<p>MC работает по завершённым эпизодам $\tau = (S_0, A_0, R_1, \dots, S_T)$ с $G_t = \sum_{k=0}^{T - t - 1} \gamma^k R_{t+k+1}$:</p>
 
 <ul>
-  <li><strong>First-Visit Monte Carlo:</strong> Ценность состояния $s$ обновляется только по первому визиту состояния $s$ в рамках эпизода (строго несмещенная оценка $V(s)$).</li>
-  <li><strong>Every-Visit Monte Carlo:</strong> Ценность состояния $s$ обновляется по каждому вхождению состояния $s$ в эпизод (асимптотически несмещенная, меньшая дисперсия).</li>
+  <li><strong>First-Visit MC:</strong> $V(s)$ обновляется только по первому визиту $s$ в эпизоде (строго несмещённая оценка).</li>
+  <li><strong>Every-Visit MC:</strong> $V(s)$ обновляется по всем визитам $s$ в эпизоде (меньшая дисперсия).</li>
 </ul>
 
-<p>Инкрементная форма обновления (Running Average):</p>
+<p>Инкрементное обновление:</p>
 <div class="math-scroll-wrapper">
 $$ V(S_t) \leftarrow V(S_t) + \alpha \left( G_t - V(S_t) \right) $$
 </div>
-<p>где $\alpha = \frac{1}{N(S_t)}$ для простого среднего или постоянный $\alpha \in (0, 1]$ для нестационарных сред.</p>
 
-<h3>4. Важностное сэмплирование (Off-Policy Importance Sampling)</h3>
-<p>Если данные собираются по стратегии исследования $b(a|s)$ (Behavior Policy), а оценивается целевая стратегия $\pi(a|s)$ (Target Policy), отношение правдоподобия траектории (Importance Sampling Ratio) равно:</p>
-
-<div class="math-scroll-wrapper">
-$$ \rho_{t:T-1} \doteq \prod_{k=t}^{T-1} \frac{\pi(A_k \mid S_k)}{b(A_k \mid S_k)} $$
-</div>
+<h3>4. Важностное сэмплирование (Importance Sampling)</h3>
+<p>При сборе данных по $b(a|s)$ и оценке $\pi(a|s)$ отношение важности равно $\rho_{t:T-1} = \prod_{k=t}^{T-1} \frac{\pi(A_k \mid S_k)}{b(A_k \mid S_k)}$:</p>
 
 <ul>
-  <li><strong>Ordinary Importance Sampling (Обычное):</strong> $V(s) = \frac{\sum_{\tau} \rho_{t(\tau):T-1} G_{t(\tau)}}{N}$ (несмещенная, но неограниченная дисперсия).</li>
-  <li><strong>Weighted Importance Sampling (Взвешенное):</strong> $V(s) = \frac{\sum_{\tau} \rho_{t:T-1} G_t}{\sum_\tau \rho_{t:T-1}}$ (небольшое смещение, но дисперсия строго ограничена).</li>
+  <li><strong>Ordinary:</strong> $V(s) = \frac{\sum \rho G}{N}$ (несмещённое, неограниченная дисперсия).</li>
+  <li><strong>Weighted:</strong> $V(s) = \frac{\sum \rho G}{\sum \rho}$ (небольшое смещение, ограниченная дисперсия).</li>
 </ul>
 
-<h3>5. Практическая реализация Value Iteration и Monte Carlo на Python</h3>
+<h3>5. Реализация Value Iteration и Monte Carlo на Python</h3>
 <pre><code>import numpy as np
 
 def run_value_iteration(P, R, gamma=0.9, theta=1e-6):
-    """Алгоритм Value Iteration динамического программирования."""
     n_states, n_actions, _ = P.shape
     V = np.zeros(n_states)
     while True:
@@ -187,7 +172,6 @@ def run_value_iteration(P, R, gamma=0.9, theta=1e-6):
     return V, policy
 
 def run_first_visit_mc(episodes, n_states, gamma=0.9):
-    """Оценка ценности состояний методом First-Visit Monte Carlo."""
     returns_sum = np.zeros(n_states)
     returns_count = np.zeros(n_states)
     for episode in episodes:
@@ -213,49 +197,28 @@ def run_first_visit_mc(episodes, n_states, gamma=0.9):
 <h2 id="s4"><span class="num">4.</span> Пошаговый числовой пример</h2>
 
 <div class="box exambox">
-  <div class="bt">🔢 Пример 1. Ручной расчет шага Value Iteration в среде GridWorld</div>
-  <p>Рассмотрим цепочку из 3 клеток: $S_1 \leftrightarrow S_2 \to \text{Goal}$. Дисконт $\gamma = 0.9$.</p>
+  <div class="bt">🔢 Пример 1. Расчёт Value Iteration в GridWorld</div>
+  <p>Цепочка $S_1 \leftrightarrow S_2 \to \text{Goal}$ при $\gamma = 0.9$:</p>
   <ul>
-    <li>В $S_1$: действие «Вправо» ведет в $S_2$ ($R=0$), действие «Влево» оставляет в $S_1$ ($R=0$).</li>
-    <li>В $S_2$: действие «Вправо» ведет в Goal ($R=+10$, терминал), действие «Влево» ведет в $S_1$ ($R=0$).</li>
-    <li>В Goal: $V(\text{Goal}) = 0$. Инициализация: $V_0(S_1) = 0, V_0(S_2) = 0$.</li>
+    <li>В $S_1$: «влево» $\to S_1$ ($R=0$); «вправо» $\to S_2$ ($R=0$).</li>
+    <li>В $S_2$: «влево» $\to S_1$ ($R=0$); «вправо» $\to \text{Goal}$ ($R=10$). $V_0 = [0, 0]$.</li>
   </ul>
-
-  <h3>Итерация 1 ($k=1$):</h3>
   <ul>
-    <li>$V_1(S_1) = \max(\text{влево}: 0 + 0.9 \cdot 0, \; \text{вправо}: 0 + 0.9 \cdot 0) = 0.0$</li>
-    <li>$V_1(S_2) = \max(\text{влево}: 0 + 0.9 \cdot 0, \; \text{вправо}: 10 + 0.9 \cdot 0) = 10.0$</li>
+    <li>$k=1$: $V_1(S_1) = 0$, $V_1(S_2) = \max(0, 10 + 0) = 10.0$.</li>
+    <li>$k=2$: $V_2(S_1) = \max(0, 0 + 0.9 \cdot 10) = 9.0$, $V_2(S_2) = 10.0$.</li>
+    <li>$k=3$: $V_3(S_1) = 9.0$, $V_3(S_2) = 10.0$ (сходимость: $\pi^*(S_1)=\text{вправо}, \pi^*(S_2)=\text{вправо}$).</li>
   </ul>
-
-  <h3>Итерация 2 ($k=2$):</h3>
-  <ul>
-    <li>$V_2(S_1) = \max(\text{влево}: 0 + 0.9 \cdot 0, \; \text{вправо}: 0 + 0.9 \cdot V_1(S_2)) = \max(0, 0 + 0.9 \cdot 10.0) = 9.0$</li>
-    <li>$V_2(S_2) = \max(\text{влево}: 0 + 0.9 \cdot V_1(S_1), \; \text{вправо}: 10 + 0) = \max(0, 10.0) = 10.0$</li>
-  </ul>
-
-  <h3>Итерация 3 ($k=3$):</h3>
-  <ul>
-    <li>$V_3(S_1) = \max(0 + 0.9(9.0), 0 + 0.9(10.0)) = 9.0$</li>
-    <li>$V_3(S_2) = \max(0 + 0.9(9.0), 10.0) = \max(8.1, 10.0) = 10.0$</li>
-  </ul>
-  <p>Алгоритм сошелся за 3 итерации: $V^*(S_1) = 9.0, V^*(S_2) = 10.0$. Оптимальная политика: $\pi^*(S_1) = \text{Вправо}, \pi^*(S_2) = \text{Вправо}$.</p>
 </div>
 
 <div class="box exambox">
-  <div class="bt">🔢 Пример 2. Обновление методом First-Visit Monte Carlo по эпизоду</div>
-  <p>Пусть сгенерирован эпизод: $(S_1, a, +1) \to (S_2, a, 0) \to (S_1, a, +2) \to (S_3, a, +10 \text{ term})$. Дисконт $\gamma = 1.0$. Текущие оценки: $V(S_1) = 5.0, V(S_2) = 8.0$. Шаг $\alpha = 0.5$.</p>
+  <div class="bt">🔢 Пример 2. Обновление First-Visit Monte Carlo</div>
+  <p>Эпизод: $(S_1, a, +1) \to (S_2, a, 0) \to (S_1, a, +2) \to (S_3, a, +10 \text{ term})$ при $\gamma = 1.0, \alpha = 0.5$, начальные $V(S_1)=5.0, V(S_2)=8.0$:</p>
   <ul>
-    <li><strong>Доход из первого посещения $S_1$ ($t=0$):</strong> $G_0 = R_1 + R_2 + R_3 + R_4 = 1 + 0 + 2 + 10 = 13.0$.</li>
-    <li><strong>Доход из второго посещения $S_1$ ($t=2$):</strong> $G_2 = R_3 + R_4 = 2 + 10 = 12.0$.</li>
-    <li><strong>Доход из $S_2$ ($t=1$):</strong> $G_1 = R_2 + R_3 + R_4 = 0 + 2 + 10 = 12.0$.</li>
+    <li>Первый визит $S_1$ ($t=0$): $G_0 = 1 + 0 + 2 + 10 = 13.0$.</li>
+    <li>Визит $S_2$ ($t=1$): $G_1 = 0 + 2 + 10 = 12.0$.</li>
   </ul>
-  <p>Обновление First-Visit MC для $S_1$ (берется только $G_0 = 13.0$):</p>
   <div class="math-scroll-wrapper">
-  $$ V(S_1) \leftarrow V(S_1) + \alpha (G_0 - V(S_1)) = 5.0 + 0.5 \cdot (13.0 - 5.0) = 5.0 + 0.5 \cdot 8.0 = 9.0 $$
-  </div>
-  <p>Обновление для $S_2$:</p>
-  <div class="math-scroll-wrapper">
-  $$ V(S_2) \leftarrow V(S_2) + \alpha (G_1 - V(S_2)) = 8.0 + 0.5 \cdot (12.0 - 8.0) = 8.0 + 0.5 \cdot 4.0 = 10.0 $$
+  $$ V(S_1) \leftarrow 5.0 + 0.5 \cdot (13.0 - 5.0) = 9.0, \quad V(S_2) \leftarrow 8.0 + 0.5 \cdot (12.0 - 8.0) = 10.0 $$
   </div>
 
   <h3>Алгоритм Policy Iteration на Python</h3>
@@ -298,28 +261,28 @@ def policy_iteration(P, R, gamma=0.9):
   </thead>
   <tbody>
     <tr>
-      <td><strong>Модель среды $\mathcal{P}, \mathcal{R}$</strong></td>
-      <td>Обязательна (Model-Based)</td>
-      <td>Обязательна (Model-Based)</td>
+      <td><strong>Модель среды</strong></td>
+      <td>Обязательна ($\mathcal{P}, \mathcal{R}$)</td>
+      <td>Обязательна ($\mathcal{P}, \mathcal{R}$)</td>
       <td><strong>Не требуется (Model-Free)</strong></td>
     </tr>
     <tr>
       <td><strong>Смещение (Bias)</strong></td>
-      <td>0 (Точные уравнения)</td>
-      <td>0 (Сжатие к $V^*$)</td>
-      <td><strong>0 (Несмещенная оценка $G_t$)</strong></td>
+      <td>0</td>
+      <td>0</td>
+      <td><strong>0 (Несмещённая оценка)</strong></td>
     </tr>
     <tr>
-      <td><strong>Дисперсия (Variance)</strong></td>
-      <td>0 (Детерминированный расчет)</td>
-      <td>0 (Детерминированный расчет)</td>
-      <td><strong>Высокая</strong> (стохастичность всей траектории)</td>
+      <td><strong>Дисперсия</strong></td>
+      <td>0</td>
+      <td>0</td>
+      <td><strong>Высокая</strong> (траекторная)</td>
     </tr>
     <tr>
-      <td><strong>Бутстрэпинг (Bootstrapping)</strong></td>
+      <td><strong>Бутстрэпинг</strong></td>
       <td>Да (через $V(s')$)</td>
       <td>Да (через $\max V(s')$)</td>
-      <td><strong>Нет</strong> (только фактический доход $G_t$)</td>
+      <td><strong>Нет</strong> (через $G_t$)</td>
     </tr>
     <tr>
       <td><strong>Тип задач</strong></td>
@@ -328,10 +291,10 @@ def policy_iteration(P, R, gamma=0.9):
       <td><strong>Строго эпизодические</strong></td>
     </tr>
     <tr>
-      <td><strong>Число итераций</strong></td>
-      <td>Очень мало итераций стратегий</td>
-      <td>Больше итераций, но дешевле шаг</td>
-      <td>Требуются тысячи эпизодов</td>
+      <td><strong>Итерации</strong></td>
+      <td>Мало внешних итераций</td>
+      <td>Больше итераций, дешёвый шаг</td>
+      <td>Требует $10^3+$ эпизодов</td>
     </tr>
   </tbody>
 </table>
@@ -343,70 +306,70 @@ def policy_iteration(P, R, gamma=0.9):
 <details class="qa">
   <summary>1. В чем ключевое отличие Policy Iteration от Value Iteration?</summary>
   <div class="ans">
-    <p>Policy Iteration на каждом шаге проводит <em>полную оценку текущей стратегии</em> до бесконечной сходимости $V_k \to V^\pi$ (решая линейную систему), после чего производит улучшение стратегии. Value Iteration объединяет оценку и улучшение в <em>один-единственный итерационный шаг с оператором $\max$</em>, не дожидаясь сходимости оценки промежуточных неоптимальных стратегий.</p>
+    <p>Policy Iteration оценивает стратегию до полной сходимости $V \to V^\pi$ на каждом шаге перед улучшением. Value Iteration объединяет оценку и улучшение в 1 шаг с оператором $\max$, не дожидаясь точной оценки промежуточных стратегий.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>2. В чем разница между First-Visit MC и Every-Visit MC?</summary>
   <div class="ans">
-    <p>В First-Visit MC в оценку $V(s)$ включается доход $G_t$ только от <em>первого появления состояния $s$</em> в рамках эпизода. Оценка First-Visit строго несмещенная (i.i.d. сэмплы). В Every-Visit MC усредняются доходы от <em>всех посещений состояния $s$</em> внутри эпизода. Сэмплы внутри одного эпизода коррелируют, поэтому Every-Visit MC слегка смещен на малых выборках, но имеет меньшую среднеквадратичную ошибку (MSE) и асимптотически сходится к $V^\pi(s)$.</p>
+    <p>First-Visit MC учитывает доход $G_t$ только от первого визита в состояние за эпизод (строго несмещённая оценка). Every-Visit MC усредняет доходы от всех визитов (сэмплы зависимы, но меньше MSE).</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>3. Почему методы Монте-Карло неприменимы в бесконечных непрерывных средах без терминальных состояний?</summary>
   <div class="ans">
-    <p>Потому что для вычисления эмпирического дохода $G_t = \sum_{k=0}^{T-t-1} \gamma^k R_{t+k+1}$ метод Монте-Карло обязан дождаться полного завершения эпизода (шага $T$). В бесконечной задаче без терминальных состояний эпизод никогда не заканчивается, и агент не может рассчитать $G_t$. Для бесконечных задач необходим бутстрэпинг (TD-обучение).</p>
+    <p>Для расчёта дохода $G_t = \sum \gamma^k R$ методу MC требуется дождаться окончания эпизода (шаг $T$). В бесконечных задачах эпизод не завершается, что требует бутстрэпинга (TD-обучение).</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>4. Что такое Bootstrapping в RL и почему Монте-Карло им не пользуется?</summary>
   <div class="ans">
-    <p>Бутстрэпинг (Bootstrapping) — это обновление текущей оценки ценности $V(s)$ на основе другой существующей оценки $V(s')$ следующего состояния без ожидания конца эпизода (как в Беллмане и TD). Монте-Карло не использует бутстрэпинг: он ждет реального завершения эпизода и обновляет оценку по честному накопленному доходу $G_t$.</p>
+    <p>Бутстрэпинг — обновление оценки $V(s)$ на основе оценки следующего состояния $V(s')$. Монте-Карло не бутстрэпит, а использует честный накопленный доход $G_t$ по завершённому эпизоду.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>5. В чем разница между Ordinary Importance Sampling и Weighted Importance Sampling?</summary>
   <div class="ans">
-    <p>Ordinary Importance Sampling делит сумму взвешенных доходов на общее число эпизодов $N$: $\frac{1}{N} \sum \rho G$. Оно строго несмещенное, но дисперсия может быть бесконечной из-за произведения отношений вероятностей $\prod \frac{\pi}{b}$. Weighted Importance Sampling делит на сумму весов $\frac{\sum \rho G}{\sum \rho}$. Оно слегка смещено (смещение $\to 0$ при $N \to \infty$), но дисперсия строго ограничена, что делает его предпочтительным на практике.</p>
+    <p>Ordinary делит взвешенные доходы на число эпизодов $N$ (несмещённо, но дисперсия может быть бесконечной). Weighted делит на сумму весов $\sum \rho$ (небольшое смещение, но дисперсия строго ограничена).</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>6. Какова вычислительная сложность одной итерации Value Iteration?</summary>
   <div class="ans">
-    <p>Сложность одного полного прохода Value Iteration составляет $O(|\mathcal{S}|^2 |\mathcal{A}|)$, так как для каждого состояния $s \in \mathcal{S}$ мы перебираем все действия $a \in \mathcal{A}$ и вычисляем сумму по всем возможным переходам $s' \in \mathcal{S}$. Если переходы разрежены (не более $k$ преемников), сложность снижается до $O(k |\mathcal{S}| |\mathcal{A}|)$.</p>
+    <p>$O(|\mathcal{S}|^2 |\mathcal{A}|)$, так как для каждого состояния $s$ перебираются действия $a$ и суммируются переходы по всем преемникам $s'$. Для разреженных сред — $O(k |\mathcal{S}| |\mathcal{A}|)$.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>7. Почему Policy Iteration сходится за меньшее число внешних итераций, чем Value Iteration?</summary>
   <div class="ans">
-    <p>Потому что число детерминированных стратегий в конечном MDP строго ограничено величиной $|\mathcal{A}|^{|\mathcal{S}|}$. На каждом шаге улучшения Теорема об улучшении стратегии гарантирует строгое возрастание $V^{\pi'}(s) > V^\pi(s)$ (если стратегия не оптимальна). Следовательно, стратегия никогда не повторяется, и алгоритм гарантированно находит точную $\pi^*$ за конечное (обычно очень небольшое) число шагов.</p>
+    <p>Число детерминированных стратегий конечно ($|\mathcal{A}|^{|\mathcal{S}|}$). Теорема об улучшении гарантирует $V^{\pi'} > V^\pi$, поэтому стратегии не повторяются и точный оптимум достигается за считанные шаги.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>8. Как Монте-Карло решает проблему отсутствия модели среды?</summary>
   <div class="ans">
-    <p>Вместо математического ожидания по неизвестному тензору переходов $\sum_{s'} \mathcal{P}(s'|s, a)$, Монте-Карло использует закон больших чисел: среднее арифметическое фактических доходов $G_t$ по большому числу независимых эпизодов сходится по вероятности к истинному математическому ожиданию: $\frac{1}{N}\sum_{i=1}^N G_t^{(i)} \xrightarrow{P} V^\pi(s)$.</p>
+    <p>Заменяет математическое ожидание по $\mathcal{P}$ выборочным средним доходов $G_t$ по закону больших чисел: $\frac{1}{N}\sum G_t^{(i)} \xrightarrow{P} V^\pi(s)$.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>9. В чем суть компромисса Bias-Variance между DP и Monte Carlo?</summary>
   <div class="ans">
-    <p>DP имеет <em>нулевую дисперсию</em> (чистый детерминированный расчет), но страдает от <em>смещения модели</em>, если $\mathcal{P}$ и $\mathcal{R}$ неточны. Monte Carlo имеет <em>нулевое смещение</em> относительно истинной среды, но обладает <em>чрезвычайно высокой дисперсией</em> из-за накопления стохастичности на десятках шагов траектории, требуя огромного объема выборки.</p>
+    <p>DP имеет нулевую дисперсию (детерминированный расчёт), но чувствителен к ошибкам модели $\mathcal{P}$. MC свободен от смещения модели, но обладает высокой траекторной дисперсией.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>10. Что такое асинхронное динамическое программирование (Asynchronous DP)?</summary>
   <div class="ans">
-    <p>Классический DP обновляет все состояния синхронно за один такт. Асинхронный DP обновляет состояния по отдельности в произвольном порядке (например, In-Place Value Iteration, Prioritized Sweeping или Real-Time DP). Это снижает требования к памяти и позволяет фокусировать вычисления только на состояниях, часто посещаемых агентом.</p>
+    <p>Обновление состояний по отдельности в произвольном порядке (In-Place VI, Prioritized Sweeping) вместо синхронного прохода, экономя память и фокусируя ресурсы на ключевых состояниях.</p>
   </div>
 </details>
 
@@ -414,21 +377,13 @@ def policy_iteration(P, R, gamma=0.9):
 <h2 id="tasks"><span class="num">7.</span> 📝 Микро-задачи с решениями</h2>
 
 <div class="task">
-  <div class="tt">Задача 1. Расчет шага Policy Evaluation для 2 состояний</div>
-  <p>В среде с двумя состояниями $S_1, S_2$ зафиксирована стратегия $\pi$. Из $S_1$ переход в $S_2$ с $R=4$. Из $S_2$ переход в $S_1$ с $R=2$. Дисконт $\gamma = 0.5$. Начальные оценки $V_0(S_1) = 0, V_0(S_2) = 0$. Вычислите $V_1(S_1), V_1(S_2)$ и $V_2(S_1), V_2(S_2)$.</p>
+  <div class="tt">Задача 1. Расчёт шага Policy Evaluation для 2 состояний</div>
+  <p>$S_1 \to S_2$ ($R=4$), $S_2 \to S_1$ ($R=2$) при $\gamma = 0.5, V_0 = [0, 0]$. Вычислите $V_1$ и $V_2$.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p><strong>Итерация 1:</strong></p>
-      <ul>
-        <li>$V_1(S_1) = 4 + 0.5 \cdot V_0(S_2) = 4 + 0 = 4.0$</li>
-        <li>$V_1(S_2) = 2 + 0.5 \cdot V_0(S_1) = 2 + 0 = 2.0$</li>
-      </ul>
-      <p><strong>Итерация 2:</strong></p>
-      <ul>
-        <li>$V_2(S_1) = 4 + 0.5 \cdot V_1(S_2) = 4 + 0.5 \cdot 2.0 = 4 + 1.0 = 5.0$</li>
-        <li>$V_2(S_2) = 2 + 0.5 \cdot V_1(S_1) = 2 + 0.5 \cdot 4.0 = 2 + 2.0 = 4.0$</li>
-      </ul>
+      <p>$V_1(S_1) = 4 + 0.5(0) = 4.0$, $V_1(S_2) = 2 + 0.5(0) = 2.0$.</p>
+      <p>$V_2(S_1) = 4 + 0.5(2.0) = 5.0$, $V_2(S_2) = 2 + 0.5(4.0) = 4.0$.</p>
       <p><strong>Ответ:</strong> $V_1 = (4.0, 2.0), V_2 = (5.0, 4.0)$.</p>
     </div>
   </details>
@@ -436,19 +391,13 @@ def policy_iteration(P, R, gamma=0.9):
 
 <div class="task">
   <div class="tt">Задача 2. Точная сходимость Policy Evaluation аналитически</div>
-  <p>Для системы из Задачи 1 найдите точные предельные значения $V^\pi(S_1)$ и $V^\pi(S_2)$ при $k \to \infty$.</p>
+  <p>Для системы из Задачи 1 найдите предельные $V^\pi(S_1)$ и $V^\pi(S_2)$.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Составляем систему уравнений Беллмана:</p>
       <div class="math-scroll-wrapper">
-      $$ \begin{cases} V(S_1) = 4 + 0.5 V(S_2) \\ V(S_2) = 2 + 0.5 V(S_1) \end{cases} $$
-      </div>
-      <p>Подставляем второе в первое:</p>
-      <div class="math-scroll-wrapper">
-      $$ V(S_1) = 4 + 0.5 (2 + 0.5 V(S_1)) = 4 + 1 + 0.25 V(S_1) = 5 + 0.25 V(S_1) $$
-      $$ 0.75 V(S_1) = 5 \implies V(S_1) = \frac{5}{0.75} = \frac{20}{3} \approx 6.6667 $$
-      $$ V(S_2) = 2 + 0.5 \left(\frac{20}{3}\right) = 2 + \frac{10}{3} = \frac{16}{3} \approx 5.3333 $$
+      $$ V(S_1) = 4 + 0.5(2 + 0.5 V(S_1)) = 5 + 0.25 V(S_1) \implies 0.75 V(S_1) = 5 \implies V(S_1) = \frac{20}{3} \approx 6.67 $$
+      $$ V(S_2) = 2 + 0.5(20/3) = \frac{16}{3} \approx 5.33 $$
       </div>
       <p><strong>Ответ:</strong> $V^\pi(S_1) = 20/3 \approx 6.67, V^\pi(S_2) = 16/3 \approx 5.33$.</p>
     </div>
@@ -456,52 +405,38 @@ def policy_iteration(P, R, gamma=0.9):
 </div>
 
 <div class="task">
-  <div class="tt">Задача 3. Расчет шага улучшения стратегии (Policy Improvement)</div>
-  <p>В состоянии $s$ доступны два действия $a_1$ и $a_2$. Текущие оценки ценностей состояний: $V(s_1) = 10.0, V(s_2) = 20.0$. Действие $a_1$ ведет в $s_1$ с $R=5$. Действие $a_2$ ведет в $s_2$ с $R=1$. Фактор $\gamma = 0.9$. Какое действие выберет жадный шаг Policy Improvement?</p>
+  <div class="tt">Задача 3. Расчёт шага улучшения стратегии (Policy Improvement)</div>
+  <p>$V(s_1) = 10.0, V(s_2) = 20.0, \gamma = 0.9$. $a_1 \to s_1$ ($R=5$), $a_2 \to s_2$ ($R=1$). Какое действие выберет улучшение стратегии?</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Вычисляем $Q$-ценности:</p>
-      <ul>
-        <li>$Q(s, a_1) = R_1 + \gamma V(s_1) = 5 + 0.9 \cdot 10.0 = 5 + 9.0 = 14.0$</li>
-        <li>$Q(s, a_2) = R_2 + \gamma V(s_2) = 1 + 0.9 \cdot 20.0 = 1 + 18.0 = 19.0$</li>
-      </ul>
-      <p>Так как $Q(s, a_2) = 19.0 > Q(s, a_1) = 14.0$, жадная стратегия выберет действие $a_2$.</p>
-      <p><strong>Ответ:</strong> $\pi_{\text{new}}(s) = a_2$ с $Q(s, a_2) = 19.0$.</p>
+      <p>$Q(s, a_1) = 5 + 0.9 \cdot 10.0 = 14.0$. $Q(s, a_2) = 1 + 0.9 \cdot 20.0 = 19.0$. Так как $19.0 > 14.0$, выбирается $a_2$.</p>
+      <p><strong>Ответ:</strong> $\pi_{\text{new}}(s) = a_2$ с $Q = 19.0$.</p>
     </div>
   </details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 4. First-Visit MC vs Every-Visit MC на зацикленном эпизоде</div>
-  <p>В эпизоде состояние $S_1$ встретилось трижды: на шагах $t=0, 1, 2$. Награды: $R_1 = 1, R_2 = 1, R_3 = 1, R_4 = 10$ (терминал). Дисконт $\gamma = 1.0$. Найдите доходы $G_0, G_1, G_2$. Какое значение пойдет в First-Visit MC, а какие в Every-Visit MC?</p>
+  <p>Эпизод: $S_1$ встретилось на $t=0, 1, 2$ с $R_1=1, R_2=1, R_3=1, R_4=10$ ($\gamma = 1.0$). Найдите сэмплы First-Visit и Every-Visit.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Рассчитываем доходы:</p>
-      <ul>
-        <li>$G_0 = 1 + 1 + 1 + 10 = 13.0$ (первый визит, $t=0$)</li>
-        <li>$G_1 = 1 + 1 + 10 = 12.0$ (второй визит, $t=1$)</li>
-        <li>$G_2 = 1 + 10 = 11.0$ (третий визит, $t=2$)</li>
-      </ul>
-      <p>First-Visit MC учитывает только первый визит: сэмпл $G = 13.0$.</p>
-      <p>Every-Visit MC усредняет все три сэмпла внутри эпизода: $G_{\text{avg}} = \frac{13 + 12 + 11}{3} = \frac{36}{3} = 12.0$.</p>
-      <p><strong>Ответ:</strong> First-Visit: 13.0; Every-Visit: среднее 12.0.</p>
+      <p>$G_0 = 13.0, G_1 = 12.0, G_2 = 11.0$. First-Visit: $G = 13.0$. Every-Visit: среднее $\frac{13+12+11}{3} = 12.0$.</p>
+      <p><strong>Ответ:</strong> First-Visit: 13.0; Every-Visit: 12.0.</p>
     </div>
   </details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 5. Расчет веса Importance Sampling Ratio</div>
-  <p>Целевая стратегия $\pi$ в состояниях $S_0, S_1$ выбирает действие $a_1$ с вероятностью $\pi(a_1|S_0)=0.8, \pi(a_1|S_1)=0.9$. Поведенческая стратегия $b$ выбирает действия равномерно: $b(a_1|S_0)=0.5, b(a_1|S_1)=0.5$. Эпизод длины 2 совершил действия $(a_1, a_1)$ с итоговым доходом $G_0 = 10.0$. Чему равен взвешенный сэмпл $\rho_{0:1} G_0$ для Ordinary Importance Sampling?</p>
+  <div class="tt">Задача 5. Расчёт веса Importance Sampling Ratio</div>
+  <p>$\pi(a_1|S_0)=0.8, \pi(a_1|S_1)=0.9$, $b(a_1|S_0)=0.5, b(a_1|S_1)=0.5$. Для траектории $(a_1, a_1)$ с $G_0 = 10.0$ найдите $\rho_{0:1} G_0$.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Вычисляем коэффициент важности траектории:</p>
       <div class="math-scroll-wrapper">
-      $$ \rho_{0:1} = \frac{\pi(a_1 \mid S_0)}{b(a_1 \mid S_0)} \cdot \frac{\pi(a_1 \mid S_1)}{b(a_1 \mid S_1)} = \frac{0.8}{0.5} \cdot \frac{0.9}{0.5} = 1.6 \cdot 1.8 = 2.88 $$
+      $$ \rho_{0:1} = \frac{0.8}{0.5} \cdot \frac{0.9}{0.5} = 1.6 \cdot 1.8 = 2.88 \implies \rho G_0 = 2.88 \cdot 10.0 = 28.8 $$
       </div>
-      <p>Взвешенный доход: $\rho_{0:1} G_0 = 2.88 \cdot 10.0 = 28.8$.</p>
       <p><strong>Ответ:</strong> $\rho_{0:1} = 2.88, \rho G_0 = 28.8$.</p>
     </div>
   </details>
@@ -509,15 +444,13 @@ def policy_iteration(P, R, gamma=0.9):
 
 <div class="task">
   <div class="tt">Задача 6. Инкрементное среднее Monte Carlo</div>
-  <p>Текущая оценка $V(s) = 20.0$, накопленное число посещений $N(s) = 4$. Пришел новый эпизод с доходом $G = 30.0$. Обновите оценку $V(s)$ по формуле точного среднего $V \leftarrow V + \frac{1}{N}(G - V)$.</p>
+  <p>$V(s) = 20.0, N(s) = 4$. Пришёл доход $G = 30.0$. Обновите $V(s) \leftarrow V + \frac{1}{N}(G - V)$.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Новое число посещений: $N'(s) = 4 + 1 = 5$.</p>
       <div class="math-scroll-wrapper">
-      $$ V(s) \leftarrow 20.0 + \frac{1}{5} (30.0 - 20.0) = 20.0 + \frac{1}{5} \cdot 10.0 = 20.0 + 2.0 = 22.0 $$
+      $$ N' = 5 \implies V(s) \leftarrow 20.0 + \frac{1}{5}(30.0 - 20.0) = 20.0 + 2.0 = 22.0 $$
       </div>
-      <p>Проверка: $\frac{20 \cdot 4 + 30}{5} = \frac{80 + 30}{5} = \frac{110}{5} = 22.0$.</p>
       <p><strong>Ответ:</strong> $V(s) = 22.0$.</p>
     </div>
   </details>
@@ -527,15 +460,15 @@ def policy_iteration(P, R, gamma=0.9):
 <h2 id="cheat"><span class="num">8.</span> ⚡ Скелет ответа по билету</h2>
 
 <div class="cheat">
-  <div class="bt">Скелет устного ответа по билету 22 (ч. 2, Итерации по полезностям/стратегиям, Монте-Карло)</div>
+  <div class="bt">Скелет ответа по билету 22 (ч. 2, Итерации по ценностям/стратегиям, Монте-Карло)</div>
   <ol>
-    <li><strong>Каркас GPI (Generalized Policy Iteration):</strong> Чередование процессов Policy Evaluation ($V \to V^\pi$) и Policy Improvement ($\pi \to \text{greedy}(V)$) до сходимости к оптимальной точке $(\pi^*, V^*)$.</li>
-    <li><strong>Policy Iteration (PI):</strong> 1) Полная оценка $V_{k+1}(s) = \sum \pi \sum \mathcal{P} [ \mathcal{R} + \gamma V_k(s') ]$ до сходимости; 2) Улучшение стратегии $\pi'(s) = \arg\max_a \sum \mathcal{P} [ \mathcal{R} + \gamma V(s') ]$. Сходится за малое число шагов.</li>
+    <li><strong>Каркас GPI:</strong> Чередование Policy Evaluation ($V \to V^\pi$) и Policy Improvement ($\pi \to \text{greedy}(V)$) до сходимости к $(\pi^*, V^*)$.</li>
+    <li><strong>Policy Iteration:</strong> Полная оценка $V_{k+1}(s) = \sum \pi \sum \mathcal{P} [ \mathcal{R} + \gamma V_k(s') ]$ и улучшение $\pi'(s) = \arg\max_a \sum \mathcal{P} [ \mathcal{R} + \gamma V(s') ]$.</li>
     <li><strong>Теорема об улучшении стратегии:</strong> Если $Q^\pi(s, \pi'(s)) \ge V^\pi(s) \quad \forall s$, то $V^{\pi'}(s) \ge V^\pi(s)$.</li>
-    <li><strong>Value Iteration (VI):</strong> Объединение оценки и улучшения в один шаг с оператором $\max$: $V_{k+1}(s) \leftarrow \max_a \sum \mathcal{P} [ \mathcal{R} + \gamma V_k(s') ]$. Сходимость по сжатию Банаха.</li>
-    <li><strong>Методы Монте-Карло (MC):</strong> Обучение без модели ($\mathcal{P}$ неизвестна) на основе завершенных эпизодов по формуле $V(S_t) \leftarrow V(S_t) + \alpha (G_t - V(S_t))$. Несмещенно, но высокая дисперсия.</li>
-    <li><strong>First-Visit vs Every-Visit MC:</strong> First-Visit обновляет $V(s)$ только по первому вхождению $s$ в эпизод (i.i.d. сэмплы, строго несмещенная); Every-Visit обновляет по всем вхождениям (меньше дисперсия).</li>
-    <li><strong>Importance Sampling (Off-Policy):</strong> Коррекция распределений весом $\rho_{t:T-1} = \prod_{k=t}^{T-1} \frac{\pi(A_k|S_k)}{b(A_k|S_k)}$. Weighted Importance Sampling стабилизирует дисперсию.</li>
+    <li><strong>Value Iteration:</strong> Объединение оценки и улучшения в 1 шаг с оператором $\max$: $V_{k+1}(s) \leftarrow \max_a \sum \mathcal{P} [ \mathcal{R} + \gamma V_k(s') ]$. Сжатие Банаха.</li>
+    <li><strong>Методы Монте-Карло:</strong> Обучение без модели по завершённым эпизодам: $V(S_t) \leftarrow V(S_t) + \alpha (G_t - V(S_t))$. Несмещённо, высокая дисперсия.</li>
+    <li><strong>First-Visit vs Every-Visit MC:</strong> First-Visit обновляет $V(s)$ только по первому визиту $s$ в эпизоде (несмещённая); Every-Visit — по всем вхождениям (меньше MSE).</li>
+    <li><strong>Importance Sampling:</strong> Коррекция распределений весом $\rho_{t:T-1} = \prod_{k=t}^{T-1} \frac{\pi(A_k|S_k)}{b(A_k|S_k)}$. Weighted Importance Sampling стабилизирует дисперсию.</li>
   </ol>
 </div>
 

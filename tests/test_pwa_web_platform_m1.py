@@ -107,8 +107,8 @@ class TestMilestone1PwaWebPlatform(unittest.TestCase):
         self.assertIn('src="js/app.js"', self.index_text)
         self.assertTrue(
             'class="btn-header-exam"' in self.index_text
-            or 'exam-simulator-container' in self.index_text
-            or 'simulator.js' in self.index_text
+            or "exam-simulator-container" in self.index_text
+            or "simulator.js" in self.index_text
         )
         self.assertIn('id="global-progress-hub"', self.index_text)
 

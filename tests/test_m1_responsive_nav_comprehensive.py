@@ -22,7 +22,14 @@ COURSE_ROOT = Path(__file__).resolve().parent.parent
 if str(COURSE_ROOT) not in sys.path:
     sys.path.insert(0, str(COURSE_ROOT))
 
-from tests.common import EXPECTED_LECTURES, INDEX_FILE, EXAM_FILE, LECTURES_DIR, STYLE_FILE, read_file
+from tests.common import (
+    EXPECTED_LECTURES,
+    INDEX_FILE,
+    EXAM_FILE,
+    LECTURES_DIR,
+    STYLE_FILE,
+    read_file,
+)
 
 
 class TestMilestone1ResponsiveNav(unittest.TestCase):
@@ -36,8 +43,7 @@ class TestMilestone1ResponsiveNav(unittest.TestCase):
         cls.app_js = read_file(COURSE_ROOT / "js" / "app.js")
         cls.tracker_js = read_file(COURSE_ROOT / "js" / "tracker.js")
         cls.lecture_htmls = {
-            lec_name: read_file(LECTURES_DIR / lec_name)
-            for lec_name in EXPECTED_LECTURES
+            lec_name: read_file(LECTURES_DIR / lec_name) for lec_name in EXPECTED_LECTURES
         }
 
     # -------------------------------------------------------------------------

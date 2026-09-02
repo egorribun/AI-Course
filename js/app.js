@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
   updateProgressUI();
 
   // 3. Live Search & 4-Block Category Filtering
-  const searchInput = document.getElementById('lecture-search-input');
+  const searchInput = /** @type {HTMLInputElement | null} */ (document.getElementById('lecture-search-input'));
   const tagChips = document.querySelectorAll('.tag-chip');
   const lecCards = document.querySelectorAll('.grid .lec');
   const searchCountEl = document.getElementById('search-count-badge');
@@ -114,11 +114,12 @@ document.addEventListener('DOMContentLoaded', () => {
         matchesQuery = combined.includes(query);
       }
 
+      const htmlCard = /** @type {HTMLElement} */ (card);
       if (matchesTag && matchesQuery) {
-        card.style.display = 'block';
+        htmlCard.style.display = 'block';
         visibleCount++;
       } else {
-        card.style.display = 'none';
+        htmlCard.style.display = 'none';
       }
     });
 
@@ -210,7 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 6. Global Keyboard Shortcuts
   window.addEventListener('keydown', (e) => {
-    const active = document.activeElement;
+    const active = /** @type {HTMLElement | null} */ (document.activeElement);
     const isInput = active && (
       active.tagName === 'INPUT' ||
       active.tagName === 'TEXTAREA' ||
@@ -219,7 +220,7 @@ document.addEventListener('DOMContentLoaded', () => {
     );
 
     // Escape key blurs active input
-    if (e.key === 'Escape' && isInput) {
+    if (e.key === 'Escape' && isInput && active) {
       active.blur();
       return;
     }
@@ -236,7 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // / : Focus Search Input
     if (e.key === '/') {
-      const searchBox = document.getElementById('lecture-search-input');
+      const searchBox = /** @type {HTMLInputElement | null} */ (document.getElementById('lecture-search-input'));
       if (searchBox) {
         e.preventDefault();
         searchBox.focus();

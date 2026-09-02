@@ -25,15 +25,38 @@ APP_JS = COURSE_ROOT / "js" / "app.js"
 
 EXPECTED_LECTURES = [
     f"{i:02d}-{name}.html"
-    for i, name in enumerate([
-        "intro-ml", "fcnn", "autodiff-pinn", "losses-mle", "cnn-layers",
-        "cnn-architectures", "optimizers", "hyperparams", "metric-learning",
-        "contrastive-ssl", "vae", "gan", "diffusion", "cv-tasks",
-        "rnn-lstm", "attention-seq2seq", "transformers", "self-attention",
-        "lstm-vs-transformer", "text-word2vec", "mt-bleu", "enc-dec",
-        "rl-intro", "bellman", "vi-pi-mc", "td-qlearning",
-        "policy-gradient", "actor-critic",
-    ])
+    for i, name in enumerate(
+        [
+            "intro-ml",
+            "fcnn",
+            "autodiff-pinn",
+            "losses-mle",
+            "cnn-layers",
+            "cnn-architectures",
+            "optimizers",
+            "hyperparams",
+            "metric-learning",
+            "contrastive-ssl",
+            "vae",
+            "gan",
+            "diffusion",
+            "cv-tasks",
+            "rnn-lstm",
+            "attention-seq2seq",
+            "transformers",
+            "self-attention",
+            "lstm-vs-transformer",
+            "text-word2vec",
+            "mt-bleu",
+            "enc-dec",
+            "rl-intro",
+            "bellman",
+            "vi-pi-mc",
+            "td-qlearning",
+            "policy-gradient",
+            "actor-critic",
+        ]
+    )
 ]
 
 
@@ -89,8 +112,7 @@ class TestM1Challenger2Empirical(unittest.TestCase):
         cls.app_content = APP_JS.read_text(encoding="utf-8")
 
         cls.lecture_contents = {
-            lec: (LECTURES_DIR / lec).read_text(encoding="utf-8")
-            for lec in EXPECTED_LECTURES
+            lec: (LECTURES_DIR / lec).read_text(encoding="utf-8") for lec in EXPECTED_LECTURES
         }
 
     # -------------------------------------------------------------------------
@@ -128,7 +150,11 @@ class TestM1Challenger2Empirical(unittest.TestCase):
                 )
 
             # Check modal overlay attributes
-            self.assertIn('class="progress-modal-overlay"', content, f"{doc_name} missing .progress-modal-overlay")
+            self.assertIn(
+                'class="progress-modal-overlay"',
+                content,
+                f"{doc_name} missing .progress-modal-overlay",
+            )
             self.assertIn('role="dialog"', content, f"{doc_name} missing role='dialog'")
             self.assertIn('aria-modal="true"', content, f"{doc_name} missing aria-modal='true'")
 
@@ -139,7 +165,7 @@ class TestM1Challenger2Empirical(unittest.TestCase):
         """Verify #exam-simulator-container is strictly absent from index.html & 28 lectures, present in exam.html."""
         # 1. index.html checks
         self.assertNotIn(
-            "id=\"exam-simulator-container\"",
+            'id="exam-simulator-container"',
             self.index_content,
             "index.html must NOT contain id='exam-simulator-container'",
         )
@@ -167,7 +193,7 @@ class TestM1Challenger2Empirical(unittest.TestCase):
         # 3. All 28 lectures
         for lec, content in self.lecture_contents.items():
             self.assertNotIn(
-                "id=\"exam-simulator-container\"",
+                'id="exam-simulator-container"',
                 content,
                 f"Lecture {lec} must NOT contain id='exam-simulator-container'",
             )
@@ -203,7 +229,10 @@ class TestM1Challenger2Empirical(unittest.TestCase):
 
             # Check target exists on disk
             target_path = (lec_file.parent / search_href.split("?")[0]).resolve()
-            self.assertTrue(target_path.is_file(), f"Target {target_path} referenced by {lec} must exist on disk")
+            self.assertTrue(
+                target_path.is_file(),
+                f"Target {target_path} referenced by {lec} must exist on disk",
+            )
 
             # Check exam nav link
             exam_links = [
@@ -219,10 +248,15 @@ class TestM1Challenger2Empirical(unittest.TestCase):
                 f"{lec} #nav-exam-btn must link to ../exam.html",
             )
             target_exam = (lec_file.parent / exam_href).resolve()
-            self.assertTrue(target_exam.is_file(), f"Target {target_exam} referenced by {lec} must exist on disk")
+            self.assertTrue(
+                target_exam.is_file(),
+                f"Target {target_exam} referenced by {lec} must exist on disk",
+            )
 
             # Check Progress button
-            self.assertIn("nav-progress-btn", parser.element_ids, f"{lec} must contain #nav-progress-btn")
+            self.assertIn(
+                "nav-progress-btn", parser.element_ids, f"{lec} must contain #nav-progress-btn"
+            )
 
     # -------------------------------------------------------------------------
     # 4. Theme Synchronization DOM Contracts
@@ -238,7 +272,9 @@ class TestM1Challenger2Empirical(unittest.TestCase):
 
         # In index.html and exam.html, verify header theme toggle exists
         for name, html in [("index.html", self.index_content), ("exam.html", self.exam_content)]:
-            self.assertIn('class="theme-toggle"', html, f"{name} must contain .theme-toggle button in header")
+            self.assertIn(
+                'class="theme-toggle"', html, f"{name} must contain .theme-toggle button in header"
+            )
 
     # -------------------------------------------------------------------------
     # 5. CSS Responsive Viewport and Safe Area Insets
@@ -255,8 +291,12 @@ class TestM1Challenger2Empirical(unittest.TestCase):
         # Check bottom nav display and position on mobile
         self.assertIn(".bottom-nav-bar", self.style_content)
         self.assertIn("env(safe-area-inset-bottom", self.style_content)
-        self.assertIn("padding-bottom: max(8px, env(safe-area-inset-bottom, 0px))", self.style_content)
-        self.assertIn("padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px))", self.style_content)
+        self.assertIn(
+            "padding-bottom: max(8px, env(safe-area-inset-bottom, 0px))", self.style_content
+        )
+        self.assertIn(
+            "padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px))", self.style_content
+        )
 
         # Back to top button elevation
         self.assertIn("calc(80px + env(safe-area-inset-bottom, 0px))", self.style_content)

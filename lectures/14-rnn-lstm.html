@@ -21,7 +21,7 @@ window.MathJax = {
 <header class="top"><div class="inner">
   <div class="kicker">Блок C · Языковые модели и Трансформеры · Вопрос 13</div>
   <h1>Лекция 14. Рекуррентные сети: RNN, LSTM, biLSTM, GRU</h1>
-  <p class="sub">Обработка последовательностей переменной длины, BPTT, затухание и взрыв градиентов, анатомия LSTM (3 гейта, cell state, Constant Error Carousel), двунаправленные сети biLSTM, архитектура GRU, режимы регрессии, авторегрессии и Seq2Seq.</p>
+  <p class="sub">Последовательности переменной длины, BPTT, затухание/взрыв градиентов, анатомия LSTM (3 гейта, Cell State, Constant Error Carousel), biLSTM, GRU, режимы регрессии и Seq2Seq.</p>
   <div class="meta">
     <span class="pill">⏱ 2 ч 30 мин</span>
     <span class="pill gray">10 вопросов препода</span>
@@ -37,38 +37,38 @@ window.MathJax = {
 <nav class="toc">
   <div class="bt">Содержание лекции</div>
   <ol>
-    <li><a href="#s1">Интуиция и мотивация</a></li>
-    <li><a href="#s2">Архитектура и схема</a></li>
-    <li><a href="#s3">Математический аппарат</a></li>
-    <li><a href="#s4">Пошаговый числовой пример</a></li>
-    <li><a href="#s5">Преимущества, недостатки и применимость</a></li>
-    <li><a href="#qa">🎯 Препод спросит</a></li>
-    <li><a href="#tasks">📝 Микро-задачи</a></li>
-    <li><a href="#cheat">⚡ Краткий скелет ответа по билету</a></li>
+    <li><a href="#s1">1. Интуиция и мотивация</a></li>
+    <li><a href="#s2">2. Архитектура и схема</a></li>
+    <li><a href="#s3">3. Математический аппарат</a></li>
+    <li><a href="#s4">4. Пошаговый числовой пример</a></li>
+    <li><a href="#s5">5. Преимущества, недостатки и применимость</a></li>
+    <li><a href="#qa">6. 🎯 Препод спросит</a></li>
+    <li><a href="#tasks">7. 📝 Микро-задачи с решениями</a></li>
+    <li><a href="#cheat">8. ⚡ Скелет ответа по билету</a></li>
   </ol>
 </nav>
 
 <!-- ============================================ -->
 <h2 id="s1"><span class="num">1.</span> Интуиция и мотивация</h2>
 
-<p>Стандартные полносвязные нейронные сети (FCNN/MLP) и классические сверточные архитектуры исходят из фундаментального предположения: входные векторы имеют <strong>фиксированную размерность</strong> и являются <strong>независимыми одинаково распределенными величинами</strong> ($i.i.d.$). Однако реальный мир наполнен процессами с выраженной временной или структурной упорядоченностью: естественные языки, временные ряды котировок и датчиков, аудиосигналы, последовательности аминокислот в белках.</p>
+<p>Полносвязные (FCNN) и свёрточные сети предполагают входы <strong>фиксированной размерности</strong> и свойство $i.i.d.$ Однако реальные данные (текст, аудио, временные ряды) обладают временной структурой и переменной длиной.</p>
 
-<p>Применение FCNN к таким данным наталкивается на непреодолимые барьеры:</p>
+<p>Барьеры применения FCNN к последовательностям:</p>
 <ol>
-  <li><strong>Переменная длина последовательностей ($T$):</strong> Предложения в тексте могут состоять как из 3, так и из 100 слов. В полносвязном слое размер входного тензора жестко зафиксирован матрицей весов $W \in \mathbb{R}^{d_{\text{in}} \times d_{\text{hidden}}}$.</li>
-  <li><strong>Отсутствие разделения параметров во времени (Weight Sharing):</strong> Если ключевое слово встретилось в начале предложения или в конце, FCNN вынуждена обучать для него абсолютно независимые группы весов на разных позициях.</li>
-  <li><strong>Отсутствие контекстной памяти:</strong> Выходной отклик на шаге $t$ никак не учитывает информацию, поступившую на шагах $t-1, t-2, \dots, 1$.</li>
+  <li><strong>Переменная длина ($T$):</strong> размер входа в FCNN жёстко зафиксирован матрицей $W \in \mathbb{R}^{d_{\text{in}} \times d_{\text{hidden}}}$.</li>
+  <li><strong>Отсутствие разделения весов во времени (Weight Sharing):</strong> FCNN вынуждена обучать независимые веса для каждого временного шага.</li>
+  <li><strong>Отсутствие контекстной памяти:</strong> отклик на шаге $t$ не зависит от шагов $1, \dots, t-1$.</li>
 </ol>
 
 <div class="box idea">
   <div class="bt">💡 Ключевая идея рекуррентности</div>
-  <p>Рекуррентная нейронная сеть (RNN) обрабатывает последовательность $(x_1, x_2, \dots, x_T)$ <strong>пошагово во времени</strong>, сохраняя и непрерывно обновляя внутренний вектор состояния — <strong>скрытое состояние (Hidden State, $h_t$)</strong>. При этом на каждом шаге времени применяется <em>один и тот же набор матриц весов</em>, что делает число обучаемых параметров независимым от длины последовательности $T$.</p>
+  <p>Рекуррентная сеть (RNN) обрабатывает $(x_1, \dots, x_T)$ <strong>пошагово во времени</strong>, обновляя скрытое состояние <strong>(Hidden State, $h_t$)</strong>. Один и тот же набор матриц весов переиспользуется на всех шагах, делая число параметров независимым от $T$.</p>
 </div>
 
 <!-- ============================================ -->
 <h2 id="s2"><span class="num">2.</span> Архитектура и схема</h2>
 
-<p>Рекуррентная ячейка получает на вход текущий вектор $x_t$ и скрытое состояние с предыдущего шага $h_{t-1}$, формируя новое скрытое состояние $h_t$ и выходной логит $y_t$. Развертка по времени (unrolling) превращает циклическую структуру в эквивалентную сверхглубокую сеть с разделяемыми весами:</p>
+<p>Ячейка принимает $x_t$ и $h_{t-1}$, вычисляя $h_t$ и $y_t$. Развёртка во времени (unrolling) превращает цикл в эквивалентную глубокую сеть с разделяемыми весами:</p>
 
 <div class="scheme">
   КОМПАКТНЫЙ ЦИКЛ:          РАЗВЕРТКА ПО ВРЕМЕНИ (UNROLLING):
@@ -82,10 +82,10 @@ x_t ─┤ RNN ├─┐ h_t    h_0─┤  RNN_1  ├─h_1┤  RNN_2  ├─h_2
         └────┘                 │             │             │                   │
                               x_1           x_2           x_3                 x_T
 
-<span class="cap">Развертка RNN во времени: одна и та же ячейка с весами $(W_{xh}, W_{hh}, W_{hy})$ переиспользуется на всех $T$ шагах.</span></div>
+<span class="cap">Развёртка RNN во времени: матрицы $(W_{xh}, W_{hh}, W_{hy})$ переиспользуются на всех $T$ шагах.</span></div>
 
-<h3>Анатомия ячейки LSTM (Long Short-Term Memory)</h3>
-<p>Для решения проблемы затухания градиента архитектура LSTM (Hochreiter & Schmidhuber, 1997) разделяет память на два канала: <strong>Cell State ($C_t$)</strong> — долговременная память, проходящая сквозь ячейку по линейной магистрали («конвейер константной ошибки»), и <strong>Hidden State ($h_t$)</strong> — кратковременная рабочая память, фильтруемая тремя вентилями (гейтами):</p>
+<h3>Анатомия ячейки LSTM</h3>
+<p>Для устранения затухания градиента LSTM (Hochreiter &amp; Schmidhuber, 1997) разделяет память на <strong>Cell State ($C_t$)</strong> — долговременную магистраль («конвейер константной ошибки»), и <strong>Hidden State ($h_t$)</strong> — кратковременное состояние, управляемое тремя гейтами:</p>
 
 <div class="scheme">
   УСТРОЙСТВО ЯЧЕЙКИ LSTM:
@@ -101,156 +101,109 @@ x_t ─┤ RNN ├─┐ h_t    h_0─┤  RNN_1  ├─h_1┤  RNN_2  ├─h_2
            │                 │             │       │        Output   │
   x_t ─────┴─────────────────┴─────────────┴───────┴─────── Gate o_t─[ σ ]
 
-<span class="cap">Вентили LSTM: Forget Gate $f_t$ (удаление из памяти), Input Gate $i_t$ (запись в память), Output Gate $o_t$ (чтение в скрытое состояние).</span></div>
+<span class="cap">Гейты LSTM: Forget Gate $f_t$ (стирание памяти), Input Gate $i_t$ (запись кандидата), Output Gate $o_t$ (выдача в скрытое состояние).</span></div>
 
-<h3>Двунаправленная biLSTM и упрощенная GRU</h3>
-<p>В задачах анализа готового текста (классификация, извлечение сущностей NER) будущий контекст так же важен, как и прошлый. <strong>biLSTM</strong> параллельно запускает два рекуррентных слоя (прямой $\overrightarrow{h}_t$ и обратный $\overleftarrow{h}_t$), объединяя их выходы конкатенацией $h_t = [\overrightarrow{h}_t; \overleftarrow{h}_t]$.</p>
-<p>В <strong>GRU (Gated Recurrent Unit, Cho et al., 2014)</strong> состояния $C_t$ и $h_t$ объединены, а число вентилей сокращено до двух: <em>Update Gate ($z_t$)</em> и <em>Reset Gate ($r_t$)</em>, что снижает объем параметров на 25% при сохранении устойчивости к затуханию градиентов.</p>
+<h3>biLSTM и GRU</h3>
+<p><strong>biLSTM</strong> объединяет прямой $\overrightarrow{h}_t$ и обратный $\overleftarrow{h}_t$ слои: $h_t = [\overrightarrow{h}_t; \overleftarrow{h}_t]$. Применяется при анализе готового контекста (NER, POS, классификация).</p>
+<p><strong>GRU (Cho et al., 2014)</strong> объединяет $C_t$ и $h_t$, используя 2 гейта: <em>Update Gate ($z_t$)</em> и <em>Reset Gate ($r_t$)</em>. Это экономит 25% параметров при сопоставимом качестве.</p>
 
 <!-- ============================================ -->
 <h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
 
 <h3>1. Базовая модель Vanilla RNN (Elman RNN)</h3>
-<p>Прямой проход на временном шаге $t \in \{1, \dots, T\}$ задается уравнениями:</p>
+<p>Прямой проход на шаге $t \in \{1, \dots, T\}$:</p>
 
 <div class="math-scroll-wrapper">
-$$ h_t = \tanh\left( W_{hh} h_{t-1} + W_{xh} x_t + b_h \right) $$
-</div>
-<div class="math-scroll-wrapper">
-$$ y_t = W_{hy} h_t + b_y $$
+$$ h_t = \tanh\left( W_{hh} h_{t-1} + W_{xh} x_t + b_h \right), \quad y_t = W_{hy} h_t + b_y $$
 </div>
 <ul>
-  <li>$x_t \in \mathbb{R}^{d_{\text{in}}}$ — входной вектор токена/признаков на шаге $t$.</li>
-  <li>$h_t \in \mathbb{R}^{d_{\text{hidden}}}$ — скрытое состояние памяти.</li>
-  <li>$W_{xh} \in \mathbb{R}^{d_{\text{hidden}} \times d_{\text{in}}}$, $W_{hh} \in \mathbb{R}^{d_{\text{hidden}} \times d_{\text{hidden}}}$, $W_{hy} \in \mathbb{R}^{d_{\text{out}} \times d_{\text{hidden}}}$ — матрицы обучаемых параметров.</li>
-  <li>$b_h \in \mathbb{R}^{d_{\text{hidden}}}$, $b_y \in \mathbb{R}^{d_{\text{out}}}$ — векторы смещения (bias).</li>
+  <li>$x_t \in \mathbb{R}^{d_{\text{in}}}$, $h_t \in \mathbb{R}^{d_{\text{hidden}}}$, $y_t \in \mathbb{R}^{d_{\text{out}}}$.</li>
+  <li>$W_{xh} \in \mathbb{R}^{d_{\text{hidden}} \times d_{\text{in}}}$, $W_{hh} \in \mathbb{R}^{d_{\text{hidden}} \times d_{\text{hidden}}}$, $W_{hy} \in \mathbb{R}^{d_{\text{out}} \times d_{\text{hidden}}}$.</li>
+  <li>$b_h \in \mathbb{R}^{d_{\text{hidden}}}$, $b_y \in \mathbb{R}^{d_{\text{out}}}$.</li>
 </ul>
 
-<h3>2. Обучение BPTT и математический вывод затухания градиентов</h3>
-<p>Функция потерь последовательности равна сумме по шагам: $\mathcal{L} = \sum_{t=1}^T \mathcal{L}_t(y_t, \hat{y}_t)$. Градиент ошибки на шаге $T$ по рекуррентной матрице весов $W_{hh}$ раскрывается по цепному правилу:</p>
+<h3>2. BPTT и вывод затухания/взрыва градиентов</h3>
+<p>Ошибка последовательности: $\mathcal{L} = \sum_{t=1}^T \mathcal{L}_t(y_t, \hat{y}_t)$. Градиент ошибки по $W_{hh}$:</p>
 
 <div class="math-scroll-wrapper">
 $$ \frac{\partial \mathcal{L}_T}{\partial W_{hh}} = \sum_{k=1}^T \frac{\partial \mathcal{L}_T}{\partial h_T} \cdot \frac{\partial h_T}{\partial h_k} \cdot \frac{\partial h_k}{\partial W_{hh}} $$
 </div>
 
-<p>Ключевым звеном является якобиан перехода $\frac{\partial h_T}{\partial h_k}$, представляющий собой произведение по всем промежуточным шагам:</p>
+<p>Якобиан перехода $\frac{\partial h_T}{\partial h_k}$ через произведение по промежуточным шагам:</p>
 
 <div class="math-scroll-wrapper">
 $$ \frac{\partial h_T}{\partial h_k} = \prod_{j=k+1}^T \frac{\partial h_j}{\partial h_{j-1}} = \prod_{j=k+1}^T \text{diag}\left(1 - \tanh^2(z_j)\right) W_{hh}^T $$
 </div>
 
 <div class="box warnbox">
-  <div class="bt">⚠️ Анализ собственных значений матрицы $W_{hh}$</div>
-  <p>Поскольку производная гиперболического тангенса ограничена $\tanh'(z) \in (0, 1]$, норма произведения матриц оценивается сверху:</p>
+  <div class="bt">⚠️ Анализ нормы градиента</div>
+  <p>Так как $|\tanh'(z)| \le 1$, оценка нормы сверху:</p>
   <div class="math-scroll-wrapper">
   $$ \left\| \frac{\partial h_T}{\partial h_k} \right\| \le \prod_{j=k+1}^T \|W_{hh}\|_2 \le \left( \lambda_{\max}(W_{hh}) \right)^{T-k} $$
   </div>
   <ul>
-    <li>Если максимальное сингулярное число $\lambda_{\max}(W_{hh}) < 1$, градиент <strong>экспоненциально затухает к нулю</strong> ($0.9^{50} \approx 0.005$) — сеть не способна улавливать долгосрочные зависимости (Vanishing Gradient).</li>
-    <li>Если $\lambda_{\max}(W_{hh}) > 1$, норма градиента <strong>экспоненциально взрывается</strong> ($1.2^{50} \approx 9100$) — параметры уходят в `NaN` (Exploding Gradient).</li>
+    <li>При $\lambda_{\max}(W_{hh}) < 1$: <strong>экспоненциальное затухание</strong> градиента (Vanishing Gradient) — сеть теряет долгосрочные связи.</li>
+    <li>При $\lambda_{\max}(W_{hh}) > 1$: <strong>экспоненциальный взрыв</strong> градиента (Exploding Gradient) — параметры уходят в NaN. Лечится клиппингом: $g \leftarrow g \cdot \min\left(1, \frac{C}{\|g\|_2}\right)$.</li>
   </ul>
 </div>
 
-<h3>3. Канонические уравнения LSTM (Long Short-Term Memory)</h3>
-<p>Для каждого шага $t$ вычисляются 4 вентильные проекции и обновление состояния ячейки:</p>
+<h3>3. Канонические уравнения LSTM</h3>
+<p>На каждом шаге $t$ вычисляются 4 вентильные проекции и обновление состояния:</p>
 
 <div class="math-scroll-wrapper">
 $$ \begin{aligned}
-f_t &= \sigma\left( W_{xf} x_t + W_{hf} h_{t-1} + b_f \right) && \text{Forget Gate: доля стирания старой памяти } C_{t-1} \\
-i_t &= \sigma\left( W_{xi} x_t + W_{hi} h_{t-1} + b_i \right) && \text{Input Gate: доля записи нового кандидата } \tilde{C}_t \\
-\tilde{C}_t &= \tanh\left( W_{xc} x_t + W_{hc} h_{t-1} + b_c \right) && \text{Candidate State: вектор новых признаков} \\
-C_t &= f_t \odot C_{t-1} + i_t \odot \tilde{C}_t && \text{Cell State Update: ЛИНЕЙНОЕ накопление памяти!} \\
-o_t &= \sigma\left( W_{xo} x_t + W_{ho} h_{t-1} + b_o \right) && \text{Output Gate: фильтр для скрытого состояния} \\
-h_t &= o_t \odot \tanh(C_t) && \text{Hidden State: выходной вектор ячейки}
+f_t &= \sigma\left( W_{xf} x_t + W_{hf} h_{t-1} + b_f \right) && \text{Forget Gate (стирание старой памяти } C_{t-1}\text{)} \\
+i_t &= \sigma\left( W_{xi} x_t + W_{hi} h_{t-1} + b_i \right) && \text{Input Gate (запись нового кандидата } \tilde{C}_t\text{)} \\
+\tilde{C}_t &= \tanh\left( W_{xc} x_t + W_{hc} h_{t-1} + b_c \right) && \text{Candidate State (вектор признаков)} \\
+C_t &= f_t \odot C_{t-1} + i_t \odot \tilde{C}_t && \text{Cell State (линейное накопление памяти)} \\
+o_t &= \sigma\left( W_{xo} x_t + W_{ho} h_{t-1} + b_o \right) && \text{Output Gate (фильтр скрытого состояния)} \\
+h_t &= o_t \odot \tanh(C_t) && \text{Hidden State (выход ячейки)}
 \end{aligned} $$
 </div>
-<p>где $\sigma(z) = \frac{1}{1 + e^{-z}}$ — логистическая сигмоида с областью значений $(0, 1)$, $\odot$ — поэлементное умножение Адамара.</p>
+<p>где $\sigma(z) = \frac{1}{1 + e^{-z}}$, $\odot$ — умножение Адамара.</p>
 
 <div class="box okbox">
-  <div class="bt">💡 Почему градиент в LSTM не затухает (Constant Error Carousel)</div>
-  <p>Частная производная состояния ячейки по предыдущему состоянию равна: $\frac{\partial C_t}{\partial C_{t-1}} = f_t$. При обратном распространении ошибки по магистрали ячейки:</p>
-  <div class="math-scroll-wrapper">
-  $$ \frac{\partial \mathcal{L}}{\partial C_k} = \frac{\partial \mathcal{L}}{\partial C_T} \prod_{j=k+1}^T f_j $$
-  </div>
-  <p>Если вентиль забывания открыт ($f_j \approx 1$), ошибка протекает сквозь время <strong>без затухания и матричных умножений</strong> на сотни шагов назад!</p>
+  <div class="bt">💡 Constant Error Carousel</div>
+  <p>Частная производная ячейки: $\frac{\partial C_t}{\partial C_{t-1}} = f_t$. Градиент ошибки: $\frac{\partial \mathcal{L}}{\partial C_k} = \frac{\partial \mathcal{L}}{\partial C_T} \prod_{j=k+1}^T f_j$. При $f_j \approx 1$ градиент передаётся <strong>без затухания и матричных перемножений</strong>.</p>
 </div>
 
-<h3>4. Уравнения двунаправленной biLSTM и GRU</h3>
-<p><strong>biLSTM:</strong></p>
-<div class="math-scroll-wrapper">
-$$ \overrightarrow{h}_t = \text{LSTM}_{\text{fwd}}(x_t, \overrightarrow{h}_{t-1}), \quad \overleftarrow{h}_t = \text{LSTM}_{\text{bwd}}(x_t, \overleftarrow{h}_{t+1}), \quad h_t = \left[ \overrightarrow{h}_t; \, \overleftarrow{h}_t \right] \in \mathbb{R}^{2 d_{\text{hidden}}} $$
-</div>
+<h3>4. Уравнения biLSTM и GRU</h3>
+<p><strong>biLSTM:</strong> $\overrightarrow{h}_t = \text{LSTM}_{\text{fwd}}(x_t, \overrightarrow{h}_{t-1})$, $\overleftarrow{h}_t = \text{LSTM}_{\text{bwd}}(x_t, \overleftarrow{h}_{t+1})$, $h_t = \left[ \overrightarrow{h}_t; \, \overleftarrow{h}_t \right] \in \mathbb{R}^{2 d_{\text{hidden}}}$.</p>
 
 <p><strong>GRU:</strong></p>
 <div class="math-scroll-wrapper">
 $$ \begin{aligned}
-z_t &= \sigma\left( W_{xz} x_t + W_{hz} h_{t-1} + b_z \right) && \text{Update Gate (баланс памяти)} \\
-r_t &= \sigma\left( W_{xr} x_t + W_{hr} h_{t-1} + b_r \right) && \text{Reset Gate (сброс прошлого контекста)} \\
-\tilde{h}_t &= \tanh\left( W_{xh} x_t + W_{hh} (r_t \odot h_{t-1}) + b_h \right) && \text{Кандидат скрытого состояния} \\
-h_t &= (1 - z_t) \odot h_{t-1} + z_t \odot \tilde{h}_t && \text{Выпуклая комбинация}
+z_t &= \sigma\left( W_{xz} x_t + W_{hz} h_{t-1} + b_z \right) && \text{Update Gate} \\
+r_t &= \sigma\left( W_{xr} x_t + W_{hr} h_{t-1} + b_r \right) && \text{Reset Gate} \\
+\tilde{h}_t &= \tanh\left( W_{xh} x_t + W_{hh} (r_t \odot h_{t-1}) + b_h \right) && \text{Кандидат состояния} \\
+h_t &= (1 - z_t) \odot h_{t-1} + z_t \odot \tilde{h}_t && \text{Выпуклая интерполяция}
 \end{aligned} $$
 </div>
 
 <!-- ============================================ -->
 <h2 id="s4"><span class="num">4.</span> Пошаговый числовой пример</h2>
 
-<p>Рассчитаем вручную один шаг вперед для 1D-ячейки LSTM ($d_{\text{in}}=1, d_{\text{hidden}}=1$).</p>
-
-<p><strong>Входные данные:</strong></p>
+<p>Один шаг 1D-ячейки LSTM ($d_{\text{in}}=1, d_{\text{hidden}}=1$):</p>
+<p><strong>Вход:</strong> $x_t = 1.0, h_{t-1} = 0.5, C_{t-1} = 2.0$.</p>
+<p><strong>Параметры:</strong></p>
 <ul>
-  <li>Текущий вход: $x_t = 1.0$</li>
-  <li>Предыдущее скрытое состояние: $h_{t-1} = 0.5$</li>
-  <li>Предыдущее состояние ячейки: $C_{t-1} = 2.0$</li>
+  <li>Forget: $W_{xf} = 0.5, W_{hf} = 0.2, b_f = 0.5$</li>
+  <li>Input: $W_{xi} = 0.8, W_{hi} = -0.4, b_i = 0.0$</li>
+  <li>Candidate: $W_{xc} = -0.5, W_{hc} = 1.0, b_c = 0.0$</li>
+  <li>Output: $W_{xo} = 0.1, W_{ho} = 0.6, b_o = 0.2$</li>
 </ul>
 
-<p><strong>Заданные параметры весов и смещений:</strong></p>
-<ul>
-  <li>Forget Gate: $W_{xf} = 0.5$, $W_{hf} = 0.2$, $b_f = 0.5$</li>
-  <li>Input Gate: $W_{xi} = 0.8$, $W_{hi} = -0.4$, $b_i = 0.0$</li>
-  <li>Candidate: $W_{xc} = -0.5$, $W_{hc} = 1.0$, $b_c = 0.0$</li>
-  <li>Output Gate: $W_{xo} = 0.1$, $W_{ho} = 0.6$, $b_o = 0.2$</li>
-</ul>
-
-<p><strong>Пошаговый расчет:</strong></p>
+<p><strong>Расчёт:</strong></p>
 <ol>
-  <li><strong>Forget Gate:</strong>
-    <div class="math-scroll-wrapper">
-    $$ z_f = 0.5 \cdot 1.0 + 0.2 \cdot 0.5 + 0.5 = 0.5 + 0.1 + 0.5 = 1.1 $$
-    </div>
-    $$ f_t = \sigma(1.1) = \frac{1}{1 + e^{-1.1}} \approx 0.7503 $$
-  </li>
-  <li><strong>Input Gate:</strong>
-    <div class="math-scroll-wrapper">
-    $$ z_i = 0.8 \cdot 1.0 + (-0.4) \cdot 0.5 + 0.0 = 0.8 - 0.2 = 0.6 $$
-    </div>
-    $$ i_t = \sigma(0.6) = \frac{1}{1 + e^{-0.6}} \approx 0.6457 $$
-  </li>
-  <li><strong>Кандидат в память ($\tilde{C}_t$):</strong>
-    <div class="math-scroll-wrapper">
-    $$ z_c = -0.5 \cdot 1.0 + 1.0 \cdot 0.5 + 0.0 = -0.5 + 0.5 = 0.0 $$
-    </div>
-    $$ \tilde{C}_t = \tanh(0.0) = 0.0 $$
-  </li>
-  <li><strong>Обновление Cell State ($C_t$):</strong>
-    <div class="math-scroll-wrapper">
-    $$ C_t = f_t \cdot C_{t-1} + i_t \cdot \tilde{C}_t = 0.7503 \cdot 2.0 + 0.6457 \cdot 0.0 = 1.5006 + 0.0 = \mathbf{1.5006} $$
-    </div>
-  </li>
-  <li><strong>Output Gate:</strong>
-    <div class="math-scroll-wrapper">
-    $$ z_o = 0.1 \cdot 1.0 + 0.6 \cdot 0.5 + 0.2 = 0.1 + 0.3 + 0.2 = 0.6 $$
-    </div>
-    $$ o_t = \sigma(0.6) = \frac{1}{1 + e^{-0.6}} \approx 0.6457 $$
-  </li>
-  <li><strong>Новое скрытое состояние ($h_t$):</strong>
-    <div class="math-scroll-wrapper">
-    $$ h_t = o_t \cdot \tanh(C_t) = 0.6457 \cdot \tanh(1.5006) \approx 0.6457 \cdot 0.9052 = \mathbf{0.5845} $$
-    </div>
-  </li>
+  <li>$z_f = 0.5(1.0) + 0.2(0.5) + 0.5 = 1.1 \implies f_t = \sigma(1.1) \approx \mathbf{0.7503}$.</li>
+  <li>$z_i = 0.8(1.0) - 0.4(0.5) + 0.0 = 0.6 \implies i_t = \sigma(0.6) \approx \mathbf{0.6457}$.</li>
+  <li>$z_c = -0.5(1.0) + 1.0(0.5) + 0.0 = 0.0 \implies \tilde{C}_t = \tanh(0.0) = \mathbf{0.0}$.</li>
+  <li>$C_t = f_t C_{t-1} + i_t \tilde{C}_t = 0.7503(2.0) + 0.6457(0.0) = \mathbf{1.5006}$.</li>
+  <li>$z_o = 0.1(1.0) + 0.6(0.5) + 0.2 = 0.6 \implies o_t = \sigma(0.6) \approx \mathbf{0.6457}$.</li>
+  <li>$h_t = o_t \tanh(C_t) = 0.6457 \cdot \tanh(1.5006) \approx 0.6457 \cdot 0.9052 = \mathbf{0.5845}$.</li>
 </ol>
-<p><em>Итог шага:</em> Память ячейки мягко уменьшилась с $2.0$ до $1.5006$ (Forget Gate сохранил $75\%$), а новое скрытое состояние сформировано равным $h_t = 0.5845$.</p>
 
-<h3>Практическая реализация ячейки LSTM на PyTorch</h3>
+<h3>Реализация ячейки LSTM на PyTorch</h3>
 <pre><code>import torch
 import torch.nn as nn
 
@@ -259,7 +212,6 @@ class CustomLSTMCell(nn.Module):
         super().__init__()
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
-        # Объединенная линейная проекция для 4 вентилей: [f, i, c, o]
         self.ih = nn.Linear(input_dim, 4 * hidden_dim)
         self.hh = nn.Linear(hidden_dim, 4 * hidden_dim)
 
@@ -286,11 +238,11 @@ class CustomLSTMCell(nn.Module):
   <thead>
     <tr>
       <th>Архитектура</th>
-      <th>Число матриц на слой</th>
-      <th>Сложность шага (FLOPs)</th>
-      <th>Длина пути градиента</th>
-      <th>Параллелизм при обучении</th>
-      <th>Типовые задачи и границы применимости</th>
+      <th>Матриц на слой</th>
+      <th>Сложность шага</th>
+      <th>Путь градиента</th>
+      <th>Параллелизм обучения</th>
+      <th>Применимость</th>
     </tr>
   </thead>
   <tbody>
@@ -300,23 +252,23 @@ class CustomLSTMCell(nn.Module):
       <td>$O(T \cdot d^2)$</td>
       <td>$O(T)$ (затухает при $T > 10$)</td>
       <td>Последовательный ($O(T)$)</td>
-      <td>Устарела; только для коротких игрушечных рядов.</td>
+      <td>Устарела; только для коротких последовательностей.</td>
     </tr>
     <tr>
       <td><strong>LSTM</strong></td>
-      <td>$8$ ($4 \times W_{xh}, 4 \times W_{hh}$)</td>
+      <td>$8$ ($4 W_{xh}, 4 W_{hh}$)</td>
       <td>$4 \times O(T \cdot d^2)$</td>
       <td>$O(1)$ по каналу $C_t$ ($T \sim 200\text{--}500$)</td>
       <td>Последовательный ($O(T)$)</td>
-      <td>Временные ряды, телеметрия, аудио, edge-девайсы с потоковым входом $O(1)$ памяти.</td>
+      <td>Временные ряды, аудио, стриминг с $O(1)$ памяти.</td>
     </tr>
     <tr>
       <td><strong>GRU</strong></td>
-      <td>$6$ ($3 \times W_{xh}, 3 \times W_{hh}$)</td>
+      <td>$6$ ($3 W_{xh}, 3 W_{hh}$)</td>
       <td>$3 \times O(T \cdot d^2)$</td>
       <td>$O(1)$ по каналу интерполяции</td>
       <td>Последовательный ($O(T)$)</td>
-      <td>Легковесная альтернатива LSTM при жестком ограничении на память/скорость.</td>
+      <td>Экономичная замена LSTM при лимитах на память/GPU.</td>
     </tr>
     <tr>
       <td><strong>biLSTM</strong></td>
@@ -324,174 +276,153 @@ class CustomLSTMCell(nn.Module):
       <td>$8 \times O(T \cdot d^2)$</td>
       <td>$O(1)$ в обоих направлениях</td>
       <td>Последовательный ($O(T)$)</td>
-      <td>NER, частеречная разметка (POS), классификация готовых текстов. <strong>Запрещена для авторегрессии</strong>.</td>
+      <td>NER, POS-теггинг, классификация. <strong>Запрещена для авторегрессии</strong>.</td>
     </tr>
   </tbody>
 </table>
 </div>
 
 <!-- ============================================ -->
-<h2 id="qa">🎯 Препод спросит</h2>
+<h2 id="qa">6. 🎯 Препод спросит</h2>
 
-<details class="qa"><summary>В чем математическая причина, по которой LSTM не страдает от затухания градиента?</summary>
+<details class="qa"><summary>В чём математическая причина отсутствия затухания градиента в LSTM?</summary>
 <div class="ans">
-<p>В LSTM обновление состояния ячейки $C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t$ является <strong>аддитивным (линейным)</strong>. Производная $\frac{\partial C_t}{\partial C_{t-1}} = f_t$. Если Forget Gate открыт ($f_t \approx 1$), то градиент при обратном проходе $\frac{\partial \mathcal{L}}{\partial C_0} = \frac{\partial \mathcal{L}}{\partial C_T} \prod_{t=1}^T f_t \approx \frac{\partial \mathcal{L}}{\partial C_T} \cdot 1^T$ распространяется назад на сотни шагов <strong>без экспоненциального затухания</strong> (механизм Constant Error Carousel).</p>
+<p>Обновление $C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t$ аддитивно: $\frac{\partial C_t}{\partial C_{t-1}} = f_t$. При $f_t \approx 1$ градиент $\frac{\partial \mathcal{L}}{\partial C_0} = \frac{\partial \mathcal{L}}{\partial C_T} \prod_{t=1}^T f_t \approx \frac{\partial \mathcal{L}}{\partial C_T} \cdot 1^T$ распространяется назад без затухания и матричных перемножений (Constant Error Carousel).</p>
 </div></details>
 
-<details class="qa"><summary>Сколько обучаемых параметров находится внутри одного слоя LSTM по сравнению с простой RNN?</summary>
+<details class="qa"><summary>Сколько обучаемых параметров в одном слое LSTM по сравнению с обычной RNN?</summary>
 <div class="ans">
-<p>В простой RNN один слой содержит 1 пару матриц $(W_{xh}, W_{hh})$ и 1 вектор смещения $b_h$. В LSTM находятся <strong>4 независимых гейта/компонента</strong> ($f_t, i_t, \tilde{C}_t, o_t$), каждый из которых имеет свои матрицы $W_{xh}, W_{hh}$ и вектор bias $b$. Следовательно, слой LSTM содержит ровно <strong>в 4 раза больше параметров</strong>: $4 \times (d_{\text{in}} \cdot d_{\text{hidden}} + d_{\text{hidden}}^2 + d_{\text{hidden}})$.</p>
+<p>В обычной RNN: 1 пара $(W_{xh}, W_{hh})$ и вектор $b_h$. В LSTM — 4 независимых гейта ($f_t, i_t, \tilde{C}_t, o_t$). Параметров <strong>в 4 раза больше</strong>: $4 \times (d_{\text{in}} d_{\text{hidden}} + d_{\text{hidden}}^2 + d_{\text{hidden}})$.</p>
 </div></details>
 
 <details class="qa"><summary>Зачем в гейтах LSTM используется сигмоида $\sigma$, а при создании кандидата $\tilde{C}_t$ — $\tanh$?</summary>
 <div class="ans">
-<p><strong>Сигмоида ($\sigma \in [0, 1]$):</strong> Выполняет роль непрерывного мягкого вентиля (заслонки): значение $0$ полностью блокирует поток информации, значение $1$ пропускает его целиком.<br>
-<strong>Тангенс ($\tanh \in [-1, 1]$):</strong> Создает новые значения для добавления в память. Он центрирован относительно нуля и позволяет как увеличивать, так и уменьшать значения в $C_t$, предотвращая одностороннее накапливание и взрыв числовых значений памяти.</p>
+<p><strong>Сигмоида ($\sigma \in [0, 1]$):</strong> мягкий бинарный вентиль ($0$ — закрыт, $1$ — открыт).<br>
+<strong>Тангенс ($\tanh \in [-1, 1]$):</strong> создаёт центрированные относительно нуля значения, позволяя и увеличивать, и уменьшать память $C_t$ без накопления смещения.</p>
 </div></details>
 
 <details class="qa"><summary>Что такое Teacher Forcing и к какой проблеме на инференсе (Exposure Bias) он приводит?</summary>
 <div class="ans">
-<p><strong>Teacher Forcing</strong> — подача истинного токена обучающей выборки $y_{t-1}^{\text{true}}$ вместо сгенерированного моделью $\hat{y}_{t-1}$ на вход декодера во время обучения. Проблема <strong>Exposure Bias</strong> заключается в том, что при реальном инференсе подсказок учителя нет. Если модель совершает ошибку на первом шаге, она оказывается в не встречавшемся при обучении состоянии и начинает лавинообразно накапливать ошибки. Лечение: Scheduled Sampling (постепенное снижение вероятности Teacher Forcing к концу обучения).</p>
+<p><strong>Teacher Forcing</strong> — подача эталонного $y_{t-1}^{\text{true}}$ вместо предсказанного $\hat{y}_{t-1}$ на вход декодера при обучении. <strong>Exposure Bias</strong>: на инференсе подсказок нет, и первая же ошибка уводит модель в не встречавшееся состояние (накопление ошибок). Лечение: Scheduled Sampling.</p>
 </div></details>
 
-<details class="qa"><summary>В чем главное отличие GRU от LSTM?</summary>
+<details class="qa"><summary>В чём главное отличие GRU от LSTM?</summary>
 <div class="ans">
-<p>1. В GRU всего 2 вентиля (Update $z_t$ и Reset $r_t$) вместо 3 вентилей в LSTM.<br>
-2. В GRU нет отдельного Cell State $C_t$ — скрытое состояние $h_t$ объединяет функции рабочей и долговременной памяти.<br>
-3. В GRU на 25% меньше обучаемых параметров, поэтому она обучается быстрее и требует меньше памяти при сопоставимом качестве.</p>
+<p>1. В GRU 2 гейта (Update $z_t$, Reset $r_t$) вместо 3 в LSTM.<br>
+2. Нет отдельного $C_t$: состояние $h_t$ объединяет долговременную и рабочую память.<br>
+3. На 25% меньше параметров при сопоставимом качестве.</p>
 </div></details>
 
-<details class="qa"><summary>Можно ли распараллелить вычисления в RNN по временным шагам во время обучения?</summary>
+<details class="qa"><summary>Можно ли распараллелить вычисления в RNN по времени при обучении?</summary>
 <div class="ans">
-<p><strong>Нет, нельзя.</strong> По фундаментальному определению рекуррентности вычисление скрытого состояния $h_t$ строго последовательно требует готовности $h_{t-1}$. Временная сложность вычисления на GPU равна $O(T)$ последовательных шагов. Это критическое ограничение RNN стало главной причиной перехода индустрии к архитектуре Transformer.</p>
+<p><strong>Нет.</strong> Для вычисления $h_t$ строго необходимо готовое $h_{t-1}$. Временная сложность — $O(T)$ последовательных шагов на GPU. Это ограничение стимулировало создание Transformer.</p>
 </div></details>
 
-<details class="qa"><summary>Зачем нужна инициализация смещения Forget Gate единицей ($b_f = 1.0$)?</summary>
+<details class="qa"><summary>Зачем смещение Forget Gate инициализируют единицей ($b_f = 1.0$)?</summary>
 <div class="ans">
-<p>Если $b_f$ инициализировать нулями, то при старте обучения $\sigma(0) = 0.5$, и память ячейки будет уполовиниваться на каждом шаге, затухая за 10 шагов в $0.5^{10} \approx 0.001$. Установка $b_f = 1.0$ дает $\sigma(1) \approx 0.73$ (или выше), заставляя сеть по умолчанию <strong>помнить всю историю</strong> в начале обучения и учиться забывать только ненужное.</p>
+<p>При $b_f = 0$ имеем $\sigma(0) = 0.5$, и память затухает за 10 шагов ($0.5^{10} \approx 0.001$). Инициализация $b_f = 1.0$ даёт $\sigma(1) \approx 0.73$, заставляя сеть по умолчанию <strong>помнить всю историю</strong> в начале обучения.</p>
 </div></details>
 
-<details class="qa"><summary>Почему biLSTM нельзя использовать для авторегрессионной пошаговой генерации текста?</summary>
+<details class="qa"><summary>Почему biLSTM нельзя использовать для авторегрессионной генерации текста?</summary>
 <div class="ans">
-<p>В biLSTM обратный рекуррентный слой $\overleftarrow{h}_t$ обрабатывает последовательность от конца к началу ($t = T, T-1, \dots, 1$). В режиме реальной авторегрессионной генерации будущих токенов $x_{t+1}, \dots, x_T$ еще не существует, поэтому вычисление $\overleftarrow{h}_t$ физически невозможно. biLSTM применима только к полностью известным последовательностям.</p>
+<p>В biLSTM обратный слой $\overleftarrow{h}_t$ идёт от $T$ к $1$. При генерации будущих токенов ещё не существует, поэтому вычислить $\overleftarrow{h}_t$ невозможно. biLSTM применима только к готовым текстам.</p>
 </div></details>
 
-<details class="qa"><summary>Как устроен механизм PackedSequence в PyTorch и почему он критичен для эффективного обучения RNN?</summary>
+<details class="qa"><summary>Как устроен PackedSequence в PyTorch и почему он ускоряет обучение?</summary>
 <div class="ans">
-<p>При подаче батча предложений разной длины тензор дополняется нулями (padding) до $T_{\max}$. Это приводит к двум проблемам: напрасным вычислениям $O(B \cdot T_{\max})$ и искажению скрытого состояния $h_t$ из-за смещения $b_h$ на нулевых токенах. <code>torch.nn.utils.rnn.pack_padded_sequence</code> сжимает батч в 1D-массив реальных токенов и массив <code>batch_sizes</code> для каждого шага $t$. Ядра GPU вычисляют матричные умножения только для реально существующих элементов, динамически уменьшая размер батча во времени.</p>
+<p>Padding батча нулями тратит FLOPs и искажает скрытые состояния через bias. <code>pack_padded_sequence</code> сжимает батч в 1D-массив реальных токенов с массивом <code>batch_sizes</code>, исключая холостые операции на нулях.</p>
 </div></details>
 
-<details class="qa"><summary>Как математически работает Gradient Clipping по норме (torch.nn.utils.clip_grad_norm_)?</summary>
+<details class="qa"><summary>Как работает Gradient Clipping по норме (torch.nn.utils.clip_grad_norm_)?</summary>
 <div class="ans">
-<p>Функция <code>clip_grad_norm_(parameters, max_norm)</code> вычисляет глобальную евклидову норму всех градиентов сети: $\|g\|_2 = \sqrt{\sum_i \|g_i\|_2^2}$. Если $\|g\|_2 > C$ (где $C = \text{max\_norm}$), градиенты масштабируются:</p>
-<div class="math-scroll-wrapper">
-$$ g \leftarrow g \cdot \frac{C}{\|g\|_2} $$
-</div>
-<p>Это ограничивает максимальный шаг обновления весов, строго <strong>сохраняя точное направление антиградиента</strong>, что предотвращает катастрофические выбросы параметров на крутых склонах функции потерь RNN.</p>
+<p>Вычисляется $\|g\|_2 = \sqrt{\sum_i \|g_i\|_2^2}$. Если $\|g\|_2 > C$, градиенты масштабируются: $g \leftarrow g \cdot \frac{C}{\|g\|_2}$. Это ограничивает шаг обновления, <strong>сохраняя точное направление антиградиента</strong> и предотвращая взрыв параметров.</p>
 </div></details>
 
 <!-- ============================================ -->
-<h2 id="tasks">📝 Микро-задачи</h2>
+<h2 id="tasks">7. 📝 Микро-задачи с решениями</h2>
 
 <div class="task">
-  <div class="tt">Задача 1. Подсчет параметров слоя LSTM</div>
+  <div class="tt">Задача 1. Подсчёт параметров слоя LSTM</div>
   <p>Слой `nn.LSTM(input_size=100, hidden_size=256, bias=True)`. Сколько обучаемых параметров содержит этот слой в PyTorch?</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>Для каждого из 4 вентилей ($f, i, \tilde{C}, o$):</p>
+    <p>Для каждого из 4 гейтов ($f, i, \tilde{C}, o$):</p>
     <ul>
-      <li>Матрица входных весов $W_{xh}$: $100 \times 256 = 25\,600$.</li>
-      <li>Матрица скрытых весов $W_{hh}$: $256 \times 256 = 65\,536$.</li>
-      <li>Смещения: $256 + 256 = 512$ (в PyTorch задаются раздельные $b_{ih}$ и $b_{hh}$).</li>
-      <li>Параметров на один вентиль: $25\,600 + 65\,536 + 512 = 91\,648$.</li>
+      <li>$W_{xh}$: $100 \times 256 = 25\,600$.</li>
+      <li>$W_{hh}$: $256 \times 256 = 65\,536$.</li>
+      <li>Смещения: $256 + 256 = 512$ (раздельные $b_{ih}$ и $b_{hh}$).</li>
+      <li>На один гейт: $25\,600 + 65\,536 + 512 = 91\,648$.</li>
     </ul>
-    <p>Итого для 4 вентилей:</p>
-    <div class="math-scroll-wrapper">
-    $$ \text{Параметры} = 4 \times 91\,648 = \mathbf{366\,592} $$
-    </div>
+    <p>Итого для 4 гейтов: $\text{Параметры} = 4 \times 91\,648 = \mathbf{366\,592}$.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 2. Сравнение числа параметров GRU и LSTM</div>
-  <p>Сравните количество обучаемых параметров для слоев `nn.GRU(100, 256)` и `nn.LSTM(100, 256)`.</p>
+  <p>Сравните количество обучаемых параметров для слоёв `nn.GRU(100, 256)` и `nn.LSTM(100, 256)`.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>В GRU присутствуют 3 группы вентилей ($z, r, \tilde{h}$) вместо 4 в LSTM:</p>
+    <p>В GRU 3 группы гейтов ($z, r, \tilde{h}$) вместо 4 в LSTM:</p>
     <div class="math-scroll-wrapper">
     $$ \text{Параметры GRU} = 3 \times (100 \times 256 + 256 \times 256 + 512) = 3 \times 91\,648 = \mathbf{274\,944} $$
     </div>
-    <p>Относительная экономия параметров:</p>
-    <div class="math-scroll-wrapper">
-    $$ \frac{366\,592 - 274\,944}{366\,592} = \frac{91\,648}{366\,592} = 0.25 \implies \mathbf{25\%} $$
-    </div>
+    <p>Экономия параметров: $\frac{366\,592 - 274\,944}{366\,592} = \frac{91\,648}{366\,592} = 0.25 \implies \mathbf{25\%}$.</p>
   </div></details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 3. Ручной расчет обновления ячейки памяти $C_t$</div>
-  <p>Пусть вектор состояния ячейки на шаге $t-1$ равен $C_{t-1} = [2.0, -1.0]$. Вентили выдали: $f_t = [0.9, 0.1]$, $i_t = [0.5, 0.8]$, $\tilde{C}_t = [1.0, 2.0]$. Вычислите новое состояние ячейки $C_t$.</p>
+  <div class="tt">Задача 3. Ручной расчёт обновления ячейки памяти $C_t$</div>
+  <p>Пусть $C_{t-1} = [2.0, -1.0]$. Гейты выдали: $f_t = [0.9, 0.1]$, $i_t = [0.5, 0.8]$, $\tilde{C}_t = [1.0, 2.0]$. Вычислите $C_t$.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>Применяем поэлементную формулу обновления $C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t$:</p>
+    <p>Формула $C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t$:</p>
     <ul>
-      <li>1-я компонента: $0.9 \cdot 2.0 + 0.5 \cdot 1.0 = 1.8 + 0.5 = \mathbf{2.3}$</li>
-      <li>2-я компонента: $0.1 \cdot (-1.0) + 0.8 \cdot 2.0 = -0.1 + 1.6 = \mathbf{1.5}$</li>
+      <li>1-я компонента: $0.9(2.0) + 0.5(1.0) = 1.8 + 0.5 = \mathbf{2.3}$.</li>
+      <li>2-я компонента: $0.1(-1.0) + 0.8(2.0) = -0.1 + 1.6 = \mathbf{1.5}$.</li>
     </ul>
-    <div class="math-scroll-wrapper">
-    $$ C_t = [2.3, \, 1.5] $$
-    </div>
+    <p>Ответ: $C_t = [2.3, \, 1.5]$.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 4. Размерности тензоров в biLSTM</div>
-  <p>Батч из $B=32$ предложений длиной $T=50$ токенов. Размерность эмбеддинга токена $d_{\text{in}}=300$. Слой `nn.LSTM(300, 128, bidirectional=True, batch_first=True)`. Каковы точные формы выходных тензоров `output` и `h_n`?</p>
+  <p>Батч $B=32$, длина $T=50$, $d_{\text{in}}=300$. Слой `nn.LSTM(300, 128, bidirectional=True, batch_first=True)`. Каковы формы выходных тензоров `output` и `h_n`?</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>1. `output`: содержит скрытые состояния для всех $T$ шагов с конкатенацией прямого и обратного направлений:</p>
-    <div class="math-scroll-wrapper">
-    $$ \text{shape}(\text{output}) = (B, T, 2 \times d_{\text{hidden}}) = \mathbf{(32, 50, 256)} $$
-    </div>
-    <p>2. `h_n`: скрытые состояния финального шага для каждого направления отдельно:</p>
-    <div class="math-scroll-wrapper">
-    $$ \text{shape}(h_n) = (\text{num\_directions}, B, d_{\text{hidden}}) = \mathbf{(2, 32, 128)} $$
-    </div>
+    <p>1. `output`: скрытые состояния всех $T$ шагов (прямое + обратное): $\text{shape} = (B, T, 2 d_{\text{hidden}}) = \mathbf{(32, 50, 256)}$.<br>
+    2. `h_n`: состояния финального шага по направлениям: $\text{shape} = (\text{num\_directions}, B, d_{\text{hidden}}) = \mathbf{(2, 32, 128)}$.</p>
   </div></details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 5. Расчет градиентного клиппинга</div>
-  <p>Вектор градиентов модели имеет норму $\|g\|_2 = 10.0$. Установлен порог клиппинга $C = 2.0$. Какой множитель будет применен к каждому градиенту и чему станет равна новая норма?</p>
+  <div class="tt">Задача 5. Расчёт градиентного клиппинга</div>
+  <p>Норма градиентов $\|g\|_2 = 10.0$. Порог клиппинга $C = 2.0$. Какой множитель будет применён к градиентам и чему равна новая норма?</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>Поскольку $\|g\|_2 = 10.0 > C = 2.0$, вычисляется масштабирующий коэффициент:</p>
-    <div class="math-scroll-wrapper">
-    $$ \alpha = \frac{C}{\|g\|_2} = \frac{2.0}{10.0} = \mathbf{0.2} $$
-    </div>
-    <p>Каждый градиент умножается на $0.2$: $g_{\text{new}} = 0.2 \cdot g$. Новая евклидова норма градиента строго равна $\|g_{\text{new}}\|_2 = 0.2 \cdot 10.0 = \mathbf{2.0}$.</p>
+    <p>Так как $\|g\|_2 = 10.0 > C = 2.0$, множитель равен $\alpha = \frac{C}{\|g\|_2} = \frac{2.0}{10.0} = \mathbf{0.2}$.<br>
+    Новый градиент: $g_{\text{new}} = 0.2 \cdot g$. Новая норма: $\|g_{\text{new}}\|_2 = 0.2 \times 10.0 = \mathbf{2.0}$.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 6. Бутылочное горлышко Seq2Seq</div>
-  <p>Входная последовательность состоит из 100 слов. Скрытое состояние энкодера имеет размерность $d_{\text{hidden}} = 256$ (1 КБ в float32). В чем фундаментальный недостаток сжатия всей фразы в единственный вектор $h_{100}$ перед передачей декодеру?</p>
+  <p>Входная фраза содержит 100 слов. Скрытое состояние энкодера $d_{\text{hidden}} = 256$. В чём дефект сжатия фразы в один вектор $h_{100}$?</p>
   <details><summary>Решение</summary><div class="sol">
-    <p><strong>Проблема фиксированного вектора контекста (Information Bottleneck):</strong> Текст из 100 слов содержит сложные синтаксические конструкции и множество сущностей. Попытка упаковать всю информацию в один фиксированный вектор размерности 256 неизбежно приводит к потере контекста (особенно начальных токенов предложения) из-за компрессии. Это фундаментальное ограничение стало прямой мотивацией создания <strong>механизма внимания (Attention)</strong>.</p>
+    <p><strong>Information Bottleneck:</strong> упаковка 100 слов в 256 чисел приводит к потере контекста (особенно начальных токенов) из-за компрессии. Это ограничение привело к разработке <strong>механизма внимания (Attention)</strong>.</p>
   </div></details>
 </div>
 
 <!-- ============================================ -->
-<h2 id="cheat">⚡ Краткий скелет ответа по билету</h2>
+<h2 id="cheat">8. ⚡ Скелет ответа по билету</h2>
 
 <div class="cheat">
-  <div class="bt">Скелет устного ответа по билету 13 (Рекуррентные сети, LSTM, biLSTM)</div>
+  <div class="bt">Скелет ответа по билету 13 (Рекуррентные сети, LSTM, biLSTM)</div>
   <ol>
-    <li><strong>Мотивация рекуррентности:</strong> Неприменимость FCNN к последовательностям переменной длины $T$, необходимость совместного использования весов (weight sharing) и пошаговой памяти.</li>
-    <li><strong>Vanilla RNN:</strong> $h_t = \tanh(W_{hh} h_{t-1} + W_{xh} x_t + b_h)$. Развертка во времени эквивалентна глубокой сети длины $T$ с общими весами.</li>
-    <li><strong>BPTT и затухание градиента:</strong> Градиент содержит множитель $\prod_{j=k+1}^T \text{diag}(1-\tanh^2) W_{hh}^T$. При $\lambda_{\max}(W_{hh}) < 1$ градиенты экспоненциально стремятся к 0; при $\lambda > 1$ взрываются (лечится клиппингом).</li>
-    <li><strong>Архитектура LSTM:</strong> Разделение памяти на Cell State $C_t$ (долговременный канал константной ошибки) и Hidden State $h_t$ (кратковременный выход).</li>
-    <li><strong>3 вентиля LSTM:</strong> Forget Gate $f_t = \sigma(\cdot)$ (что забыть), Input Gate $i_t = \sigma(\cdot)$ (что записать), Output Gate $o_t = \sigma(\cdot)$ (что выдать в $h_t$).</li>
-    <li><strong>Математика памяти:</strong> $C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t$, $h_t = o_t \odot \tanh(C_t)$. Аддитивное обновление гарантирует $\frac{\partial C_t}{\partial C_{t-1}} = f_t \approx 1$ без затухания.</li>
-    <li><strong>Двунаправленная biLSTM:</strong> Конкатенация прямого $\overrightarrow{h}_t$ и обратного $\overleftarrow{h}_t$ потоков. Дает полный контекст, но запрещена для авторегрессионной генерации.</li>
-    <li><strong>Архитектура GRU:</strong> 2 вентиля ($z_t$ update, $r_t$ reset), объединение $C_t$ и $h_t$, на 25% меньше параметров.</li>
-    <li><strong>Режимы работы:</strong> Many-to-One (регрессия, классификация), Many-to-Many синхронный (NER, POS), Seq2Seq (перевод, суммаризация).</li>
-    <li><strong>Teacher Forcing:</strong> Подача истинного $y_{t-1}$ на вход декодера при обучении. Ускоряет сходимость, но порождает Exposure Bias на инференсе.</li>
+    <li><strong>Мотивация:</strong> переменная длина $T$, разделение весов во времени (weight sharing), пошаговая память $h_t$.</li>
+    <li><strong>Vanilla RNN:</strong> $h_t = \tanh(W_{hh} h_{t-1} + W_{xh} x_t + b_h)$. Развёртка во времени эквивалентна глубокой сети длины $T$.</li>
+    <li><strong>BPTT и затухание градиента:</strong> множитель $\prod \text{diag}(1-\tanh^2) W_{hh}^T$. При $\lambda_{\max} < 1$ градиент затухает, при $\lambda > 1$ взрывается (лечится клиппингом).</li>
+    <li><strong>Архитектура LSTM:</strong> Cell State $C_t$ (долговременный канал) и Hidden State $h_t$ (кратковременный выход).</li>
+    <li><strong>3 гейта LSTM:</strong> Forget $f_t = \sigma(\cdot)$, Input $i_t = \sigma(\cdot)$, Output $o_t = \sigma(\cdot)$.</li>
+    <li><strong>Математика памяти:</strong> $C_t = f_t \odot C_{t-1} + i_t \odot \tilde{C}_t$, $h_t = o_t \odot \tanh(C_t)$. Аддитивность даёт $\frac{\partial C_t}{\partial C_{t-1}} = f_t \approx 1$ (Constant Error Carousel).</li>
+    <li><strong>biLSTM:</strong> конкатенация прямого $\overrightarrow{h}_t$ и обратного $\overleftarrow{h}_t$. Даёт полный контекст; запрещена для авторегрессии.</li>
+    <li><strong>GRU:</strong> 2 гейта ($z_t$ update, $r_t$ reset), объединение $C_t$ и $h_t$, на 25% меньше весов.</li>
+    <li><strong>Режимы работы:</strong> Many-to-One (классификация/регрессия), Many-to-Many синхронный (NER, POS), Seq2Seq (перевод).</li>
+    <li><strong>Teacher Forcing:</strong> подача истинного $y_{t-1}$ при обучении. Ускоряет сходимость, но порождает Exposure Bias на инференсе.</li>
   </ol>
 </div>
 

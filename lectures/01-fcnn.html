@@ -21,7 +21,7 @@ window.MathJax = {
 <header class="top"><div class="inner">
   <div class="kicker">Блок A · Основы · Билет 1</div>
   <h1>Лекция 1. Однослойные и многослойные полносвязные сети. Функции активации. Прямое и обратное распространение ошибки</h1>
-  <p class="sub">Математический фундамент глубокого обучения: матричные уравнения прямого прохода, 4 канонических уравнения Backprop, градиентные аномалии и инициализация весов.</p>
+  <p class="sub">Фундамент глубокого обучения: прямой проход, 4 канонических уравнения Backpropagation, градиентные аномалии и инициализация весов.</p>
   <div class="meta">
     <span class="pill">⏱ 2 ч 30 мин</span>
     <span class="pill gray">12 вопросов препода</span>
@@ -51,18 +51,18 @@ window.MathJax = {
 <!-- ============================================ -->
 <h2 id="s1"><span class="num">1.</span> Интуиция и мотивация</h2>
 
-<p>Искусственная нейронная сеть — это параметрическое семейство нелинейных отображений $f_\theta: \mathbb{R}^{n_{in}} \to \mathbb{R}^{n_{out}}$, построенное в виде направленного графа из элементарных вычислительных единиц (нейронов).</p>
-
-<p>Базовый нейрон осуществляет аффинное преобразование входного вектора с последующим поэлементным применением нелинейной скалярной функции активации:</p>
+<p><strong>Полносвязная нейронная сеть (MLP)</strong> — параметрическое семейство нелинейных отображений $f_\theta: \mathbb{R}^{n_{in}} \to \mathbb{R}^{n_{out}}$, задаваемое суперпозицией аффинных преобразований и поэлементных нелинейностей:</p>
 <div class="math-scroll-wrapper">
-$$ z = \sum_{i=1}^n w_i x_i + b = w^\top x + b, \qquad a = g(z) $$
+$$ z = w^\top x + b, \qquad a = g(z) $$
 </div>
 
 <div class="box idea">
-  <div class="bt">💡 Геометрический смысл нейрона и необходимость глубины</div>
-  <p><strong>1. Одиночный нейрон</strong> задает разделяющую гиперплоскость $w^\top x + b = 0$ в $\mathbb{R}^n$. Вектор весов $w$ определяет нормаль к гиперплоскости, а скаляр $b$ (смещение, bias) задает ее сдвиг относительно начала координат. Без нелинейности композиция любых линейных слоев $W_2(W_1 x + b_1) + b_2 = (W_2 W_1)x + (W_2 b_1 + b_2)$ сворачивается в эквивалентную однослойную линейную модель.</p>
-  <p><strong>2. Проблема нелинейной разделимости (XOR):</strong> Однослойный перцептрон Розенблатта не способен решить задачу «исключающего ИЛИ» (XOR), так как точки $(0,0), (1,1) \to 0$ и $(0,1), (1,0) \to 1$ невозможно разделить одной прямой. Добавление одного скрытого слоя из 2 нейронов деформирует пространство признаков, делая выборку линейно разделимой.</p>
-  <p><strong>3. Теорема Цыбенко (1989):</strong> Любая непрерывная функция на компактном подмножестве $\mathbb{R}^n$ может быть сколь угодно точно аппроксимирована многослойным перцептроном с <em>одним скрытым слоем</em> конечной ширины при наличии сигмоидальной (или любой непрерывной неполиномиальной) функции активации.</p>
+  <div class="bt">💡 Геометрический смысл и необходимость глубины</div>
+  <ul>
+    <li><strong>1. Разделяющая гиперплоскость:</strong> нейрон задаёт плоскость $w^\top x + b = 0$. Без нелинейности $g(z)$ композиция слоёв $W_2(W_1 x + b_1) + b_2 = (W_2 W_1)x + (W_2 b_1 + b_2)$ вырождается в одну линейную модель.</li>
+    <li><strong>2. Проблема XOR:</strong> однослойный перцептрон не разделяет точки XOR. 1 скрытый слой из 2 нейронов деформирует признаковое пространство, делая выборку линейно разделимой.</li>
+    <li><strong>3. Теорема Цыбенко (1989):</strong> 1 скрытый слой с нелинейной активацией аппроксимирует любую непрерывную функцию на компакте. Однако глубина ($L \gg 1$) позволяет сжать экспоненциальное число нейронов $O(2^n)$ в компактную полиномиальную композицию слоёв.</li>
+  </ul>
 </div>
 
 <!-- ============================================ -->
@@ -83,170 +83,120 @@ $$ z = \sum_{i=1}^n w_i x_i + b = w^\top x + b, \qquad a = g(z) $$
 └──────────────┘             └─────────────────────┘          Loss L(y, ŷ)
                                                                        │
                              ◀─── Обратный проход (Backprop) ──────────┘
-<span class="cap">Рис. 1. Вычислительный граф двухслойной полносвязной нейросети: прямой проход (сигналы $a^l$) и обратный проход (ошибки $\delta^l$).</span></div>
+<span class="cap">Рис. 1. Вычислительный граф двухслойной сети: прямой проход ($a^l$) и обратный проход ($\delta^l$).</span></div>
 
-<h3>2.2 Решение проблемы XOR двумя гиперплоскостями</h3>
+<h3>2.2 Решение проблемы XOR в скрытом пространстве</h3>
 
 <div class="scheme">
   x_2 ▲                                  h_2 ▲  (Скрытое пространство)
       │  (0,1) [1]      (1,1) [0]            │   (0,1) [1]     (1,1) [0]
       │     ●              ○                 │      ●             ○
-      │                                      │  ──────────────────────── Разделяющая
-      │                                      │                           прямая W^2
+      │                                      │  ──────────────────────── Разделяющая W^2
       │     ○              ●                 │      ○             ●
       │  (0,0) [0]      (1,0) [1]            │   (0,0) [0]     (1,0) [1]
       └──────────────────────────▶ x_1       └──────────────────────────▶ h_1
-      Прямой не разделить!                   Скрытые нейроны h_1, h_2 сделали XOR
-                                             линейно разделимым!
-<span class="cap">Рис. 2. Геометрия трансформации признакового пространства скрытым слоем MLP.</span></div>
+      Линейно не разделимо!                  Скрытые нейроны h_1, h_2 сделали XOR разделимым!
+<span class="cap">Рис. 2. Трансформация признакового пространства скрытым слоем MLP.</span></div>
 
 <!-- ============================================ -->
 <h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
 
-<h3>3.1 Векторно-матричная запись прямого прохода (Forward Pass)</h3>
+<h3>3.1 Прямой проход (Forward Pass)</h3>
 
-<p>Для сети глубиной $L$ слоев входной вектор обозначается $a^0 = x \in \mathbb{R}^{n_0}$. Для каждого слоя $l = 1, \dots, L$:</p>
-
+<p>Для сети глубиной $L$ со входом $a^0 = x \in \mathbb{R}^{n_0}$ на каждом слое $l = 1, \dots, L$:</p>
 <div class="math-scroll-wrapper">
-$$ z^l = W^l a^{l-1} + b^l $$
+$$ z^l = W^l a^{l-1} + b^l, \qquad a^l = g^l(z^l) $$
 </div>
-<div class="math-scroll-wrapper">
-$$ a^l = g^l(z^l) $$
-</div>
-<p>где $W^l \in \mathbb{R}^{n_l \times n_{l-1}}$ — матрица весовых коэффициентов, $b^l \in \mathbb{R}^{n_l}$ — вектор смещений, $z^l \in \mathbb{R}^{n_l}$ — вектор предактиваций (взвешенных сумм), $g^l(\cdot)$ — поэлементная функция активации, $a^l \in \mathbb{R}^{n_l}$ — вектор активаций ($a^L = \hat{y}$).</p>
+<p>где $W^l \in \mathbb{R}^{n_l \times n_{l-1}}$ — матрица весов, $b^l \in \mathbb{R}^{n_l}$ — смещения, $z^l$ — предактивации, $a^l$ — активации ($a^L = \hat{y}$).</p>
 
-<h3>3.2 Функции активации и их аналитические производные</h3>
+<h3>3.2 Функции активации и их производные</h3>
 
 <div class="table-scroll-wrapper">
 <table>
-<thead><tr><th>Функция</th><th>Аналитическая формула $g(z)$</th><th>Производная $g'(z)$</th><th>Область значений</th><th>Свойства и особенности</th></tr></thead>
+<thead><tr><th>Функция</th><th>Формула $g(z)$</th><th>Производная $g'(z)$</th><th>Область</th><th>Свойства</th></tr></thead>
 <tbody>
-<tr><td><strong>Sigmoid</strong></td><td>$\sigma(z) = \dfrac{1}{1 + e^{-z}}$</td><td>$\sigma(z)(1 - \sigma(z))$</td><td>$(0, 1)$</td><td>$\max g'(z) = 0.25$ при $z=0$. Не zero-centered. Затухание градиента при $|z| \gg 0$.</td></tr>
-<tr><td><strong>Tanh</strong></td><td>$\tanh(z) = \dfrac{e^z - e^{-z}}{e^z + e^{-z}}$</td><td>$1 - \tanh^2(z)$</td><td>$(-1, 1)$</td><td>$\max g'(z) = 1.0$ при $z=0$. Zero-centered. Быстрее сходится, чем Sigmoid.</td></tr>
-<tr><td><strong>ReLU</strong></td><td>$\max(0, z)$</td><td>$\begin{cases} 1, & z > 0 \\ 0, & z < 0 \end{cases}$</td><td>$[0, +\infty)$</td><td>Производная 1 в положительной области (нет затухания). Проблема Dying ReLU при $z < 0$.</td></tr>
-<tr><td><strong>Leaky ReLU</strong></td><td>$\max(\alpha z, z), \; \alpha \approx 0.01$</td><td>$\begin{cases} 1, & z > 0 \\ \alpha, & z < 0 \end{cases}$</td><td>$(-\infty, +\infty)$</td><td>Устраняет проблему «мертвых нейронов», пропуская слабый градиент $\alpha$.</td></tr>
-<tr><td><strong>GELU</strong></td><td>$z \Phi(z) = z \cdot \dfrac{1}{2}\left[1 + \text{erf}\left(\dfrac{z}{\sqrt{2}}\right)\right]$</td><td>$\Phi(z) + z \phi(z)$</td><td>$[-0.17, +\infty)$</td><td>Гладкая стохастическая нелинейность. Де-факто стандарт в Transformers (BERT, GPT).</td></tr>
-<tr><td><strong>SiLU (Swish)</strong></td><td>$z \cdot \sigma(z) = \dfrac{z}{1 + e^{-z}}$</td><td>$\sigma(z) + z\sigma(z)(1 - \sigma(z))$</td><td>$[-0.28, +\infty)$</td><td>Саморегулирующееся масштабирование. Стандарт в EfficientNet, LLaMA, ConvNeXt.</td></tr>
+<tr><td><strong>Sigmoid</strong></td><td>$\sigma(z) = \frac{1}{1 + e^{-z}}$</td><td>$\sigma(z)(1 - \sigma(z))$</td><td>$(0, 1)$</td><td>$\max g'=0.25$ при $z=0$. Не zero-centered. Затухание градиента.</td></tr>
+<tr><td><strong>Tanh</strong></td><td>$\frac{e^z - e^{-z}}{e^z + e^{-z}}$</td><td>$1 - \tanh^2(z)$</td><td>$(-1, 1)$</td><td>$\max g'=1.0$. Zero-centered. Быстрее сходится, чем Sigmoid.</td></tr>
+<tr><td><strong>ReLU</strong></td><td>$\max(0, z)$</td><td>$\mathbb{I}(z > 0)$</td><td>$[0, +\infty)$</td><td>Производная 1 при $z>0$ (нет затухания). Dying ReLU при $z<0$.</td></tr>
+<tr><td><strong>Leaky ReLU</strong></td><td>$\max(\alpha z, z), \alpha \approx 0.01$</td><td>$\mathbb{I}(z > 0) + \alpha\mathbb{I}(z \le 0)$</td><td>$(-\infty, +\infty)$</td><td>Устраняет мёртвые нейроны градиентом $\alpha$.</td></tr>
+<tr><td><strong>GELU</strong></td><td>$z \Phi(z) = z \cdot \frac{1}{2}[1 + \text{erf}(\frac{z}{\sqrt{2}})]$</td><td>$\Phi(z) + z \phi(z)$</td><td>$[-0.17, +\infty)$</td><td>Гладкая нелинейность. Стандарт в Transformers (BERT, GPT).</td></tr>
+<tr><td><strong>SiLU</strong></td><td>$z \cdot \sigma(z) = \frac{z}{1 + e^{-z}}$</td><td>$\sigma(z) + z\sigma(z)(1 - \sigma(z))$</td><td>$[-0.28, +\infty)$</td><td>Саморегулируемое масштабирование (LLaMA, ConvNeXt).</td></tr>
 </tbody>
 </table>
 </div>
 
 <h3>3.3 Четыре канонических уравнения Backpropagation</h3>
 
-<p>Определим вектор локальной ошибки слоя $l$ как частную производную скалярной функции потерь $L$ по вектору предактиваций $z^l$: $\delta^l \triangleq \frac{\partial L}{\partial z^l} \in \mathbb{R}^{n_l}$. По цепному правилу (Chain Rule) выводятся 4 базовых уравнения:</p>
+<p>Обозначим ошибку слоя как $\delta^l \triangleq \frac{\partial L}{\partial z^l} \in \mathbb{R}^{n_l}$. По цепному правилу (Chain Rule):</p>
 
 <div class="math-scroll-wrapper">
-$$ \mathbf{(BP1)} \quad \delta^L = \nabla_{a^L} L \odot g'^L(z^L) $$
+$$ \mathbf{(BP1)} \quad \delta^L = \nabla_{a^L} L \odot g'^L(z^L) \quad \text{($\delta^L = \hat{y} - y$ для Softmax+CE и Linear+MSE)} $$
 </div>
-<p><em>Для задачи многоклассовой классификации (Cross-Entropy + Softmax) и регрессии (MSE + Линейный выход) уравнение BP1 упрощается до точного вида: $\delta^L = \hat{y} - y$.</em></p>
 
 <div class="math-scroll-wrapper">
-$$ \mathbf{(BP2)} \quad \delta^l = \left( (W^{l+1})^\top \delta^{l+1} \right) \odot g'^l(z^l) $$
+$$ \mathbf{(BP2)} \quad \delta^l = \left( (W^{l+1})^\top \delta^{l+1} \right) \odot g'^l(z^l) \quad \text{(перенос ошибки назад)} $$
 </div>
-<p><em>Уравнение рекуррентного переноса ошибки: ошибка $\delta^{l+1}$ проецируется назад через транспонированную матрицу весов $(W^{l+1})^\top$ и модулируется локальной производной активации $g'^l(z^l)$.</em></p>
 
 <div class="math-scroll-wrapper">
-$$ \mathbf{(BP3)} \quad \frac{\partial L}{\partial W^l} = \delta^l (a^{l-1})^\top $$
+$$ \mathbf{(BP3)} \quad \frac{\partial L}{\partial W^l} = \delta^l (a^{l-1})^\top \quad \text{(внешнее произведение ошибки и входа)} $$
 </div>
-<p><em>Градиент $\frac{\partial L}{\partial W^l}$ по весам слоя $l$ представляет собой внешнее матричное произведение (outer product) вектора ошибки слоя $\delta^l$ и вектора входных активаций $(a^{l-1})^\top$.</em></p>
 
 <div class="math-scroll-wrapper">
-$$ \mathbf{(BP4)} \quad \frac{\partial L}{\partial b^l} = \delta^l $$
+$$ \mathbf{(BP4)} \quad \frac{\partial L}{\partial b^l} = \delta^l \quad \text{(градиент смещений)} $$
 </div>
-<p><em>Градиент $\frac{\partial L}{\partial b^l}$ по вектору смещений в точности равен вектору ошибки $\delta^l$.</em></p>
 
-<h3>3.4 Затухание и взрыв градиентов (Vanishing & Exploding Gradients)</h3>
+<h3>3.4 Градиентные аномалии</h3>
 
-<p>Раскрывая уравнение BP2 от выходного слоя $L$ до первого слоя $l=1$ по цепочке, получаем:</p>
+<p>Раскрывая BP2 по цепочке слоёв:</p>
 <div class="math-scroll-wrapper">
-$$ \delta^1 = \left[ \prod_{k=2}^L (W^k)^\top \text{diag}\left(g'(z^k)\right) \right] \delta^L $$
+$$ \delta^1 = \left[ \prod_{k=2}^L (W^k)^\top \text{diag}(g'(z^k)) \right] \delta^L $$
 </div>
 <ul>
-  <li><strong>Затухание градиента (Vanishing):</strong> Если в качестве активации используется сигмоида, то $\max g'(z) = 0.25$. В сети глубиной $L=10$ множитель производных дает $0.25^{10} \approx 9.5 \times 10^{-7}$. Сигнал градиента затухает экспоненциально, первые слои перестают обучаться.</li>
-  <li><strong>Взрыв градиента (Exploding):</strong> Если спектральный радиус матриц весов $\rho(W^k) > 1$, многократное перемножение приводит к экспоненциальному росту $\|\delta^1\| \to \infty$, переполнению float и значению Loss $= \text{NaN}$.</li>
+  <li><strong>Затухание градиентов (Vanishing):</strong> для сигмоиды $\prod g' \le 0.25^L \to 0$. Первые слои перестают обучаться.</li>
+  <li><strong>Взрыв градиентов (Exploding):</strong> при спектральном радиусе $\rho(W) > 1$ норма $\|\delta^1\| \to \infty$. Решается Gradient Clipping.</li>
 </ul>
 
-<h3>3.5 Инициализация весов: Xavier (Glorot) и He (Kaiming)</h3>
+<h3>3.5 Инициализация весов: Xavier и He</h3>
 
-<p>Чтобы дисперсия активаций и градиентов сохранялась неизменной от слоя к слою ($\mathbb{D}[a^l] = \mathbb{D}[a^{l-1}]$ и $\mathbb{D}[\delta^l] = \mathbb{D}[\delta^{l+1}]$), дисперсия весов должна учитывать число входов $n_{in}$ и выходов $n_{out}$ слоя:</p>
-
+<p>Для сохранения дисперсии активаций и градиентов по слоям ($\mathbb{D}[a^l] = \mathbb{D}[a^{l-1}]$):</p>
 <div class="math-scroll-wrapper">
-$$ \text{Xavier / Glorot (для Sigmoid, Tanh):} \quad W_{ij} \sim \mathcal{N}\left(0, \frac{2}{n_{in} + n_{out}}\right) \quad \text{или} \quad U\left(-\sqrt{\frac{6}{n_{in} + n_{out}}}, \sqrt{\frac{6}{n_{in} + n_{out}}}\right) $$
+$$ \text{Xavier (Tanh, Sigmoid):} \quad W_{ij} \sim \mathcal{N}\left(0, \frac{2}{n_{in} + n_{out}}\right), \qquad \text{He (ReLU, LeakyReLU):} \quad W_{ij} \sim \mathcal{N}\left(0, \frac{2}{n_{in}}\right) $$
 </div>
-
-<div class="math-scroll-wrapper">
-$$ \text{He / Kaiming (для ReLU, LeakyReLU):} \quad W_{ij} \sim \mathcal{N}\left(0, \frac{2}{n_{in}}\right) \quad \text{или} \quad U\left(-\sqrt{\frac{6}{n_{in}}}, \sqrt{\frac{6}{n_{in}}}\right) $$
-</div>
-<p><em>Множитель 2 в числителе формулы He компенсирует зануление половины нейронов при положительном пороге ReLU.</em></p>
 
 <!-- ============================================ -->
 <h2 id="s4"><span class="num">4.</span> Пошаговый числовой пример</h2>
 
-<p>Рассчитаем полный шаг Forward Pass, Loss и Backpropagation для двухслойной сети с архитектурой $2 \to 2 \to 1$ (2 входа, 2 скрытых нейрона с ReLU, 1 линейный выход с MSE).</p>
+<p>Рассчитаем шаг Forward Pass, Loss и Backprop для сети $2 \to 2 \to 1$ (ReLU на скрытом слое, MSE на выходе, $\eta = 0.1$):</p>
+<p>Вход: $x = [0.5, -0.2]^\top$, $y = 1.0$. Веса: $W^1 = \begin{bmatrix} 0.1 & 0.4 \\ -0.3 & 0.2 \end{bmatrix}, b^1 = \begin{bmatrix} 0.1 \\ -0.1 \end{bmatrix}, W^2 = \begin{bmatrix} 0.5 & -0.5 \end{bmatrix}, b^2 = [0.2]$.</p>
 
-<p><strong>Исходные данные:</strong><br>
-Вход: $x = \begin{bmatrix} 0.5 \\ -0.2 \end{bmatrix}$, истинный выход: $y = 1.0$, темп обучения: $\eta = 0.1$.</p>
-<p>Параметры слоя 1: $W^1 = \begin{bmatrix} 0.1 & 0.4 \\ -0.3 & 0.2 \end{bmatrix}, \quad b^1 = \begin{bmatrix} 0.1 \\ -0.1 \end{bmatrix}$.</p>
-<p>Параметры слоя 2: $W^2 = \begin{bmatrix} 0.5 & -0.5 \end{bmatrix}, \quad b^2 = \begin{bmatrix} 0.2 \end{bmatrix}$.</p>
-
-<p><strong>Шаг 1. Прямой проход (Forward Pass):</strong></p>
+<p><strong>1. Прямой проход:</strong></p>
 <div class="math-scroll-wrapper">
-$$ z^1 = W^1 x + b^1 = \begin{bmatrix} 0.1(0.5) + 0.4(-0.2) + 0.1 \\ -0.3(0.5) + 0.2(-0.2) - 0.1 \end{bmatrix} = \begin{bmatrix} 0.05 - 0.08 + 0.1 \\ -0.15 - 0.04 - 0.1 \end{bmatrix} = \begin{bmatrix} 0.07 \\ -0.29 \end{bmatrix} $$
+$$ z^1 = \begin{bmatrix} 0.1(0.5) + 0.4(-0.2) + 0.1 \\ -0.3(0.5) + 0.2(-0.2) - 0.1 \end{bmatrix} = \begin{bmatrix} 0.07 \\ -0.29 \end{bmatrix}, \quad a^1 = \text{ReLU}(z^1) = \begin{bmatrix} 0.07 \\ 0.00 \end{bmatrix} $$
 </div>
 <div class="math-scroll-wrapper">
-$$ a^1 = \text{ReLU}(z^1) = \begin{bmatrix} \max(0, 0.07) \\ \max(0, -0.29) \end{bmatrix} = \begin{bmatrix} 0.07 \\ 0.00 \end{bmatrix} $$
-</div>
-<div class="math-scroll-wrapper">
-$$ z^2 = W^2 a^1 + b^2 = 0.5(0.07) - 0.5(0.00) + 0.2 = 0.035 + 0.2 = 0.235 \implies \hat{y} = 0.235 $$
-</div>
-<div class="math-scroll-wrapper">
-$$ L = \frac{1}{2}(\hat{y} - y)^2 = \frac{1}{2}(0.235 - 1.0)^2 = \frac{1}{2}(-0.765)^2 \approx 0.2926 $$
+$$ z^2 = 0.5(0.07) - 0.5(0) + 0.2 = 0.235 \implies \hat{y} = 0.235, \quad L = \frac{1}{2}(0.235 - 1)^2 \approx 0.2926 $$
 </div>
 
-<p><strong>Шаг 2. Обратный проход (Backpropagation):</strong></p>
-<p>Ошибка выходного слоя (BP1):</p>
+<p><strong>2. Обратный проход:</strong></p>
 <div class="math-scroll-wrapper">
-$$ \delta^2 = \frac{\partial L}{\partial z^2} = \hat{y} - y = 0.235 - 1.0 = -0.765 $$
-</div>
-<p>Градиенты слоя 2 (BP3, BP4):</p>
-<div class="math-scroll-wrapper">
-$$ \frac{\partial L}{\partial W^2} = \delta^2 (a^1)^\top = -0.765 \cdot \begin{bmatrix} 0.07 & 0.00 \end{bmatrix} = \begin{bmatrix} -0.05355 & 0.00000 \end{bmatrix} $$
+$$ \delta^2 = \hat{y} - y = 0.235 - 1.0 = -0.765 $$
 </div>
 <div class="math-scroll-wrapper">
-$$ \frac{\partial L}{\partial b^2} = \delta^2 = -0.765 $$
-</div>
-
-<p>Перенос ошибки на скрытый слой 1 (BP2):</p>
-<div class="math-scroll-wrapper">
-$$ (W^2)^\top \delta^2 = \begin{bmatrix} 0.5 \\ -0.5 \end{bmatrix} (-0.765) = \begin{bmatrix} -0.3825 \\ 0.3825 \end{bmatrix} $$
+$$ \frac{\partial L}{\partial W^2} = \delta^2 (a^1)^\top = -0.765 \cdot [0.07, 0] = [-0.05355, 0], \qquad \frac{\partial L}{\partial b^2} = -0.765 $$
 </div>
 <div class="math-scroll-wrapper">
-$$ g'^1(z^1) = \begin{bmatrix} \mathbb{I}(0.07 > 0) \\ \mathbb{I}(-0.29 > 0) \end{bmatrix} = \begin{bmatrix} 1 \\ 0 \end{bmatrix} $$
+$$ \delta^1 = (W^2)^\top \delta^2 \odot g'(z^1) = \begin{bmatrix} 0.5 \\ -0.5 \end{bmatrix} (-0.765) \odot \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} -0.3825 \\ 0.0000 \end{bmatrix} $$
 </div>
 <div class="math-scroll-wrapper">
-$$ \delta^1 = \begin{bmatrix} -0.3825 \\ 0.3825 \end{bmatrix} \odot \begin{bmatrix} 1 \\ 0 \end{bmatrix} = \begin{bmatrix} -0.3825 \\ 0.0000 \end{bmatrix} $$
+$$ \frac{\partial L}{\partial W^1} = \delta^1 x^\top = \begin{bmatrix} -0.3825 \\ 0 \end{bmatrix} [0.5, -0.2] = \begin{bmatrix} -0.19125 & 0.0765 \\ 0 & 0 \end{bmatrix}, \qquad \frac{\partial L}{\partial b^1} = \begin{bmatrix} -0.3825 \\ 0 \end{bmatrix} $$
 </div>
 
-<p>Градиенты слоя 1 (BP3, BP4):</p>
+<p><strong>3. Обновление весов ($\eta = 0.1$):</strong></p>
 <div class="math-scroll-wrapper">
-$$ \frac{\partial L}{\partial W^1} = \delta^1 (x)^\top = \begin{bmatrix} -0.3825 \\ 0 \end{bmatrix} \begin{bmatrix} 0.5 & -0.2 \end{bmatrix} = \begin{bmatrix} -0.19125 & 0.07650 \\ 0.00000 & 0.00000 \end{bmatrix} $$
+$$ W^2_{\text{new}} = [0.5, -0.5] - 0.1[-0.05355, 0] = [0.505355, -0.5], \quad b^2_{\text{new}} = 0.2 - 0.1(-0.765) = 0.2765 $$
 </div>
 <div class="math-scroll-wrapper">
-$$ \frac{\partial L}{\partial b^1} = \delta^1 = \begin{bmatrix} -0.3825 \\ 0.0000 \end{bmatrix} $$
-</div>
-
-<p><strong>Шаг 3. Обновление весов ($\eta = 0.1$):</strong></p>
-<div class="math-scroll-wrapper">
-$$ W^2_{\text{new}} = W^2 - 0.1 \frac{\partial L}{\partial W^2} = \begin{bmatrix} 0.5 & -0.5 \end{bmatrix} - 0.1 \begin{bmatrix} -0.05355 & 0 \end{bmatrix} = \begin{bmatrix} 0.505355 & -0.5 \end{bmatrix} $$
-</div>
-<div class="math-scroll-wrapper">
-$$ b^2_{\text{new}} = 0.2 - 0.1(-0.765) = 0.2765 $$
-</div>
-<div class="math-scroll-wrapper">
-$$ W^1_{\text{new}} = \begin{bmatrix} 0.1 & 0.4 \\ -0.3 & 0.2 \end{bmatrix} - 0.1 \begin{bmatrix} -0.19125 & 0.0765 \\ 0 & 0 \end{bmatrix} = \begin{bmatrix} 0.119125 & 0.39235 \\ -0.300000 & 0.20000 \end{bmatrix} $$
-</div>
-<div class="math-scroll-wrapper">
-$$ b^1_{\text{new}} = \begin{bmatrix} 0.1 \\ -0.1 \end{bmatrix} - 0.1 \begin{bmatrix} -0.3825 \\ 0 \end{bmatrix} = \begin{bmatrix} 0.13825 \\ -0.10000 \end{bmatrix} $$
+$$ W^1_{\text{new}} = \begin{bmatrix} 0.119125 & 0.39235 \\ -0.300000 & 0.20000 \end{bmatrix}, \quad b^1_{\text{new}} = \begin{bmatrix} 0.13825 \\ -0.10000 \end{bmatrix} $$
 </div>
 
 <!-- ============================================ -->
@@ -254,12 +204,12 @@ $$ b^1_{\text{new}} = \begin{bmatrix} 0.1 \\ -0.1 \end{bmatrix} - 0.1 \begin{bma
 
 <div class="table-scroll-wrapper">
 <table>
-<thead><tr><th>Модель / Компонент</th><th>Преимущества</th><th>Недостатки</th><th>Область применения</th></tr></thead>
+<thead><tr><th>Компонент</th><th>Преимущества</th><th>Недостатки</th><th>Область применения</th></tr></thead>
 <tbody>
-<tr><td><strong>Полносвязный слой (FCNN / Linear)</strong></td><td>Универсальная связность: учитывает взаимодействие каждой пары вход-выход</td><td>Квадратичный рост параметров $O(n_{in} n_{out})$, отсутствие пространственной инвариантности</td><td>Табличные данные, финальные головы классификаторов (MLP head), проекционные слои в Transformers</td></tr>
-<tr><td><strong>ReLU активация</strong></td><td>$O(1)$ вычисление, отсутствие затухания градиента при $z>0$, разреженность активаций</td><td>Не zero-centered, проблема Dying ReLU при отрицательных входах</td><td>Скрытые слои в CNN, ResNet, классических MLP</td></tr>
-<tr><td><strong>GELU / SiLU активация</strong></td><td>Гладкая дифференцируемость по всей оси $\mathbb{R}$, способность пропускать малые отрицательные значения</td><td>Выше вычислительная стоимость (экспоненты и erf)</td><td>Современные LLM (GPT, LLaMA), Vision Transformers, диффузионные модели</td></tr>
-<tr><td><strong>Softmax выход</strong></td><td>Строгая вероятностная интерпретация ($\sum p_i = 1, p_i \ge 0$), выпуклый Loss при Cross-Entropy</td><td>Чувствительность к выбросам logit-ов, эффект Overconfidence</td><td>Многоклассовая классификация (1 из $K$)</td></tr>
+<tr><td><strong>Linear (FCNN)</strong></td><td>Универсальная полносвязность входов и выходов</td><td>$O(n_{in} n_{out})$ параметров, нет сдвиговой инвариантности</td><td>Табличные данные, классификационные головы (MLP Head)</td></tr>
+<tr><td><strong>ReLU</strong></td><td>Быстрый расчёт $O(1)$, нет затухания при $z>0$</td><td>Dying ReLU при $z<0$, не zero-centered</td><td>Базовые скрытые слои CNN и MLP</td></tr>
+<tr><td><strong>GELU / SiLU</strong></td><td>Гладкая дифференцируемость на $\mathbb{R}$, ненулевой градиент при $z<0$</td><td>Выше вычислительная сложность</td><td>LLM (GPT, LLaMA), Vision Transformers</td></tr>
+<tr><td><strong>Softmax + CE</strong></td><td>Вероятностный выход ($\sum p_i = 1$), градиент $\hat{y} - y$</td><td>Чувствительность к выбросам логитов</td><td>Многоклассовая классификация (1 из $K$)</td></tr>
 </tbody>
 </table>
 </div>
@@ -269,62 +219,62 @@ $$ b^1_{\text{new}} = \begin{bmatrix} 0.1 \\ -0.1 \end{bmatrix} - 0.1 \begin{bma
 
 <details class="qa"><summary>Почему категорически нельзя инициализировать все веса нейросети нулями?</summary>
 <div class="ans">
-<p>Если все веса $W^l = 0$, то на прямом проходе все нейроны одного скрытого слоя получат абсолютно одинаковые предактивации $z_i = b_i$ и одинаковые выходы $a_i$. На обратном проходе градиенты $\frac{\partial L}{\partial W_{ij}}$ для всех параллельных нейронов окажутся равными. Возникает эффект симметрии: сколько бы эпох ни длилось обучение, все нейроны слоя будут обновляться идентично, и скрытый слой фактически схлопнется в один единственный нейрон.</p>
+<p>При $W=0$ все нейроны слоя получают одинаковые входы $z_i=b_i$ и одинаковые активации. Градиенты $\frac{\partial L}{\partial W_{ij}}$ всех нейронов совпадают: нарушается разрушение симметрии (symmetry breaking). Нейроны обновляются абсолютно одинаково, схлопывая скрытый слой в 1 нейрон.</p>
 </div></details>
 
 <details class="qa"><summary>Почему функция Sigmoid приводит к затуханию градиента в глубоких сетях?</summary>
 <div class="ans">
-<p>Производная сигмоиды $\sigma'(z) = \sigma(z)(1 - \sigma(z))$ достигает своего строгого максимума в точке $z=0$, где $\sigma'(0) = 0.5 \times 0.5 = 0.25$. При передаче ошибки через $L$ слоев множитель производных в уравнении BP2 порождает коэффициент $(\le 0.25)^L$. Уже для 10 слоев затухание составляет $0.25^{10} \approx 10^{-6}$. Кроме того, при больших по модулю значениях $|z| > 4$ сигмоида насыщается, и $\sigma'(z) \approx 0$, полностью блокируя градиент.</p>
+<p>$\sigma'(z) = \sigma(1-\sigma) \le 0.25$. В $L$-слойной сети множитель производных даёт $(\le 0.25)^L$. Для 10 слоёв градиент ослабляется в $10^6$ раз. Кроме того, при $|z| > 4$ функция насыщается и $\sigma'(z) \approx 0$, полностью блокируя градиент.</p>
 </div></details>
 
 <details class="qa"><summary>Как двухслойный MLP математически решает проблему XOR?</summary>
 <div class="ans">
-<p>Двухслойный MLP преобразует нелинейно разделимое пространство входов $(x_1, x_2)$ в скрытое пространство $(h_1, h_2)$. Первый скрытый нейрон настраивается как логическое «ИЛИ» ($h_1 = \text{step}(x_1 + x_2 - 0.5)$), второй — как логическое «И» ($h_2 = \text{step}(x_1 + x_2 - 1.5)$). Выходной нейрон реализует разность $y = \text{step}(h_1 - h_2 - 0.5)$. В плоскости $(h_1, h_2)$ точки классов $(0,0), (1,0), (0,1)$ становятся строго линейно разделимыми.</p>
+<p>Скрытый слой отображает входы $(x_1, x_2)$ в пространство $(h_1, h_2)$: $h_1 = \text{step}(x_1 + x_2 - 0.5)$ (OR), $h_2 = \text{step}(x_1 + x_2 - 1.5)$ (AND). Выходной нейрон $y = \text{step}(h_1 - h_2 - 0.5)$ разделяет точки прямой в плоскости $(h_1, h_2)$.</p>
 </div></details>
 
 <details class="qa"><summary>Что утверждает теорема Цыбенко и почему на практике строят глубокие сети, а не один широкий слой?</summary>
 <div class="ans">
-<p>Теорема универсальной аппроксимации Цыбенко (1989) доказывает, что 1 скрытый слой с сигмоидальной нелинейностью может аппроксимировать любую непрерывную функцию на компакте с точностью $\epsilon > 0$. Однако теорема является чистой теоремой существования: для сложных функций требуемая ширина слоя растет экспоненциально $O(2^n)$. Глубокие сети ($L \gg 1$) формируют иерархию представлений (композицию функций) и требуют экспоненциально меньшего суммарного числа параметров для полиномиальной аппроксимации сложных зависимостей.</p>
+<p>Теорема Цыбенко доказывает, что 1 скрытый слой с нелинейностью аппроксимирует любую непрерывную функцию на компакте. Но для сложных функций ширина слоя растёт экспоненциально $O(2^n)$. Глубокие сети ($L \gg 1$) строят иерархию представлений, снижая суммарное число параметров до полиномиального.</p>
 </div></details>
 
-<details class="qa"><summary>Что такое проблема Dying ReLU и как ее решают современные функции активации?</summary>
+<details class="qa"><summary>Что такое проблема Dying ReLU и как её решают современные функции активации?</summary>
 <div class="ans">
-<p>Dying ReLU возникает, когда в процессе обучения нейрон получает сильный отрицательный градиентный удар, смещающий bias $b$ в глубоко отрицательную область. При этом для всех объектов датасета $z = w^\top x + b \le 0$. Выход нейрона $a = 0$, а локальная производная $g'(z) = 0$. Градиент через нейрон зануляется навсегда, нейрон «умирает». Решения: Leaky ReLU ($\max(\alpha z, z)$), ELU ($e^z - 1$ при $z<0$) и GELU/SiLU с гладким ненулевым градиентом в отрицательной области.</p>
+<p>Если из-за большого шага bias уходит в сильный минус ($z \le 0$ для всех объектов), то $a=0$ и $g'(z)=0$. Нейрон необратимо прекращает обновляться. Решения: Leaky ReLU ($\alpha z$), ELU, а также GELU и SiLU с гладким ненулевым градиентом при $z<0$.</p>
 </div></details>
 
 <details class="qa"><summary>Как выводится формула градиента по весам $\frac{\partial L}{\partial W^l} = \delta^l (a^{l-1})^\top$?</summary>
 <div class="ans">
-<p>По правилу цепочки для отдельного элемента матрицы весов $W_{jk}^l$: $\frac{\partial L}{\partial W_{jk}^l} = \frac{\partial L}{\partial z_j^l} \frac{\partial z_j^l}{\partial W_{jk}^l}$. По определению локальной ошибки $\frac{\partial L}{\partial z_j^l} = \delta_j^l$. Поскольку $z_j^l = \sum_m W_{jm}^l a_m^{l-1} + b_j^l$, частная производная $\frac{\partial z_j^l}{\partial W_{jk}^l} = a_k^{l-1}$. Перемножая, получаем скаляр $\delta_j^l a_k^{l-1}$. В матричном виде внешнее произведение столбца $\delta^l$ на строку $(a^{l-1})^\top$ дает в точности $\delta^l (a^{l-1})^\top$.</p>
+<p>$\frac{\partial L}{\partial W_{jk}^l} = \frac{\partial L}{\partial z_j^l}\frac{\partial z_j^l}{\partial W_{jk}^l}$. По определению $\frac{\partial L}{\partial z_j^l} = \delta_j^l$. Так как $z_j^l = \sum_m W_{jm}^l a_m^{l-1} + b_j^l$, производная $\frac{\partial z_j^l}{\partial W_{jk}^l} = a_k^{l-1}$. В матричной форме внешнее произведение столбца $\delta^l$ на строку $(a^{l-1})^\top$ даёт $\delta^l (a^{l-1})^\top$.</p>
 </div></details>
 
-<details class="qa"><summary>В чем математическая разница между инициализацией Xavier (Glorot) и He (Kaiming)?</summary>
+<details class="qa"><summary>В чём математическая разница между инициализацией Xavier (Glorot) и He (Kaiming)?</summary>
 <div class="ans">
-<p>Инициализация Xavier рассчитана на линейные или симметричные гладкие активации (Tanh, $\sigma$), где дисперсия на линейном участке сохраняется $\mathbb{D}[z] = n_{in} \mathbb{D}[W] \mathbb{D}[x] \implies \mathbb{D}[W] = \frac{1}{n_{in}}$ (или $\frac{2}{n_{in}+n_{out}}$). Активация ReLU зануляет ровно половину входов ($z < 0$), тем самым уменьшая дисперсию активаций в 2 раза: $\mathbb{D}[a] = \frac{1}{2}\mathbb{D}[z]$. Чтобы скомпенсировать это двукратное падение, He вводит удвоенную дисперсию весов: $\mathbb{D}[W] = \frac{2}{n_{in}}$.</p>
+<p>Xavier рассчитана на симметричные функции (Tanh): $\mathbb{D}[W] = \frac{2}{n_{in}+n_{out}}$. ReLU зануляет половину активаций ($z<0$), снижая дисперсию в 2 раза ($\mathbb{D}[a] = \frac{1}{2}\mathbb{D}[z]$). Инициализация He компенсирует падение удвоенной дисперсией весов: $\mathbb{D}[W] = \frac{2}{n_{in}}$.</p>
 </div></details>
 
 <details class="qa"><summary>Почему Tanh сходится на практике быстрее, чем Sigmoid?</summary>
 <div class="ans">
-<p>Функция Sigmoid принимает значения строго в диапазоне $(0, 1)$, поэтому все элементы вектора активаций $a^l > 0$. В уравнении BP3 градиент $\frac{\partial L}{\partial W_{ij}} = \delta_i a_j$ имеет знак, полностью определяемый знаком $\delta_i$. Это заставляет все веса одного нейрона одновременно либо только расти, либо только убывать, порождая неэффективную «зигзагообразную» динамику оптимизации. Tanh имеет область значений $(-1, 1)$ и является zero-centered (симметрична относительно 0), что устраняет систематический сдвиг знаков градиентов.</p>
+<p>Sigmoid строго положительна ($a > 0$), поэтому градиенты $\frac{\partial L}{\partial W_{ij}} = \delta_i a_j$ для всех входов нейрона имеют одинаковый знак, вызывая зигзагообразную сходимость. Tanh имеет область $(-1, 1)$ и является zero-centered, устраняя систематический сдвиг знака градиентов.</p>
 </div></details>
 
-<details class="qa"><summary>Почему связка Softmax + Categorical Cross-Entropy дает градиент $(\hat{y} - y)$?</summary>
+<details class="qa"><summary>Почему связка Softmax + Categorical Cross-Entropy даёт градиент $(\hat{y} - y)$?</summary>
 <div class="ans">
-<p>Пусть $L = -\sum_k y_k \log \hat{y}_k$, где $\hat{y}_i = \frac{e^{z_i}}{\sum_j e^{z_j}}$. Производная софтмакса: $\frac{\partial \hat{y}_k}{\partial z_i} = \hat{y}_i(\delta_{ik} - \hat{y}_k)$. Применяя цепное правило: $\frac{\partial L}{\partial z_i} = -\sum_k \frac{y_k}{\hat{y}_k} \frac{\partial \hat{y}_k}{\partial z_i} = -\frac{y_i}{\hat{y}_i} \hat{y}_i(1 - \hat{y}_i) - \sum_{k \ne i} \frac{y_k}{\hat{y}_k} (-\hat{y}_k \hat{y}_i) = -y_i(1 - \hat{y}_i) + \hat{y}_i \sum_{k \ne i} y_k = -y_i + y_i \hat{y}_i + \hat{y}_i(1 - y_i) = \hat{y}_i - y_i$. Сложные нелинейности взаимно сокращаются.</p>
+<p>Для $L = -\sum_k y_k \log \hat{y}_k$ и $\hat{y}_i = \frac{e^{z_i}}{\sum e^{z_j}}$ производная софтмакса $\frac{\partial \hat{y}_k}{\partial z_i} = \hat{y}_i(\delta_{ik} - \hat{y}_k)$. При подстановке в цепное правило нелинейности взаимно сокращаются, давая точный линейный остаток $\frac{\partial L}{\partial z_i} = \hat{y}_i - y_i$.</p>
 </div></details>
 
 <details class="qa"><summary>Что такое Gradient Clipping и как он предотвращает взрыв градиентов?</summary>
 <div class="ans">
-<p>Gradient Clipping (отсечение градиента) — процедура стабилизации оптимизатора. При отсечении по глобальной норме (norm clipping) вычисляется норма объединенного вектора градиентов $\|g\|_2 = \sqrt{\sum_i g_i^2}$. Если $\|g\|_2 > c_{\text{thresh}}$, вектор масштабируется: $g \leftarrow g \cdot \frac{c_{\text{thresh}}}{\|g\|_2}$. Это сохраняет точное направление антиградиента, но жестко гарантирует, что максимальная длина шага в пространстве параметров не превысит $\eta \cdot c_{\text{thresh}}$.</p>
+<p>При отсечении по норме, если $\|g\|_2 > c_{\text{thresh}}$, вектор градиента масштабируется: $g \leftarrow g \cdot \frac{c_{\text{thresh}}}{\|g\|_2}$. Направление антиградиента строго сохраняется, а длина шага ограничивается $\eta \cdot c_{\text{thresh}}$.</p>
 </div></details>
 
 <details class="qa"><summary>Почему нельзя использовать линейную функцию активации $g(z) = z$ во всех слоях сети?</summary>
 <div class="ans">
-<p>Если $g(z) = z$, то выход $L$-слойной сети представляет собой: $\hat{y} = W^L(W^{L-1}(\dots(W^1 x + b^1)\dots) + b^{L-1}) + b^L = (W^L W^{L-1} \dots W^1) x + b_{\text{total}} = W_{\text{eff}} x + b_{\text{total}}$. Композиция произвольного числа линейных отображений остается строго линейным отображением. Такая сеть с 100 слоями математически тождественна однослойной линейной регрессии и не способна моделировать нелинейные зависимости.</p>
+<p>Композиция линейных слоёв $W^L(\dots(W^1 x + b^1)\dots) + b^L = (W^L \dots W^1)x + b_{\text{eff}} = W_{\text{eff}} x + b_{\text{eff}}$ эквивалентна одной линейной модели. Сеть любой глубины теряет способность моделировать нелинейные границы.</p>
 </div></details>
 
 <details class="qa"><summary>Как вектор bias $b$ влияет на разделяющую гиперплоскость нейрона?</summary>
 <div class="ans">
-<p>Уравнение $w^\top x + b = 0$ задает гиперплоскость. Вектор $w$ определяет ориентацию (нормаль) плоскости, а расстояние от начала координат до плоскости равно $d = \frac{|b|}{\|w\|_2}$. Без свободного члена $b=0$ разделяющая гиперплоскость жестко привязана к началу координат $x=0$. Это делает невозможным решение даже простейших задач (например, разделение одномерных данных $x > 5$ и $x \le 5$).</p>
+<p>В уравнении $w^\top x + b = 0$ вектор $w$ задаёт ориентацию (нормаль), а расстояние от начала координат до плоскости равно $d = \frac{|b|}{\|w\|_2}$. При $b=0$ гиперплоскость проходит строго через начало координат, что блокирует произвольные сдвиги границы.</p>
 </div></details>
 
 <!-- ============================================ -->
@@ -332,65 +282,59 @@ $$ b^1_{\text{new}} = \begin{bmatrix} 0.1 \\ -0.1 \end{bmatrix} - 0.1 \begin{bma
 
 <div class="task">
   <div class="tt">Задача 1. Прямой проход одиночного нейрона с Sigmoid</div>
-  <p>Нейрон имеет веса $w = [0.5, -0.6]^\top$ и смещение $b = 0.1$. Функция активации — Sigmoid. На вход подан вектор $x = [2.0, 1.0]^\top$. Вычислите значение предактивации $z$ и выходной активации $a$.</p>
+  <p>Веса $w = [0.5, -0.6]^\top$, $b = 0.1$, активация Sigmoid. Вход $x = [2.0, 1.0]^\top$. Найдите $z$ и $a$.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>1. Предактивация: $z = w_1 x_1 + w_2 x_2 + b = 0.5(2.0) + (-0.6)(1.0) + 0.1 = 1.0 - 0.6 + 0.1 = 0.5$.</p>
-    <p>2. Активация: $a = \sigma(0.5) = \dfrac{1}{1 + e^{-0.5}} \approx \dfrac{1}{1 + 0.6065} = \dfrac{1}{1.6065} \approx 0.6225$.</p>
+    <p>1. Предактивация: $z = 0.5(2.0) + (-0.6)(1.0) + 0.1 = 1.0 - 0.6 + 0.1 = 0.5$.</p>
+    <p>2. Активация: $a = \sigma(0.5) = \dfrac{1}{1 + e^{-0.5}} \approx \dfrac{1}{1 + 0.6065} \approx 0.6225$.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 2. Вычисление производных функций активации в нуле</div>
-  <p>Найдите точные аналитические и числовые значения производных функций Sigmoid $\sigma'(0)$ и Tanh $\tanh'(0)$ в точке $z=0$. Сравните их величину.</p>
+  <p>Найдите значения производных $\sigma'(0)$ и $\tanh'(0)$. Сравните их величину.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>1. $\sigma(0) = \dfrac{1}{1 + e^0} = 0.5 \implies \sigma'(0) = \sigma(0)(1 - \sigma(0)) = 0.5 \cdot 0.5 = 0.25$.</p>
-    <p>2. $\tanh(0) = 0 \implies \tanh'(0) = 1 - \tanh^2(0) = 1 - 0 = 1.0$.</p>
-    <p><strong>Вывод:</strong> Градиент Tanh в нуле ровно в 4 раза больше градиента Sigmoid ($\frac{1.0}{0.25} = 4$), что обеспечивает более быструю начальную сходимость.</p>
+    <p>1. $\sigma(0) = 0.5 \implies \sigma'(0) = 0.5(1 - 0.5) = 0.25$.</p>
+    <p>2. $\tanh(0) = 0 \implies \tanh'(0) = 1 - 0^2 = 1.0$.</p>
+    <p><strong>Вывод:</strong> Градиент Tanh в нуле в 4 раза выше ($\frac{1.0}{0.25}=4$), ускоряя сходимость.</p>
   </div></details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 3. Подсчет обучаемых параметров в 3-слойном MLP</div>
-  <p>Многослойный перцептрон классифицирует изображения MNIST: входная размерность $n_0 = 784$, скрытый слой 1 имеет $n_1 = 256$ нейронов, скрытый слой 2 имеет $n_2 = 128$ нейронов, выходной слой имеет $n_3 = 10$ классов. Все слои содержат bias. Сколько обучаемых параметров в сети?</p>
+  <div class="tt">Задача 3. Подсчёт обучаемых параметров в 3-слойном MLP</div>
+  <p>MLP: вход $n_0 = 784$, скрытые слои $n_1 = 256$, $n_2 = 128$, выход $n_3 = 10$. Все слои с bias. Найдите общее число параметров.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>Слой 1: $W^1 \in \mathbb{R}^{256 \times 784}, b^1 \in \mathbb{R}^{256} \implies 256 \times 784 + 256 = 200\,704 + 256 = 200\,960$.</p>
-    <p>Слой 2: $W^2 \in \mathbb{R}^{128 \times 256}, b^2 \in \mathbb{R}^{128} \implies 128 \times 256 + 128 = 32\,768 + 128 = 32\,896$.</p>
-    <p>Слой 3: $W^3 \in \mathbb{R}^{10 \times 128}, b^3 \in \mathbb{R}^{10} \implies 10 \times 128 + 10 = 1280 + 10 = 1290$.</p>
-    <p><strong>Итого параметров:</strong> $200\,960 + 32\,896 + 1290 = 235\,146$ параметров.</p>
+    <p>Слой 1: $256 \times 784 + 256 = 200\,960$.</p>
+    <p>Слой 2: $128 \times 256 + 128 = 32\,896$.</p>
+    <p>Слой 3: $10 \times 128 + 10 = 1290$.</p>
+    <p><strong>Всего:</strong> $200\,960 + 32\,896 + 1290 = 235\,146$ параметров.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 4. Градиент весов выходного слоя при MSE</div>
-  <p>Выходной нейрон регрессии имеет предсказание $\hat{y} = 2.4$, истинная метка $y = 3.0$. Вектор активаций предыдущего слоя $a^{L-1} = [0.5, 1.2]^\top$. Функция потерь $L = \frac{1}{2}(\hat{y} - y)^2$. Найдите вектор градиента по весам $\frac{\partial L}{\partial W^L}$.</p>
+  <p>Выход $\hat{y} = 2.4$, истина $y = 3.0$, активации входа $a^{L-1} = [0.5, 1.2]^\top$, $L = \frac{1}{2}(\hat{y}-y)^2$. Найдите $\frac{\partial L}{\partial W^L}$.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>1. Ошибка выхода: $\delta^L = \frac{\partial L}{\partial z^L} = \hat{y} - y = 2.4 - 3.0 = -0.6$.</p>
-    <p>2. Градиент по весам: $\frac{\partial L}{\partial W^L} = \delta^L (a^{L-1})^\top = -0.6 \cdot [0.5, 1.2] = [-0.30, -0.72]$.</p>
+    <p>1. Ошибка выхода: $\delta^L = \hat{y} - y = 2.4 - 3.0 = -0.6$.</p>
+    <p>2. Градиент: $\frac{\partial L}{\partial W^L} = \delta^L (a^{L-1})^\top = -0.6 \cdot [0.5, 1.2] = [-0.30, -0.72]$.</p>
   </div></details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 5. Расчет дисперсий инициализации Xavier и He</div>
-  <p>Скрытый слой имеет $n_{in} = 100$ входов и $n_{out} = 50$ выходов. Рассчитайте теоретическую дисперсию весов $\sigma^2_W$ при инициализации Xavier (Glorot) и при инициализации He (Kaiming).</p>
+  <div class="tt">Задача 5. Расчёт дисперсий инициализации Xavier и He</div>
+  <p>Слой имеет $n_{in} = 100$ и $n_{out} = 50$. Найдите $\sigma^2_W$ для Xavier и He.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>1. Xavier: $\sigma^2_W = \dfrac{2}{n_{in} + n_{out}} = \dfrac{2}{100 + 50} = \dfrac{2}{150} \approx 0.01333$ (стандартное отклонение $\sigma \approx 0.1155$).</p>
-    <p>2. He: $\sigma^2_W = \dfrac{2}{n_{in}} = \dfrac{2}{100} = 0.02000$ (стандартное отклонение $\sigma \approx 0.1414$).</p>
+    <p>1. Xavier: $\sigma^2_W = \dfrac{2}{n_{in} + n_{out}} = \dfrac{2}{150} \approx 0.01333$ ($\sigma \approx 0.1155$).</p>
+    <p>2. He: $\sigma^2_W = \dfrac{2}{n_{in}} = \dfrac{2}{100} = 0.02000$ ($\sigma \approx 0.1414$).</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 6. Аналитические веса двухслойной сети для решения XOR</div>
-  <p>Задайте точные веса $W^1, b^1, W^2, b^2$ двухслойной сети с пороговой активацией $g(z) = \mathbb{I}(z \ge 0)$, которая безошибочно вычисляет функцию $\text{XOR}(x_1, x_2)$ для бинарных входов $\{0, 1\}$.</p>
+  <p>Задайте веса двухслойной сети с порогом $g(z) = \mathbb{I}(z \ge 0)$, вычисляющей $\text{XOR}(x_1, x_2)$ для входов $\{0, 1\}$.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>Скрытый слой 1 (два нейрона: $h_1$ как OR, $h_2$ как AND):</p>
-    <p>$h_1 = g(1 \cdot x_1 + 1 \cdot x_2 - 0.5) \implies$ выдает 1 при $(0,1), (1,0), (1,1)$, 0 при $(0,0)$.</p>
-    <p>$h_2 = g(1 \cdot x_1 + 1 \cdot x_2 - 1.5) \implies$ выдает 1 только при $(1,1)$.</p>
-    <p>Выходной слой: $y = g(1 \cdot h_1 - 2 \cdot h_2 - 0.5)$.</p>
-    <p>Проверка таблицы истинности:</p>
-    <p>$(0,0) \to h=[0,0] \to y = g(-0.5) = 0$ ✓</p>
-    <p>$(1,0) \to h=[1,0] \to y = g(1 - 0.5) = 1$ ✓</p>
-    <p>$(0,1) \to h=[1,0] \to y = g(1 - 0.5) = 1$ ✓</p>
-    <p>$(1,1) \to h=[1,1] \to y = g(1 - 2 - 0.5) = g(-1.5) = 0$ ✓</p>
+    <p>Скрытый слой: $h_1 = g(x_1 + x_2 - 0.5)$ (OR), $h_2 = g(x_1 + x_2 - 1.5)$ (AND).</p>
+    <p>Выходной слой: $y = g(h_1 - 2h_2 - 0.5)$.</p>
+    <p>Проверка: $(0,0)\to 0$; $(1,0)\to 1$; $(0,1)\to 1$; $(1,1)\to g(1-2-0.5)=0$ ✓.</p>
   </div></details>
 </div>
 
@@ -398,23 +342,23 @@ $$ b^1_{\text{new}} = \begin{bmatrix} 0.1 \\ -0.1 \end{bmatrix} - 0.1 \begin{bma
 <h2 id="cheat"><span class="num">8.</span> ⚡ Скелет ответа по билету</h2>
 
 <div class="cheat">
-  <div class="bt">Краткий конспект для 5-минутного ответа по Билету 1</div>
+  <div class="bt">Краткий конспект для ответа по Билету 1</div>
   <ol>
-    <li><strong>Математическая модель нейрона:</strong> $z = w^\top x + b$, $a = g(z)$. Геометрически — разделяющая гиперплоскость $w^\top x + b = 0$. $w$ — нормаль, $b$ — сдвиг от начала координат. Без нелинейности сеть схлопывается в линейную модель.</li>
-    <li><strong>Проблема XOR и глубина:</strong> XOR линейно не разделим. 1 скрытый слой из 2 нейронов трансформирует пространство в линейно разделимое. Теорема Цыбенко: 1 скрытый слой аппроксимирует любую непрерывную функцию, но глубина дает экспоненциальное сжатие числа параметров.</li>
-    <li><strong>Прямой проход (Forward):</strong> $z^l = W^l a^{l-1} + b^l, \quad a^l = g^l(z^l)$. Матрицы весов $W^l \in \mathbb{R}^{n_l \times n_{l-1}}$.</li>
-    <li><strong>Функции активации:</strong> Sigmoid $\sigma(z) = \frac{1}{1+e^{-z}}$ ($\max \sigma'=0.25$, затухание); Tanh ($\max \tanh'=1$, zero-centered); ReLU $\max(0, z)$ (нет затухания при $z>0$, Dying ReLU); LeakyReLU $\max(\alpha z, z)$; GELU / SiLU (гладкие, стандарт в LLM).</li>
-    <li><strong>Выходные слои:</strong> Регрессия — Linear + MSE; Бинарная классификация — Sigmoid + Binary Cross-Entropy; Многоклассовая — Softmax + Categorical Cross-Entropy.</li>
+    <li><strong>Модель нейрона:</strong> $z = w^\top x + b$, $a = g(z)$. Разделяющая гиперплоскость $w^\top x + b = 0$. Нелинейность предотвращает схлопывание сети в линейную регрессию.</li>
+    <li><strong>XOR и глубина:</strong> XOR линейно не разделим; 1 скрытый слой из 2 нейронов деформирует пространство. Теорема Цыбенко: 1 скрытый слой универсален, но глубина даёт экспоненциальную компактность параметров.</li>
+    <li><strong>Прямой проход:</strong> $z^l = W^l a^{l-1} + b^l, \quad a^l = g^l(z^l)$.</li>
+    <li><strong>Функции активации:</strong> Sigmoid ($\max g'=0.25$, затухание); Tanh ($\max g'=1$, zero-centered); ReLU ($\mathbb{I}(z>0)$, нет затухания, Dying ReLU); LeakyReLU; GELU/SiLU (гладкие стандарты LLM).</li>
+    <li><strong>Выходные слои:</strong> Linear+MSE (регрессия), Sigmoid+BCE (бинарная), Softmax+CE (многоклассовая).</li>
     <li><strong>4 канонических уравнения Backpropagation:</strong>
       <ul>
-        <li>(BP1) $\delta^L = \nabla_a L \odot g'(z^L) = \hat{y} - y$ (для CE+Softmax).</li>
-        <li>(BP2) $\delta^l = ((W^{l+1})^\top \delta^{l+1}) \odot g'(z^l)$ — перенос ошибки назад.</li>
-        <li>(BP3) $\frac{\partial L}{\partial W^l} = \delta^l (a^{l-1})^\top$ — внешнее произведение.</li>
+        <li>(BP1) $\delta^L = \nabla_a L \odot g'(z^L) = \hat{y} - y$.</li>
+        <li>(BP2) $\delta^l = ((W^{l+1})^\top \delta^{l+1}) \odot g'(z^l)$.</li>
+        <li>(BP3) $\frac{\partial L}{\partial W^l} = \delta^l (a^{l-1})^\top$.</li>
         <li>(BP4) $\frac{\partial L}{\partial b^l} = \delta^l$.</li>
       </ul>
     </li>
-    <li><strong>Градиентные аномалии:</strong> Затухание (Vanishing) из-за $\prod \sigma' \le 0.25^L$; Взрыв (Exploding) из-за $\prod \|W\| > 1$. Решения: ReLU, Residual connections, BatchNorm, Gradient Clipping.</li>
-    <li><strong>Инициализация весов:</strong> Нулями нельзя (симметрия нейронов). Xavier: $\mathbb{D}[W] = \frac{2}{n_{in}+n_{out}}$ (для Tanh). He: $\mathbb{D}[W] = \frac{2}{n_{in}}$ (для ReLU, компенсация зануления $z<0$).</li>
+    <li><strong>Градиентные аномалии:</strong> Затухание ($\prod g' \le 0.25^L$), Взрыв ($\prod \|W\| > 1$). Решения: ReLU, BatchNorm, Residuals, Gradient Clipping.</li>
+    <li><strong>Инициализация:</strong> Нулями нельзя (симметрия). Xavier: $\mathbb{D}[W] = \frac{2}{n_{in}+n_{out}}$ (Tanh). He: $\mathbb{D}[W] = \frac{2}{n_{in}}$ (ReLU).</li>
   </ol>
 </div>
 

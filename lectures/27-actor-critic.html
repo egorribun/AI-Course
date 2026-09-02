@@ -21,7 +21,7 @@ window.MathJax = {
 <header class="top"><div class="inner">
   <div class="kicker">Блок D · Reinforcement Learning · Вопрос 25</div>
   <h1>Лекция 27. Value-based vs Policy-based подходы и архитектура Actor-Critic (A2C, GAE, SAC)</h1>
-  <p class="sub">Системное сравнение парадигм обучения по ценности и стратегии, гибридная архитектура Актор-Критик, функция преимущества (Advantage), обобщенная оценка преимущества (GAE), Soft Actor-Critic (SAC) с максимальной энтропией.</p>
+  <p class="sub">Сравнение парадигм обучения по ценности и стратегии, гибридная архитектура Актор-Критик, функция преимущества (Advantage), обобщённая оценка преимущества (GAE), Soft Actor-Critic (SAC).</p>
   <div class="meta">
     <span class="pill">⏱ 2 ч 45 мин</span>
     <span class="pill gray">10 вопросов препода</span>
@@ -37,10 +37,10 @@ window.MathJax = {
 <nav class="toc">
   <div class="bt">Содержание лекции</div>
   <ol>
-    <li><a href="#s1">Интуиция и мотивация: синтез двух миров в Actor-Critic</a></li>
-    <li><a href="#s2">Архитектура и схема: взаимодействие Актора и Критика</a></li>
-    <li><a href="#s3">Математический аппарат: Advantage, A2C, GAE-lambda и Soft Actor-Critic (SAC)</a></li>
-    <li><a href="#s4">Пошаговый числовой пример расчета шага Actor-Critic и GAE</a></li>
+    <li><a href="#s1">Интуиция и мотивация</a></li>
+    <li><a href="#s2">Архитектура и схема</a></li>
+    <li><a href="#s3">Математический аппарат</a></li>
+    <li><a href="#s4">Пошаговый числовой пример</a></li>
     <li><a href="#s5">Преимущества, недостатки и применимость</a></li>
     <li><a href="#qa">🎯 Препод спросит</a></li>
     <li><a href="#tasks">📝 Микро-задачи с решениями</a></li>
@@ -51,23 +51,22 @@ window.MathJax = {
 <!-- ============================================ -->
 <h2 id="s1"><span class="num">1.</span> Интуиция и мотивация</h2>
 
-<p>В обучении с подкреплением исторически сложились две полярные школы мысли, каждая со своими сильными и слабыми сторонами:</p>
+<p>В RL исторически выделились две полярные парадигмы:</p>
 <ol>
-  <li><strong>Value-Based методы (Q-Learning, DQN):</strong> Обучают критика ценности $Q(s, a)$ методом временных разностей (TD). <em>Плюсы:</em> высокая эффективность выборки, низкая дисперсия благодаря бутстрэпингу. <em>Минусы:</em> не могут работать в непрерывных пространствах действий $\mathbb{R}^k$, не способны выучить стохастическую стратегию.</li>
-  <li><strong>Policy-Based методы (REINFORCE, CEM):</strong> Напрямую оптимизируют параметры стратегии $\pi_\theta(a|s)$ градиентным подъемом. <em>Плюсы:</em> работают с непрерывными и стохастическими действиями, плавная оптимизация. <em>Минусы:</em> гигантская дисперсия градиента из-за ожидания конца эпизода ($G_t$), низкая скорость обучения.</li>
+  <li><strong>Value-Based (Q-Learning, DQN):</strong> Обучают критика $Q(s, a)$ методом TD. Эффективны по выборке, низкая дисперсия, но не работают в непрерывных пространствах действий $\mathbb{R}^k$.</li>
+  <li><strong>Policy-Based (REINFORCE):</strong> Напрямую оптимизируют параметры стратегии $\pi_\theta(a|s)$. Работают с непрерывными и стохастическими действиями, но страдают от высокой дисперсии градиента ($G_t$).</li>
 </ol>
 
 <div class="box idea">
-  <div class="bt">💡 Идея архитектуры Actor-Critic: идеальный симбиоз</div>
-  <p>Мы объединяем оба подхода в единую взаимодействующую систему:</p>
+  <div class="bt">💡 Идея архитектуры Actor-Critic</div>
   <ul>
-    <li><strong>Actor (Актор $\pi_\theta$):</strong> «Исполнитель». Принимает состояние $S_t$ и выбирает действие $A_t \sim \pi_\theta(\cdot \mid S_t)$. Умеет работать в непрерывных пространствах.</li>
-    <li><strong>Critic (Критик $V_\phi$):</strong> «Судья / Тренер». Оценивает текущее состояние $V_\phi(S_t)$ и вычисляет <strong>ошибку временных разностей (Advantage)</strong> на каждом шаге. Критик заменяет шумный доход целого эпизода $G_t$ на компактный 1-шаговый TD-таргет, <strong>радикально снижая дисперсию градиента актора</strong>.</li>
+    <li><strong>Actor (Актор $\pi_\theta$):</strong> Выбирает действие $A_t \sim \pi_\theta(\cdot \mid S_t)$ (включая непрерывные пространства $\mathbb{R}^k$).</li>
+    <li><strong>Critic (Критик $V_\phi$):</strong> Оценивает состояние $V_\phi(S_t)$ и вычисляет <strong>ошибку преимущества (Advantage)</strong>, заменяя шумный доход эпизода $G_t$ компактным TD-таргетом, <strong>радикально снижая дисперсию градиента</strong>.</li>
   </ul>
 </div>
 
 <!-- ============================================ -->
-<h2 id="s2"><span class="num">2.</span> Архитектура и схема: взаимодействие Актора и Критика</h2>
+<h2 id="s2"><span class="num">2.</span> Архитектура и схема</h2>
 
 <div class="scheme">
   АРХИТЕКТУРА ADVANTAGE ACTOR-CRITIC (A2C):
@@ -95,7 +94,7 @@ window.MathJax = {
                            ▼
                  Градиентный шаг Критика:
                  min_ϕ ( R_{t+1} + γ V_ϕ(S_{t+1}) - V_ϕ(S_t) )²
-<span class="cap">Схема Actor-Critic: Критик вычисляет скалярную оценку качества действия $\delta_t \approx A(S_t, A_t)$, по которой немедленно корректируются веса стратегии Актора.</span></div>
+<span class="cap">A2C: Критик вычисляет скалярное преимущество $\delta_t \approx A(S_t, A_t)$, корректируя вероятности действий Актора.</span></div>
 
 <div class="scheme">
   СПЕКТР ОЦЕНОК ADVANTAGE В GAE(γ, λ):
@@ -107,43 +106,38 @@ window.MathJax = {
     │
     ▼
   λ = 1  (Monte Carlo / REINFORCE): G_t - V(S_t) = Σ γ^k R_{t+k+1} - V(S_t) [Макс. дисперсия, 0 смещения]
-<span class="cap">Generalized Advantage Estimation (GAE) интерполирует между 1-шаговым TD(0) ($\lambda=0$) и полным Монте-Карло ($\lambda=1$).</span></div>
+<span class="cap">GAE($\gamma, \lambda$) интерполирует между 1-шаговым TD(0) ($\lambda=0$) и полным Монте-Карло ($\lambda=1$).</span></div>
 
 <!-- ============================================ -->
 <h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
 
 <h3>1. Функция преимущества (Advantage Function $A(s, a)$)</h3>
-<p>Функция преимущества показывает, насколько конкретное действие $a$ лучше или хуже среднестатистического действия в состоянии $s$:</p>
+<p>Преимущество показывает, насколько действие $a$ лучше среднего исхода из состояния $s$:</p>
 
 <div class="math-scroll-wrapper">
 $$ A^\pi(s, a) \doteq Q^\pi(s, a) - V^\pi(s) $$
 </div>
-<p>Фундаментальное свойство: математическое ожидание преимущества по стратегии тождественно равно нулю:</p>
-<div class="math-scroll-wrapper">
-$$ \mathbb{E}_{a \sim \pi(\cdot \mid s)} \left[ A^\pi(s, a) \right] = \sum_{a \in \mathcal{A}} \pi(a \mid s) \Big( Q^\pi(s, a) - V^\pi(s) \Big) = V^\pi(s) - V^\pi(s) = 0 $$
-</div>
+<p>Свойство: $\mathbb{E}_{a \sim \pi} [A^\pi(s, a)] = \sum_a \pi(a \mid s)(Q^\pi(s, a) - V^\pi(s)) = 0$.</p>
 <ul>
-  <li>Если $A(s, a) > 0$ — действие $a$ превосходит ожидания, его вероятность увеличивается.</li>
-  <li>Если $A(s, a) < 0$ — действие $a$ хуже среднего, его вероятность подавляется.</li>
+  <li>$A(s, a) > 0$ — действие лучше ожидаемого (поощряется).</li>
+  <li>$A(s, a) < 0$ — действие хуже ожидаемого (подавляется).</li>
 </ul>
 
-<h3>2. Одношаговый TD-критик как аппроксимация Advantage</h3>
-<p>Так как $Q^\pi(S_t, A_t) = \mathbb{E}[R_{t+1} + \gamma V^\pi(S_{t+1}) \mid S_t, A_t]$, 1-шаговая TD-ошибка является несмещенной оценкой функции преимущества:</p>
+<h3>2. TD-критик как оценка Advantage</h3>
+<p>Поскольку $Q^\pi(S_t, A_t) = \mathbb{E}[R_{t+1} + \gamma V^\pi(S_{t+1}) \mid S_t, A_t]$, 1-шаговая TD-ошибка аппроксимирует Advantage:</p>
 
 <div class="math-scroll-wrapper">
 $$ \delta_t \doteq R_{t+1} + \gamma V_\phi(S_{t+1}) - V_\phi(S_t) \approx A(S_t, A_t) $$
 </div>
 
 <h3>3. Правила обновления весов в Advantage Actor-Critic (A2C)</h3>
-<p>Обучение происходит параллельно для двух нейросетей:</p>
 <ol>
-  <li><strong>Критик ($V_\phi$, веса $\phi$):</strong> Минимизирует среднеквадратичную ошибку прогнозирования ценности (MSE Bellman residual):
+  <li><strong>Критик ($V_\phi$):</strong> Минимизация MSE Bellman residual:
     <div class="math-scroll-wrapper">
-    $$ \mathcal{L}_{\text{critic}}(\phi) = \frac{1}{2} \left( R_{t+1} + \gamma V_{\phi^-}(S_{t+1}) - V_\phi(S_t) \right)^2 $$
-    $$ \phi \leftarrow \phi + \alpha_\phi \, \delta_t \nabla_\phi V_\phi(S_t) $$
+    $$ \mathcal{L}_{\text{critic}}(\phi) = \frac{1}{2} \left( R_{t+1} + \gamma V_{\phi^-}(S_{t+1}) - V_\phi(S_t) \right)^2 \implies \phi \leftarrow \phi + \alpha_\phi \, \delta_t \nabla_\phi V_\phi(S_t) $$
     </div>
   </li>
-  <li><strong>Актор ($\pi_\theta$, веса $\theta$):</strong> Максимизирует математическое ожидание с регуляризацией энтропией $\mathcal{H}$:
+  <li><strong>Актор ($\pi_\theta$):</strong> Градиентный подъём с энтропийной регуляризацией $\mathcal{H}$:
     <div class="math-scroll-wrapper">
     $$ \mathcal{L}_{\text{actor}}(\theta) = -\log \pi_\theta(A_t \mid S_t) \, \delta_t - \beta \mathcal{H}\left(\pi_\theta(\cdot \mid S_t)\right) $$
     $$ \theta \leftarrow \theta + \alpha_\theta \left( \nabla_\theta \log \pi_\theta(A_t \mid S_t) \, \delta_t + \beta \nabla_\theta \mathcal{H}(\pi_\theta) \right) $$
@@ -151,34 +145,28 @@ $$ \delta_t \doteq R_{t+1} + \gamma V_\phi(S_{t+1}) - V_\phi(S_t) \approx A(S_t,
   </li>
 </ol>
 
-<h3>4. Generalized Advantage Estimation (GAE($\gamma, \lambda$), Schulman et al., 2015)</h3>
-<p>Для тонкой настройки компромисса между смещением (Bias) и дисперсией (Variance) вводится параметр экспоненциального сглаживания $\lambda \in [0, 1]$:</p>
+<h3>4. Generalized Advantage Estimation (GAE($\gamma, \lambda$))</h3>
+<p>Экспоненциальное сглаживание TD-ошибок с параметром $\lambda \in [0, 1]$:</p>
 
 <div class="math-scroll-wrapper">
 $$ \hat{A}_t^{\text{GAE}(\gamma, \lambda)} \doteq \sum_{l=0}^{\infty} (\gamma \lambda)^l \delta_{t+l}^V = \delta_t^V + \gamma \lambda \hat{A}_{t+1}^{\text{GAE}(\gamma, \lambda)} $$
 </div>
-<p>где $\delta_{t+l}^V = R_{t+l+1} + \gamma V(S_{t+l+1}) - V(S_{t+l})$.</p>
-<ul>
-  <li>При $\lambda = 0 \implies \hat{A}_t = \delta_t$ (1-step TD: минимальная дисперсия, максимальное смещение от критика).</li>
-  <li>При $\lambda = 1 \implies \hat{A}_t = \sum_{l=0}^\infty \gamma^l R_{t+l+1} - V(S_t) = G_t - V(S_t)$ (Monte Carlo: нулевое смещение, максимальная дисперсия).</li>
-  <li>На практике значение $\lambda \in [0.92, 0.98]$ обеспечивает наилучшую сходимость в PPO и A2C.</li>
-</ul>
+<p>где $\delta_{t+l}^V = R_{t+l+1} + \gamma V(S_{t+l+1}) - V(S_{t+l})$. $\lambda = 0 \implies \delta_t$ (TD(0)); $\lambda = 1 \implies G_t - V(S_t)$ (MC). Оптимум $\lambda \in [0.92, 0.98]$.</p>
 
 <h3>5. Soft Actor-Critic (SAC, Haarnoja et al., 2018)</h3>
-<p>SAC — современный SOTA-алгоритм для непрерывного управления, основанный на концепции <strong>Maximum Entropy RL</strong>:</p>
+<p>SOTA-алгоритм непрерывного управления на основе <strong>Maximum Entropy RL</strong>:</p>
 
 <div class="math-scroll-wrapper">
 $$ J(\pi) = \mathbb{E}_{\tau \sim \pi} \left[ \sum_{t=0}^\infty \gamma^t \left( R(S_t, A_t) + \alpha \mathcal{H}\left(\pi(\cdot \mid S_t)\right) \right) \right] $$
 </div>
-<p>где $\alpha > 0$ — температура энтропии, управляющая компромиссом между исследованием и максимизацией награды. SAC использует <em>Twin Q-networks</em> ($Q_{\phi_1}, Q_{\phi_2}$) для предотвращения переоценки и автоматическую настройку температуры $\alpha$ через градиентный спуск.</p>
+<p>где $\alpha > 0$ — температура энтропии. SAC использует Twin Q-networks ($Q_{\phi_1}, Q_{\phi_2}$) с таргетом $\min(Q_1, Q_2)$ для защиты от переоценки.</p>
 
-<h3>6. Практическая реализация Actor-Critic и GAE на PyTorch</h3>
+<h3>6. Реализация Actor-Critic и GAE на PyTorch</h3>
 <pre><code>import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
 class ActorCriticNet(nn.Module):
-    """Общий бэкбон с отдельными головами Актора и Критика."""
     def __init__(self, state_dim, action_dim, hidden_dim=64):
         super().__init__()
         self.actor = nn.Sequential(
@@ -193,13 +181,11 @@ class ActorCriticNet(nn.Module):
         )
 
     def forward(self, state):
-        logits = self.actor(state)
-        probs = F.softmax(logits, dim=-1)
+        probs = F.softmax(self.actor(state), dim=-1)
         value = self.critic(state)
         return probs, value
 
 def compute_gae_advantages(rewards, values, next_values, dones, gamma=0.99, lam=0.95):
-    """Вычисление обобщенных преимуществ GAE-lambda."""
     deltas = rewards + gamma * next_values * (1.0 - dones) - values
     advantages = torch.zeros_like(rewards)
     running_adv = 0.0
@@ -213,46 +199,30 @@ def compute_gae_advantages(rewards, values, next_values, dones, gamma=0.99, lam=
 <h2 id="s4"><span class="num">4.</span> Пошаговый числовой пример</h2>
 
 <div class="box exambox">
-  <div class="bt">🔢 Пример 1. Расчет обновления Actor-Critic за один шаг</div>
-  <p>Агент совершил переход: $(S_t, A_t, R_{t+1}=+2.0, S_{t+1})$. Коэффициент дисконтирования $\gamma = 0.9$.</p>
+  <div class="bt">🔢 Пример 1. Расчёт обновления Actor-Critic за 1 шаг</div>
+  <p>Переход $(S_t, A_t, R_{t+1}=+2.0, S_{t+1})$ при $\gamma = 0.9, \alpha_\phi = 0.1, \alpha_\theta = 0.05$:</p>
   <ul>
-    <li>Оценки критика: $V_\phi(S_t) = 1.0, \quad V_\phi(S_{t+1}) = 2.0$.</li>
-    <li>Градиент критика: $\nabla_\phi V_\phi(S_t) = [0.5, -0.2]$.</li>
-    <li>Градиент актора: $\nabla_\theta \log \pi_\theta(A_t \mid S_t) = [1.2, 0.4]$.</li>
-    <li>Скорости обучения: $\alpha_\phi = 0.1, \quad \alpha_\theta = 0.05$.</li>
+    <li>Критик: $V_\phi(S_t) = 1.0, V_\phi(S_{t+1}) = 2.0, \nabla_\phi V = [0.5, -0.2]$.</li>
+    <li>Актор: $\nabla_\theta \log \pi = [1.2, 0.4]$.</li>
   </ul>
-
-  <h3>1. Вычисление TD-таргета и Advantage $\delta_t$:</h3>
-  <div class="math-scroll-wrapper">
-  $$ \text{Target} = R_{t+1} + \gamma V_\phi(S_{t+1}) = 2.0 + 0.9 \cdot 2.0 = 2.0 + 1.8 = 3.8 $$
-  $$ \delta_t = \text{Target} - V_\phi(S_t) = 3.8 - 1.0 = +2.8 $$
-  </div>
-
-  <h3>2. Обновление весов Критика:</h3>
-  <div class="math-scroll-wrapper">
-  $$ \Delta \phi = \alpha_\phi \cdot \delta_t \cdot \nabla_\phi V_\phi(S_t) = 0.1 \cdot 2.8 \cdot [0.5, -0.2] = 0.28 \cdot [0.5, -0.2] = [0.14, -0.056] $$
-  </div>
-
-  <h3>3. Обновление весов Актора:</h3>
-  <div class="math-scroll-wrapper">
-  $$ \Delta \theta = \alpha_\theta \cdot \delta_t \cdot \nabla_\theta \log \pi_\theta(A_t \mid S_t) = 0.05 \cdot 2.8 \cdot [1.2, 0.4] = 0.14 \cdot [1.2, 0.4] = [0.168, 0.056] $$
-  </div>
+  <ol>
+    <li>Таргет: $2.0 + 0.9 \cdot 2.0 = 3.8 \implies \delta_t = 3.8 - 1.0 = +2.8$.</li>
+    <li>Шаг Критика: $\Delta \phi = 0.1 \cdot 2.8 \cdot [0.5, -0.2] = [0.14, -0.056]$.</li>
+    <li>Шаг Актора: $\Delta \theta = 0.05 \cdot 2.8 \cdot [1.2, 0.4] = [0.168, 0.056]$.</li>
+  </ol>
 </div>
 
 <div class="box exambox">
-  <div class="bt">🔢 Пример 2. Расчет GAE на траектории из 3 шагов</div>
-  <p>Пусть вычислены одношаговые TD-ошибки: $\delta_0 = 1.0, \quad \delta_1 = -0.5, \quad \delta_2 = 2.0$.</p>
-  <p>Параметры: $\gamma = 0.9, \quad \lambda = 0.8 \implies \gamma \lambda = 0.9 \cdot 0.8 = 0.72$. Эпизод завершился на шаге $t=3$ ($\hat{A}_3 = 0$).</p>
-  <p>Вычисляем GAE рекуррентно с конца:</p>
+  <div class="bt">🔢 Пример 2. Расчёт GAE ($\gamma = 0.9, \lambda = 0.8 \implies \gamma\lambda = 0.72$)</div>
+  <p>TD-ошибки: $\delta_0 = 1.0, \delta_1 = -0.5, \delta_2 = 2.0$ ($\hat{A}_3 = 0$):</p>
   <ul>
-    <li><strong>Шаг 2:</strong> $\hat{A}_2 = \delta_2 = 2.0$</li>
-    <li><strong>Шаг 1:</strong> $\hat{A}_1 = \delta_1 + (\gamma \lambda) \hat{A}_2 = -0.5 + 0.72 \cdot 2.0 = -0.5 + 1.44 = +0.94$</li>
-    <li><strong>Шаг 0:</strong> $\hat{A}_0 = \delta_0 + (\gamma \lambda) \hat{A}_1 = 1.0 + 0.72 \cdot 0.94 = 1.0 + 0.6768 = +1.6768$</li>
+    <li>$\hat{A}_2 = \delta_2 = 2.0$</li>
+    <li>$\hat{A}_1 = -0.5 + 0.72 \cdot 2.0 = 0.94$</li>
+    <li>$\hat{A}_0 = 1.0 + 0.72 \cdot 0.94 = 1.6768$</li>
   </ul>
 
-  <h3>Обучающий шаг Actor-Critic на PyTorch</h3>
+  <h3>Шаг Actor-Critic на PyTorch</h3>
 <pre><code>import torch
-import torch.optim as optim
 
 def train_actor_critic_step(model, optimizer, state, action, reward, next_state, done, gamma=0.99):
     probs, value = model(state)
@@ -281,45 +251,45 @@ def train_actor_critic_step(model, optimizer, state, action, reward, next_state,
       <th>Критерий</th>
       <th>Value-Based (DQN)</th>
       <th>Policy-Based (REINFORCE)</th>
-      <th>Actor-Critic (A2C / PPO / SAC)</th>
+      <th>Actor-Critic (A2C / SAC)</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td><strong>Пространство действий</strong></td>
-      <td>Только дискретное</td>
-      <td>Дискретное и непрерывное</td>
-      <td><strong>Дискретное и непрерывное $\mathbb{R}^k$</strong></td>
+      <td><strong>Действия</strong></td>
+      <td>Только дискретные</td>
+      <td>Дискретные и непрерывные</td>
+      <td><strong>Дискретные и непрерывные $\mathbb{R}^k$</strong></td>
     </tr>
     <tr>
-      <td><strong>Тип обновлений</strong></td>
+      <td><strong>Обновления</strong></td>
       <td>Бутстрэпинг по $\max Q$</td>
-      <td>Только после конца эпизода</td>
+      <td>После конца эпизода</td>
       <td><strong>Бутстрэпинг онлайн на каждом шаге</strong></td>
     </tr>
     <tr>
-      <td><strong>Дисперсия градиента</strong></td>
+      <td><strong>Дисперсия</strong></td>
       <td>Низкая</td>
       <td>Очень высокая ($G_t$)</td>
-      <td><strong>Низкая</strong> благодаря критику $V(s)$ и GAE</td>
+      <td><strong>Низкая</strong> (Критик $V(s)$ и GAE)</td>
     </tr>
     <tr>
-      <td><strong>Смещение (Bias)</strong></td>
+      <td><strong>Смещение</strong></td>
       <td>Смещение от $\max$</td>
-      <td>0 (Несмещенный $G_t$)</td>
+      <td>0 ($G_t$)</td>
       <td>Контролируемое через $\lambda$ в GAE</td>
     </tr>
     <tr>
-      <td><strong>Эффективность сэмплов</strong></td>
-      <td>Высокая (Off-policy Replay)</td>
+      <td><strong>Sample Efficiency</strong></td>
+      <td>Высокая (Replay)</td>
       <td>Очень низкая</td>
       <td><strong>Максимальная (SAC / PPO)</strong></td>
     </tr>
     <tr>
-      <td><strong>Область применения</strong></td>
-      <td>Atari, видеоигры</td>
-      <td>Академические игрушечные среды</td>
-      <td><strong>Робототехника, БПЛА, ChatGPT (RLHF)</strong></td>
+      <td><strong>Применение</strong></td>
+      <td>Atari, игры</td>
+      <td>Игрушечные среды</td>
+      <td><strong>Робототехника, БПЛА, LLM RLHF</strong></td>
     </tr>
   </tbody>
 </table>
@@ -331,70 +301,70 @@ def train_actor_critic_step(model, optimizer, state, action, reward, next_state,
 <details class="qa">
   <summary>1. Какую роль выполняет Critic в архитектуре Actor-Critic? Может ли Критик сам выбирать действия?</summary>
   <div class="ans">
-    <p>Критик выполняет исключительно роль <em>оценщика (baseline/evaluator)</em>: он аппроксимирует функцию ценности $V(s)$ и вычисляет скалярную ошибку преимущества $\delta_t = R_{t+1} + \gamma V(S_{t+1}) - V(S_t)$. Критик <strong>не выбирает действия</strong>. Выбор действий — исключительная прерогатива Актора $\pi_\theta(a|s)$. Это разделение позволяет Актору работать в любых непрерывных пространствах действий без поиска максимума.</p>
+    <p>Критик выполняет роль оценщика: аппроксимирует $V(s)$ и вычисляет $\delta_t \approx A(S_t, A_t)$. Критик <strong>не выбирает действия</strong>; это делает Актор $\pi_\theta(a|s)$. Разделение позволяет Актору работать в непрерывных пространствах без поиска $\max$.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>2. В чем разница между синхронным A2C и асинхронным A3C?</summary>
   <div class="ans">
-    <p>В A3C (Asynchronous Advantage Actor-Critic) несколько параллельных потоков на CPU независимо взаимодействуют со своими копиями среды и асинхронно обновляют глобальные веса без блокировок (Hogwild!). В A2C (Advantage Actor-Critic) параллельные среды синхронизированы: мастер собирает батч переходов со всех воркеров одновременно и делает один синхронный батчевый шаг на GPU. A2C работает быстрее на современных GPU и не уступает A3C по качеству.</p>
+    <p>A3C асинхронно обновляет веса от нескольких параллельных потоков на CPU без блокировок. A2C синхронно собирает батч переходов со всех воркеров и делает один батчевый шаг на GPU, работая быстрее на современном оборудовании.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>3. Что регулирует параметр $\lambda$ в Generalized Advantage Estimation (GAE)?</summary>
   <div class="ans">
-    <p>Параметр $\lambda \in [0, 1]$ регулирует компромисс между смещением (bias) и дисперсией (variance). При $\lambda = 0$ берется чистый 1-шаговый TD-критик с минимальной дисперсией, но высоким смещением, если критик неточен. При $\lambda = 1$ берется чистый эмпирический доход Монте-Карло с нулевым смещением, но огромной дисперсией. Промежуточные значения ($\lambda \approx 0.95$) дают оптимальный компромисс.</p>
+    <p>Компромисс Bias-Variance: $\lambda=0$ даёт 1-шаговый TD-критик (минимальная дисперсия, смещение от критика); $\lambda=1$ даёт Монте-Карло $G_t - V(S_t)$ (нулевое смещение, высокая дисперсия). $\lambda \approx 0.95$ оптимален.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>4. Зачем в Soft Actor-Critic (SAC) введена максимизация энтропии (Maximum Entropy RL)?</summary>
   <div class="ans">
-    <p>Максимизация энтропии $\mathcal{H}(\pi(\cdot|s))$ стимулирует стратегию быть максимально случайной при сохранении высокой награды. Это дает 3 преимущества: 1) Агент исследует все перспективные моды решений, не застревая в локальных субоптимумах; 2) Стратегия становится робастной к возмущениям среды; 3) Упрощается дообучение на новые смежные задачи (Transfer Learning).</p>
+    <p>Максимизация $\mathcal{H}(\pi)$ побуждает политику исследовать различные альтернативные решения, повышает робастность к шуму среды и облегчает дообучение (Transfer Learning).</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>5. Зачем в SAC используются две Q-сети (Twin Q-Networks)?</summary>
   <div class="ans">
-    <p>Как и в Double DQN, нейросетевой критик страдает от завышения оценок ценности. SAC обучает две независимые Q-сети $Q_{\phi_1}$ и $Q_{\phi_2}$, а при вычислении целевого значения берет минимум: $\min(Q_{\phi_1}(s', a'), Q_{\phi_2}(s', a'))$. Это гарантирует консервативную пессимистичную оценку и полностью подавляет расходимость.</p>
+    <p>Для устранения Overestimation Bias: SAC берёт пессимистичный минимум $\min(Q_1(s', a'), Q_2(s', a'))$ при расчёте целевого значения критика.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>6. Можно ли использовать одну общую нейросеть (Backbone) для Актора и Критика?</summary>
   <div class="ans">
-    <p>Да, в большинстве практических реализаций (включая PPO в Atari и LLM RLHF) используется единая нейросеть-бэкбон с двумя выходными головами: голова политики (выдает логиты/параметры распределения действий) и голова ценности (выдает скаляр $V(s)$). Суммарный лосс равен $\mathcal{L} = \mathcal{L}_{\text{policy}} + c_1 \mathcal{L}_{\text{value}} - c_2 \mathcal{H}(\pi)$.</p>
+    <p>Да: единый бэкбон с двумя головами (политика $\pi_\theta$ и ценность $V_\phi$) оптимизируется совместным лоссом $\mathcal{L} = \mathcal{L}_{\text{policy}} + c_1 \mathcal{L}_{\text{value}} - c_2 \mathcal{H}(\pi)$.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>7. В чем отличие Off-Policy Actor-Critic (DDPG, SAC) от On-Policy Actor-Critic (A2C, PPO)?</summary>
   <div class="ans">
-    <p>On-Policy методы (A2C, PPO) обновляют актора только по свежим траекториям, сгенерированным текущей стратегией, после чего данные отбрасываются. Off-Policy методы (DDPG, SAC) сохраняют все переходы в Replay Buffer и обучают Q-критика по старым данным произвольных стратегий, что на 1-2 порядка повышает Sample Efficiency.</p>
+    <p>On-Policy (A2C, PPO) обучаются только на свежих данных текущей политики. Off-Policy (DDPG, SAC) используют Replay Buffer для переиспользования старых переходов, повышая Sample Efficiency.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>8. Как вычисляется градиент непрерывного действия в алгоритме DDPG (Deep Deterministic Policy Gradient)?</summary>
   <div class="ans">
-    <p>DDPG использует детерминированного актора $\mu_\theta(s)$. Градиент берется по цепочке через Q-сеть критика (Deterministic Policy Gradient Theorem): $\nabla_\theta J(\theta) = \mathbb{E}_{s \sim \mathcal{D}} \left[ \nabla_a Q_\phi(s, a) \big|_{a=\mu_\theta(s)} \cdot \nabla_\theta \mu_\theta(s) \right]$.</p>
+    <p>По теореме детерминированного градиента: $\nabla_\theta J(\theta) = \mathbb{E}[\nabla_a Q_\phi(s, a)|_{a=\mu_\theta(s)} \cdot \nabla_\theta \mu_\theta(s)]$, дифференцируя $Q$ по действиям.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>9. Что такое Reparameterization Trick в SAC для стохастического актора?</summary>
   <div class="ans">
-    <p>Чтобы градиент критика $\nabla_a Q(s, a)$ мог протечь назад в веса актора $\theta$, сэмплирование действия дифференцируется через вспомогательный шум: $a_\theta(s, \epsilon) = \tanh\left(\mu_\theta(s) + \sigma_\theta(s) \odot \epsilon\right)$, где $\epsilon \sim \mathcal{N}(0, I)$. Это позволяет брать производные $\nabla_\theta Q(s, a_\theta(s, \epsilon))$ методом Autograd (аналогично VAE!).</p>
+    <p>Действие дифференцируется через вспомогательный шум: $a = \tanh(\mu_\theta(s) + \sigma_\theta(s) \odot \epsilon)$, $\epsilon \sim \mathcal{N}(0, I)$, позволяя градиенту $\nabla_a Q$ протекать в веса $\theta$ через Autograd.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>10. Почему именно Actor-Critic стал доминирующей парадигмой современного Deep RL?</summary>
   <div class="ans">
-    <p>Потому что он решает «трилемму RL»: поддерживает произвольные непрерывные и дискретные пространства действий, обладает низкой дисперсией градиентов благодаря бутстрэпингу критика и позволяет стабильно масштабироваться на гигантские нейросети и миллионы параллельных сред.</p>
+    <p>Он совмещает поддержку непрерывных действий, низкую дисперсию градиентов за счёт бутстрэпинга критика и масштабируемость на глубокие нейросети (PPO/SAC в робототехнике и RLHF).</p>
   </div>
 </details>
 
@@ -402,67 +372,51 @@ def train_actor_critic_step(model, optimizer, state, action, reward, next_state,
 <h2 id="tasks"><span class="num">7.</span> 📝 Микро-задачи с решениями</h2>
 
 <div class="task">
-  <div class="tt">Задача 1. Расчет скалярного Advantage</div>
-  <p>В состоянии $s$ для действия $a$ критик предсказал $Q(s, a) = 8.4$, а ценность состояния $V(s) = 6.0$. Чему равен Advantage $A(s, a)$ и как изменится вероятность этого действия?</p>
+  <div class="tt">Задача 1. Расчёт скалярного Advantage</div>
+  <p>$Q(s, a) = 8.4, V(s) = 6.0$. Чему равен Advantage $A(s, a)$ и как изменится вероятность действия?</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>По определению функции преимущества:</p>
       <div class="math-scroll-wrapper">
       $$ A(s, a) = Q(s, a) - V(s) = 8.4 - 6.0 = +2.4 $$
       </div>
-      <p>Так как $A(s, a) > 0$, действие $a$ лучше среднего исхода из состояния $s$. Градиентный шаг $\nabla_\theta \log \pi(a|s) \cdot (+2.4)$ увеличит вероятность выбора действия $a$.</p>
+      <p>Так как $A > 0$, действие лучше среднего, его вероятность увеличится.</p>
       <p><strong>Ответ:</strong> $A(s, a) = +2.4$, вероятность увеличится.</p>
     </div>
   </details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 2. Расчет TD-ошибки Критика с терминальным флагом</div>
-  <p>Переход $(S_t, A_t, R_{t+1}=+10.0, S_{t+1}, done=1)$. Оценки критика $V(S_t) = 4.0, V(S_{t+1}) = 15.0$, дисконт $\gamma = 0.99$. Чему равна TD-ошибка $\delta_t$?</p>
+  <div class="tt">Задача 2. Расчёт TD-ошибки Критика с терминальным флагом</div>
+  <p>$R_{t+1} = 10.0, done = 1, V(S_t) = 4.0, V(S_{t+1}) = 15.0, \gamma = 0.99$. Чему равна TD-ошибка $\delta_t$?</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Так как $done=1$, ценность следующего состояния обнуляется множителем $(1 - done)$:</p>
-      <div class="math-scroll-wrapper">
-      $$ \text{Target} = R_{t+1} + \gamma (1 - done) V(S_{t+1}) = 10.0 + 0.99 \cdot 0 \cdot 15.0 = 10.0 $$
-      $$ \delta_t = \text{Target} - V(S_t) = 10.0 - 4.0 = +6.0 $$
-      </div>
+      <p>Таргет: $y = 10.0 + 0.99 \cdot (1 - 1) \cdot 15.0 = 10.0$. Ошибка: $\delta_t = 10.0 - 4.0 = +6.0$.</p>
       <p><strong>Ответ:</strong> $\delta_t = +6.0$.</p>
     </div>
   </details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 3. Расчет GAE($\lambda=0$) vs GAE($\lambda=1$)</div>
-  <p>В эпизоде длины 2 получены TD-ошибки $\delta_0 = 2.0, \delta_1 = 4.0$. Дисконт $\gamma = 0.5$. Чему равно значение преимущества $\hat{A}_0$ при $\lambda = 0$ и при $\lambda = 1$?</p>
+  <div class="tt">Задача 3. Расчёт GAE($\lambda=0$) vs GAE($\lambda=1$)</div>
+  <p>$\delta_0 = 2.0, \delta_1 = 4.0, \gamma = 0.5$. Найдите $\hat{A}_0$ при $\lambda = 0$ и $\lambda = 1$.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Формула: $\hat{A}_0 = \delta_0 + (\gamma \lambda) \delta_1$.</p>
-      <ul>
-        <li>При $\lambda = 0$: $\hat{A}_0 = \delta_0 + 0 = 2.0$.</li>
-        <li>При $\lambda = 1$: $\hat{A}_0 = \delta_0 + \gamma \delta_1 = 2.0 + 0.5 \cdot 4.0 = 2.0 + 2.0 = 4.0$.</li>
-      </ul>
-      <p><strong>Ответ:</strong> $\lambda=0 \implies \hat{A}_0 = 2.0; \quad \lambda=1 \implies \hat{A}_0 = 4.0$.</p>
+      <p>$\lambda = 0 \implies \hat{A}_0 = \delta_0 = 2.0$. $\lambda = 1 \implies \hat{A}_0 = 2.0 + 0.5 \cdot 4.0 = 4.0$.</p>
+      <p><strong>Ответ:</strong> $\lambda=0 \implies 2.0; \quad \lambda=1 \implies 4.0$.</p>
     </div>
   </details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 4. Maximum Entropy целевая функция в SAC</div>
-  <p>В дискретном состоянии стратегия предсказывает вероятности $\pi = [0.5, 0.5]$. Награда перехода $R = 5.0$. Температура энтропии $\alpha = 2.0$. Чему равна модифицированная награда $R_{\text{soft}} = R + \alpha \mathcal{H}(\pi)$ (энтропия с натуральным логарифмом, $\ln 2 \approx 0.6931$)?</p>
+  <p>$\pi = [0.5, 0.5], R = 5.0, \alpha = 2.0$. Найдите $R_{\text{soft}} = R + \alpha \mathcal{H}(\pi)$ ($\ln 2 \approx 0.6931$).</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Вычисляем энтропию Шеннона распределения:</p>
-      <div class="math-scroll-wrapper">
-      $$ \mathcal{H}(\pi) = -\sum_{i=1}^2 \pi_i \ln \pi_i = -(0.5 \ln 0.5 + 0.5 \ln 0.5) = -\ln(0.5) = \ln(2) \approx 0.6931 $$
-      </div>
-      <p>Модифицированная награда:</p>
-      <div class="math-scroll-wrapper">
-      $$ R_{\text{soft}} = 5.0 + 2.0 \cdot 0.6931 = 5.0 + 1.3862 = 6.3862 $$
-      </div>
+      <p>$\mathcal{H}(\pi) = -\sum 0.5 \ln 0.5 = \ln 2 \approx 0.6931$. $R_{\text{soft}} = 5.0 + 2.0 \cdot 0.6931 = 6.3862$.</p>
       <p><strong>Ответ:</strong> $R_{\text{soft}} \approx 6.3862$.</p>
     </div>
   </details>
@@ -470,14 +424,12 @@ def train_actor_critic_step(model, optimizer, state, action, reward, next_state,
 
 <div class="task">
   <div class="tt">Задача 5. Twin Q-Networks консервативный таргет в SAC</div>
-  <p>Две Q-сети предсказывают для состояния $s'$ и действия $a'$ значения $Q_1(s', a') = 14.5$ и $Q_2(s', a') = 11.2$. Награда $R = 3.0$, дисконт $\gamma = 0.9$. Чему равен таргет критика $y = R + \gamma \min(Q_1, Q_2)$?</p>
+  <p>$Q_1(s', a') = 14.5, Q_2(s', a') = 11.2, R = 3.0, \gamma = 0.9$. Чему равен таргет $y = R + \gamma \min(Q_1, Q_2)$?</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Берем консервативный минимум оценок:</p>
       <div class="math-scroll-wrapper">
-      $$ \min(Q_1, Q_2) = \min(14.5, 11.2) = 11.2 $$
-      $$ y = 3.0 + 0.9 \cdot 11.2 = 3.0 + 10.08 = 13.08 $$
+      $$ y = 3.0 + 0.9 \cdot \min(14.5, 11.2) = 3.0 + 0.9 \cdot 11.2 = 3.0 + 10.08 = 13.08 $$
       </div>
       <p><strong>Ответ:</strong> $y = 13.08$.</p>
     </div>
@@ -486,7 +438,7 @@ def train_actor_critic_step(model, optimizer, state, action, reward, next_state,
 
 <div class="task">
   <div class="tt">Задача 6. Совокупная функция потерь Actor-Critic с регуляризацией энтропией</div>
-  <p>В общем бэкбоне лосс политики $\mathcal{L}_{\text{policy}} = -1.5$, лосс критика $\mathcal{L}_{\text{value}} = 0.8$, энтропия $\mathcal{H} = 0.4$. Коэффициенты $c_1 = 0.5, c_2 = 0.01$. Чему равен итоговый скалярный лосс $\mathcal{L} = \mathcal{L}_{\text{policy}} + c_1 \mathcal{L}_{\text{value}} - c_2 \mathcal{H}$?</p>
+  <p>$\mathcal{L}_{\text{policy}} = -1.5, \mathcal{L}_{\text{value}} = 0.8, \mathcal{H} = 0.4, c_1 = 0.5, c_2 = 0.01$. Найдите $\mathcal{L} = \mathcal{L}_{\text{policy}} + c_1 \mathcal{L}_{\text{value}} - c_2 \mathcal{H}$.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
@@ -502,15 +454,15 @@ def train_actor_critic_step(model, optimizer, state, action, reward, next_state,
 <h2 id="cheat"><span class="num">8.</span> ⚡ Скелет ответа по билету</h2>
 
 <div class="cheat">
-  <div class="bt">Скелет устного ответа по билету 25 (Value-based vs Policy-based, Actor-Critic)</div>
+  <div class="bt">Скелет ответа по билету 25 (Value-based vs Policy-based, Actor-Critic)</div>
   <ol>
-    <li><strong>Сравнение парадигм:</strong> Value-based (DQN) оценивает $Q(s, a)$ и берет $\arg\max$ (эффективно по выборке, но только дискретные действия); Policy-based (REINFORCE) напрямую параметризует $\pi_\theta(a|s)$ (непрерывные действия, но высокая дисперсия).</li>
-    <li><strong>Архитектура Actor-Critic:</strong> Синтез двух идей. Актор $\pi_\theta(a|s)$ выбирает действия; Критик $V_\phi(s)$ оценивает их качество и выдает TD-ошибку $\delta_t = R_{t+1} + \gamma V(S_{t+1}) - V(S_t) \approx A(S_t, A_t)$, снижая дисперсию актора.</li>
-    <li><strong>Функция преимущества (Advantage):</strong> $A(s, a) = Q(s, a) - V(s)$. Показывает, насколько действие $a$ лучше среднего исхода ($\mathbb{E}_\pi[A(s, a)] = 0$).</li>
+    <li><strong>Сравнение парадигм:</strong> Value-based (DQN) оценивает $Q(s, a)$ и берёт $\max$ (только дискретные действия); Policy-based (REINFORCE) параметризует $\pi_\theta(a|s)$ (непрерывные действия, высокая дисперсия).</li>
+    <li><strong>Архитектура Actor-Critic:</strong> Актор $\pi_\theta(a|s)$ выбирает действия; Критик $V_\phi(s)$ оценивает их через TD-ошибку $\delta_t = R_{t+1} + \gamma V(S_{t+1}) - V(S_t) \approx A(S_t, A_t)$, снижая дисперсию.</li>
+    <li><strong>Advantage Function:</strong> $A(s, a) = Q(s, a) - V(s)$. Показывает превосходство действия над средним исходом ($\mathbb{E}_\pi[A] = 0$).</li>
     <li><strong>Обновление A2C:</strong> Критик: $\min_\phi (R + \gamma V(S') - V_\phi(S))^2$; Актор: $\theta \leftarrow \theta + \alpha \nabla_\theta \log \pi_\theta(A|S) \delta_t + \beta \nabla_\theta \mathcal{H}(\pi)$.</li>
-    <li><strong>Generalized Advantage Estimation (GAE):</strong> Экспоненциальное сглаживание $\hat{A}_t^{\text{GAE}} = \sum (\gamma \lambda)^l \delta_{t+l}$. Параметр $\lambda$ балансирует смещение (Bias при $\lambda=0$) и дисперсию (Variance при $\lambda=1$).</li>
-    <li><strong>Soft Actor-Critic (SAC):</strong> SOTA для непрерывного управления. Maximum Entropy RL: $\max \mathbb{E}[R + \alpha \mathcal{H}(\pi)]$. Twin Q-сети $\min(Q_1, Q_2)$ и репараметризованный стохастический актор.</li>
-    <li><strong>Практическая значимость:</strong> Actor-Critic лежит в основе всех передовых систем ИИ: от управления гуманоидными роботами до выравнивания больших языковых моделей (PPO в ChatGPT / RLHF).</li>
+    <li><strong>GAE($\gamma, \lambda$):</strong> Экспоненциальное сглаживание $\hat{A}_t^{\text{GAE}} = \sum (\gamma \lambda)^l \delta_{t+l}$. $\lambda$ балансирует смещение ($\lambda=0$) и дисперсию ($\lambda=1$).</li>
+    <li><strong>Soft Actor-Critic (SAC):</strong> Maximum Entropy RL: $\max \mathbb{E}[R + \alpha \mathcal{H}(\pi)]$. Twin Q-сети $\min(Q_1, Q_2)$ и репараметризация стохастического актора.</li>
+    <li><strong>Применение:</strong> SOTA-стандарт для робототехники, беспилотных систем и выравнивания языковых моделей (RLHF/PPO).</li>
   </ol>
 </div>
 

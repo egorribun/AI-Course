@@ -95,9 +95,7 @@ class TestM1ProgressHubUIEmpirical(unittest.TestCase):
         start_idx = self.index_text.find('id="global-progress-hub"')
         self.assertNotEqual(start_idx, -1, "#global-progress-hub element must exist in index.html")
         end_idx = self.index_text.find('class="search-box"', start_idx)
-        self.assertNotEqual(
-            end_idx, -1, ".search-box element must exist following progress hub"
-        )
+        self.assertNotEqual(end_idx, -1, ".search-box element must exist following progress hub")
         hub_slice = self.index_text[start_idx:end_idx]
 
         self.assertNotIn(

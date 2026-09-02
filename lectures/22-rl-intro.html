@@ -21,7 +21,7 @@ window.MathJax = {
 <header class="top"><div class="inner">
   <div class="kicker">Блок D · Reinforcement Learning · Вопрос 21</div>
   <h1>Лекция 22. Введение в Reinforcement Learning и Марковские процессы принятия решений (MDP)</h1>
-  <p class="sub">Парадигма обучения с подкреплением, цикл «Агент — Среда», Марковское свойство, формализация MDP, дисконтированный доход $G_t$, стратегия $\pi$, функции ценности $V^\pi(s)$ и $Q^\pi(s, a)$, дилемма Exploration vs Exploitation.</p>
+  <p class="sub">Парадигма RL, цикл «Агент — Среда», марковское свойство, формализация MDP, дисконтированный доход $G_t$, стратегия $\pi$, функции ценности $V^\pi(s)$ и $Q^\pi(s, a)$, Exploration vs Exploitation.</p>
   <div class="meta">
     <span class="pill">⏱ 2 ч 15 мин</span>
     <span class="pill gray">10 вопросов препода</span>
@@ -38,9 +38,9 @@ window.MathJax = {
   <div class="bt">Содержание лекции</div>
   <ol>
     <li><a href="#s1">Интуиция и мотивация</a></li>
-    <li><a href="#s2">Архитектура и схема: цикл «Агент — Среда»</a></li>
-    <li><a href="#s3">Математический аппарат: MDP, доход, стратегия и функции ценности</a></li>
-    <li><a href="#s4">Пошаговый числовой пример расчета доходов и ценностей</a></li>
+    <li><a href="#s2">Архитектура и схема</a></li>
+    <li><a href="#s3">Математический аппарат</a></li>
+    <li><a href="#s4">Пошаговый числовой пример</a></li>
     <li><a href="#s5">Преимущества, недостатки и применимость</a></li>
     <li><a href="#qa">🎯 Препод спросит</a></li>
     <li><a href="#tasks">📝 Микро-задачи с решениями</a></li>
@@ -51,26 +51,19 @@ window.MathJax = {
 <!-- ============================================ -->
 <h2 id="s1"><span class="num">1.</span> Интуиция и мотивация</h2>
 
-<p><strong>Обучение с подкреплением (Reinforcement Learning, RL)</strong> — это фундаментальная парадигма машинного обучения, в которой агент учится принимать последовательность оптимальных решений путем непосредственного взаимодействия с динамической средой по принципу «проб и ошибок» (trial-and-error), стремясь максимизировать суммарный накопленный выигрыш.</p>
+<p><strong>Обучение с подкреплением (Reinforcement Learning, RL)</strong> — парадигма ML, где агент учится принимать решения во взаимодействии со средой путём проб и ошибок, максимизируя суммарный выигрыш.</p>
 
 <div class="box idea">
-  <div class="bt">💡 В чем ключевое отличие RL от Supervised и Unsupervised Learning?</div>
-  <ul>
-    <li><strong>Supervised Learning (Обучение с учителем):</strong> Модели на каждом шаге предъявляется фиксированный датасет пар «вход — эталонный ответ» $(x, y)$. Градиент функции потерь вычисляется мгновенно. Модель пассивна и не влияет на распределение будущих данных.</li>
-    <li><strong>Unsupervised Learning (Обучение без учителя):</strong> Модель исследует внутреннюю геометрию данных $P(x)$ без внешних сигналов обратной связи (кластеризация, сжатие, плотность).</li>
-    <li><strong>Reinforcement Learning (Обучение с подкреплением):</strong> <strong>Учителя нет.</strong> Нет разметки правильных действий. Агент совершает действие $A_t$, среда переходит в новое состояние $S_{t+1}$ и возвращает скалярный числовой сигнал награды $R_{t+1}$. Данные не статичны: действия агента напрямую определяют, какие состояния он увидит в будущем.</li>
-  </ul>
+  <div class="bt">💡 Сравнение парадигм машинного обучения</div>
+  <ol>
+    <li><strong>Отложенная награда (Delayed Reward):</strong> Действие в момент $t$ приносит результат спустя десятки шагов.</li>
+    <li><strong>Распределение ответственности (Credit Assignment):</strong> Определение вклада конкретных действий в итоговый успех/неудачу.</li>
+    <li><strong>Exploration vs Exploitation:</strong> Баланс между эксплуатацией известного действия и исследованием новых.</li>
+  </ol>
 </div>
 
-<p>Три главные трудности Reinforcement Learning:</p>
-<ol>
-  <li><strong>Отложенное вознаграждение (Delayed Reward):</strong> Действие, совершенное сейчас (например, жертва фигуры в шахматах или взятие пешки), может принести победу или поражение лишь спустя сотни последующих шагов.</li>
-  <li><strong>Проблема распределения ответственности (Credit Assignment Problem):</strong> Если партия выиграна после 80 ходов, какие именно из 80 действий внесли решающий вклад в победу, а какие были нейтральными или ошибочными?</li>
-  <li><strong>Дилемма исследования и эксплуатации (Exploration vs Exploitation):</strong> Должен ли агент эксплуатировать уже известное действие с гарантированной наградой или исследовать неизвестное действие, которое потенциально может оказаться прорывом?</li>
-</ol>
-
 <!-- ============================================ -->
-<h2 id="s2"><span class="num">2.</span> Архитектура и схема: цикл «Агент — Среда»</h2>
+<h2 id="s2"><span class="num">2.</span> Архитектура и схема</h2>
 
 <p>Взаимодействие агента со средой разворачивается во времени как дискретный стохастический процесс:</p>
 
@@ -89,7 +82,7 @@ window.MathJax = {
 
   Временная развертка траектории (Episode Trajectory):
   τ = ( S_0,  A_0,  R_1,  S_1,  A_1,  R_2,  S_2,  A_2,  R_3, ..., S_T )
-<span class="cap">Дискретный шаг $t$: агент в состоянии $S_t$ выбирает действие $A_t \sim \pi(\cdot|S_t)$, среда генерирует награду $R_{t+1}$ и новое состояние $S_{t+1} \sim \mathcal{P}(\cdot|S_t, A_t)$.</span></div>
+<span class="cap">Шаг $t$: агент в $S_t$ выбирает $A_t \sim \pi(\cdot|S_t)$, среда возвращает $R_{t+1}$ и $S_{t+1} \sim \mathcal{P}(\cdot|S_t, A_t)$.</span></div>
 
 <div class="scheme">
   ТАКСОНОМИЯ МЕТОДОВ RL:
@@ -119,101 +112,87 @@ window.MathJax = {
                                              │  Actor-Critic   │
                                              │   (A2C, SAC)    │
                                              └─────────────────┘
-<span class="cap">Общая классификация методов обучения с подкреплением: Model-Based vs Model-Free, Value-Based vs Policy-Based и их гибрид Actor-Critic.</span></div>
+<span class="cap">Таксономия RL: Model-Based vs Model-Free, Value-Based vs Policy-Based и гибрид Actor-Critic.</span></div>
 
 <!-- ============================================ -->
 <h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
 
 <h3>1. Марковское свойство (Markov Property)</h3>
-<p>Состояние среды $S_t$ обладает <strong>Марковским свойством</strong> тогда и только тогда, когда условное распределение будущего состояния и награды зависит исключительно от текущего состояния $S_t$ и действия $A_t$, и полностью инвариантно ко всей предшествующей предыстории:</p>
+<p>Состояние $S_t$ марковское, если распределение будущего зависит только от $S_t$ и $A_t$, а не от предыстории:</p>
 
 <div class="math-scroll-wrapper">
-$$ \mathbb{P}(S_{t+1} = s', R_{t+1} = r \mid S_t = s_t, A_t = a_t, S_{t-1} = s_{t-1}, A_{t-1} = a_{t-1}, \dots, S_0 = s_0, A_0 = a_0) = \mathbb{P}(S_{t+1} = s', R_{t+1} = r \mid S_t = s_t, A_t = a_t) $$
+$$ \mathbb{P}(S_{t+1} = s', R_{t+1} = r \mid S_t = s_t, A_t = a_t, \dots, S_0 = s_0, A_0 = a_0) = \mathbb{P}(S_{t+1} = s', R_{t+1} = r \mid S_t = s_t, A_t = a_t) $$
 </div>
-<p><em>«Будущее независимо от прошлого при фиксированном настоящем.»</em> Текущее состояние $S_t$ является достаточной статистикой процесса.</p>
+<p>$S_t$ служит достаточной статистикой процесса («будущее независимо от прошлого при известном настоящем»).</p>
 
-<h3>2. Марковский процесс принятия решений (Markov Decision Process, MDP)</h3>
-<p>Формально классическая среда в RL описывается кортежем из 5 компонент:</p>
-
-<div class="math-scroll-wrapper">
-$$ \mathcal{M} = \langle \mathcal{S}, \, \mathcal{A}, \, \mathcal{P}, \, \mathcal{R}, \, \gamma \rangle $$
-</div>
+<h3>2. Марковский процесс принятия решений (MDP)</h3>
+<p>MDP задаётся кортежем $\mathcal{M} = \langle \mathcal{S}, \, \mathcal{A}, \, \mathcal{P}, \, \mathcal{R}, \, \gamma \rangle$:</p>
 
 <ul>
-  <li>$\mathcal{S}$ — пространство состояний (State space), конечное дискретное или непрерывное $\mathcal{S} \subseteq \mathbb{R}^d$.</li>
-  <li>$\mathcal{A}$ — пространство действий (Action space), дискретное $\{a_1, \dots, a_m\}$ или непрерывное $\mathcal{A} \subseteq \mathbb{R}^k$.</li>
-  <li>$\mathcal{P}(s' \mid s, a) = \mathbb{P}(S_{t+1} = s' \mid S_t = s, A_t = a)$ — тензор динамики переходов (Transition Probability Function), удовлетворяющий $\sum_{s' \in \mathcal{S}} \mathcal{P}(s' \mid s, a) = 1$.</li>
-  <li>$\mathcal{R}(s, a) = \mathbb{E}[R_{t+1} \mid S_t = s, A_t = a]$ — функция ожидаемой немедленной награды (Reward Function).</li>
-  <li>$\gamma \in [0, 1)$ — коэффициент дисконтирования (Discount Factor).</li>
+  <li>$\mathcal{S}$ — пространство состояний (дискретное или непрерывное $\mathcal{S} \subseteq \mathbb{R}^d$).</li>
+  <li>$\mathcal{A}$ — пространство действий (дискретное $\{a_1, \dots, a_m\}$ или непрерывное $\mathcal{A} \subseteq \mathbb{R}^k$).</li>
+  <li>$\mathcal{P}(s' \mid s, a) = \mathbb{P}(S_{t+1} = s' \mid S_t = s, A_t = a)$ — функция переходов, где $\sum_{s'} \mathcal{P}(s' \mid s, a) = 1$.</li>
+  <li>$\mathcal{R}(s, a) = \mathbb{E}[R_{t+1} \mid S_t = s, A_t = a]$ — функция ожидаемой немедленной награды.</li>
+  <li>$\gamma \in [0, 1)$ — коэффициент дисконтирования.</li>
 </ul>
 
-<h3>3. Дисконтированный доход (Discounted Return $G_t$)</h3>
-<p>Цель агента — максимизировать суммарный дисконтированный доход $G_t$, начиная с шага $t$:</p>
+<h3>3. Дисконтированный доход ($G_t$)</h3>
+<p>Цель агента — максимизировать суммарный доход $G_t$:</p>
 
 <div class="math-scroll-wrapper">
-$$ G_t \doteq \sum_{k=0}^{\infty} \gamma^k R_{t+k+1} = R_{t+1} + \gamma R_{t+2} + \gamma^2 R_{t+3} + \dots = R_{t+1} + \gamma G_{t+1} $$
+$$ G_t \doteq \sum_{k=0}^{\infty} \gamma^k R_{t+k+1} = R_{t+1} + \gamma G_{t+1} $$
 </div>
 
 <div class="box mathbox">
-  <div class="bt">📐 Роль и свойства фактора дисконтирования $\gamma$</div>
+  <div class="bt">📐 Свойства коэффициента дисконтирования $\gamma$</div>
   <ol>
-    <li><strong>Сходимость бесконечного ряда:</strong> При ограниченной награде $|R_t| \le R_{\max}$ и $\gamma < 1$ ряд гарантированно сходится:
-      <div class="math-scroll-wrapper">
-      $$ G_t \le \sum_{k=0}^\infty \gamma^k R_{\max} = \frac{R_{\max}}{1 - \gamma} $$
-      </div>
-    </li>
-    <li><strong>Эффективный горизонт планирования:</strong> Величина $H_{\text{eff}} \approx \frac{1}{1 - \gamma}$ задает масштаб шагов, на котором награды вносят ощутимый вклад. При $\gamma = 0.9 \implies H \approx 10$; при $\gamma = 0.99 \implies H \approx 100$.</li>
-    <li><strong>Учет неопределенности будущего:</strong> Гарантированная награда сейчас ценнее гипотетической награды через 100 шагов.</li>
+    <li><strong>Сходимость:</strong> При $|R| \le R_{\max}$ ряд сходится: $G_t \le \frac{R_{\max}}{1 - \gamma}$.</li>
+    <li><strong>Горизонт:</strong> Эффективный горизонт планирования $H_{\text{eff}} \approx \frac{1}{1 - \gamma}$ ($\gamma=0.9 \implies H \approx 10$).</li>
+    <li><strong>Приоритет:</strong> Ранние награды ценнее поздних из-за фактора риска и стохастичности среды.</li>
   </ol>
 </div>
 
 <h3>4. Стратегия агента (Policy $\pi$)</h3>
 <ul>
-  <li><strong>Детерминированная стратегия:</strong> $\mu: \mathcal{S} \to \mathcal{A}$, сопоставляющая состоянию конкретное действие $a = \mu(s)$.</li>
-  <li><strong>Стохастическая стратегия:</strong> $\pi(a \mid s) = \mathbb{P}(A_t = a \mid S_t = s)$, где $\sum_{a \in \mathcal{A}} \pi(a \mid s) = 1$ и $\pi(a \mid s) \ge 0$.</li>
+  <li><strong>Детерминированная:</strong> $a = \mu(s)$.</li>
+  <li><strong>Стохастическая:</strong> $\pi(a \mid s) = \mathbb{P}(A_t = a \mid S_t = s)$, где $\sum_{a} \pi(a \mid s) = 1$.</li>
 </ul>
 
 <h3>5. Функции ценности (Value Functions)</h3>
-<p>Для заданной стратегии $\pi$ определяются две фундаментальные функции:</p>
+<p>Функции ценности состояния $V^\pi(s)$ и действия $Q^\pi(s, a)$:</p>
 
 <div class="math-scroll-wrapper">
-$$ V^\pi(s) \doteq \mathbb{E}_\pi \left[ G_t \;\middle|\; S_t = s \right] = \mathbb{E}_\pi \left[ \sum_{k=0}^\infty \gamma^k R_{t+k+1} \;\middle|\; S_t = s \right] \quad \text{(State-Value Function)} $$
+$$ V^\pi(s) \doteq \mathbb{E}_\pi \left[ G_t \;\middle|\; S_t = s \right] = \mathbb{E}_\pi \left[ \sum_{k=0}^\infty \gamma^k R_{t+k+1} \;\middle|\; S_t = s \right] $$
 </div>
 
 <div class="math-scroll-wrapper">
-$$ Q^\pi(s, a) \doteq \mathbb{E}_\pi \left[ G_t \;\middle|\; S_t = s, A_t = a \right] = \mathbb{E}_\pi \left[ \sum_{k=0}^\infty \gamma^k R_{t+k+1} \;\middle|\; S_t = s, A_t = a \right] \quad \text{(Action-Value Function)} $$
+$$ Q^\pi(s, a) \doteq \mathbb{E}_\pi \left[ G_t \;\middle|\; S_t = s, A_t = a \right] = \mathbb{E}_\pi \left[ \sum_{k=0}^\infty \gamma^k R_{t+k+1} \;\middle|\; S_t = s, A_t = a \right] $$
 </div>
 
-<p>Фундаментальная связь между $V^\pi(s)$ и $Q^\pi(s, a)$:</p>
+<p>Связь между функциями:</p>
 <div class="math-scroll-wrapper">
 $$ V^\pi(s) = \sum_{a \in \mathcal{A}} \pi(a \mid s) Q^\pi(s, a) = \mathbb{E}_{a \sim \pi(\cdot|s)} [Q^\pi(s, a)] $$
 </div>
 
-<h3>6. Дилемма Exploration vs Exploitation</h3>
-<p>Для баланса между исследованием новых действий и использованием наилучших известных применяются стратегии:</p>
+<h3>6. Стратегии исследования (Exploration vs Exploitation)</h3>
 <ol>
-  <li><strong>$\epsilon$-Greedy (Эпсилон-жадная):</strong>
+  <li><strong>$\epsilon$-Greedy:</strong>
     <div class="math-scroll-wrapper">
     $$ \pi(a \mid s) = \begin{cases} 1 - \epsilon + \frac{\epsilon}{|\mathcal{A}|}, & a = \arg\max_{a'} Q(s, a') \\ \frac{\epsilon}{|\mathcal{A}|}, & a \ne \arg\max_{a'} Q(s, a') \end{cases} $$
     </div>
   </li>
-  <li><strong>Softmax (Больцмановское сэмплирование):</strong>
+  <li><strong>Softmax (Boltzmann):</strong>
     <div class="math-scroll-wrapper">
     $$ \pi(a \mid s) = \frac{\exp(Q(s, a) / \tau)}{\sum_{b \in \mathcal{A}} \exp(Q(s, b) / \tau)} $$
     </div>
   </li>
-  <li><strong>Upper Confidence Bound (UCB):</strong>
-    <div class="math-scroll-wrapper">
-    $$ A_t = \arg\max_{a} \left[ Q(a) + c \sqrt{\frac{\ln t}{N_t(a)}} \right] $$
-    </div>
-  </li>
+  <li><strong>UCB:</strong> $A_t = \arg\max_{a} \left[ Q(a) + c \sqrt{\frac{\ln t}{N_t(a)}} \right]$.</li>
 </ol>
 
-<h3>7. Практическая реализация среды и расчета доходов на Python</h3>
+<h3>7. Реализация среды и расчёта доходов на Python</h3>
 <pre><code>import numpy as np
 
 class SimpleGridWorld:
-    """Дискретная среда 1D GridWorld."""
     def __init__(self, length=4):
         self.length = length
         self.state = 0
@@ -224,7 +203,6 @@ class SimpleGridWorld:
         return self.state
 
     def step(self, action):
-        # 0: влево, 1: вправо
         if action == 1 and self.state &lt; self.goal:
             self.state += 1
         elif action == 0 and self.state &gt; 0:
@@ -234,7 +212,6 @@ class SimpleGridWorld:
         return self.state, reward, done
 
 def compute_discounted_return(rewards, gamma=0.9):
-    """Вычисление дисконтированного дохода G_t с конца траектории."""
     g = 0.0
     returns = []
     for r in reversed(rewards):
@@ -243,35 +220,33 @@ def compute_discounted_return(rewards, gamma=0.9):
     return returns
 
 def epsilon_greedy_select(q_values, epsilon=0.1):
-    """Выбор действия по эпсилон-жадной стратегии."""
     if np.random.rand() &lt; epsilon:
         return int(np.random.randint(len(q_values)))
     return int(np.argmax(q_values))
 
 def evaluate_policy_expected_value(q_table, state, policy_probs):
-    """Вычисление V(s) = sum_a pi(a|s) * Q(s, a)."""
     return float(np.sum(policy_probs * q_table[state]))
 </code></pre>
 
 <!-- ============================================ -->
-<h2 id="s4"><span class="num">4.</span> Пошаговый числовой пример расчета доходов и ценностей</h2>
+<h2 id="s4"><span class="num">4.</span> Пошаговый числовой пример</h2>
 
 <div class="box exambox">
-  <div class="bt">🔢 Пример 1. Расчет дисконтированного дохода траектории эпизода</div>
-  <p>Пусть агент породил конечную траекторию из 4 шагов с наградами:</p>
+  <div class="bt">🔢 Пример 1. Расчёт дисконтированного дохода траектории</div>
+  <p>Траектория из 4 шагов с $\gamma = 0.9$ и терминальным состоянием на $t=4$:</p>
   <div class="math-scroll-wrapper">
-  $$ R_1 = +2, \quad R_2 = 0, \quad R_3 = -1, \quad R_4 = +10, \quad \text{Терминальное состояние на шаге } t=4. $$
+  $$ R_1 = +2, \quad R_2 = 0, \quad R_3 = -1, \quad R_4 = +10 $$
   </div>
-  <p>Коэффициент дисконтирования $\gamma = 0.9$. Рассчитаем доходы $G_t$ с конца (динамическое программирование):</p>
+  <p>Рекуррентный расчёт $G_t = R_{t+1} + \gamma G_{t+1}$ с конца:</p>
   <ul>
-    <li><strong>Шаг 3:</strong> $G_3 = R_4 = +10.0$</li>
-    <li><strong>Шаг 2:</strong> $G_2 = R_3 + \gamma G_3 = -1 + 0.9 \cdot 10.0 = -1 + 9.0 = +8.0$</li>
-    <li><strong>Шаг 1:</strong> $G_1 = R_2 + \gamma G_2 = 0 + 0.9 \cdot 8.0 = +7.2$</li>
-    <li><strong>Шаг 0:</strong> $G_0 = R_1 + \gamma G_1 = 2 + 0.9 \cdot 7.2 = 2 + 6.48 = +8.48$</li>
+    <li>$G_3 = R_4 = 10.0$</li>
+    <li>$G_2 = R_3 + 0.9 \cdot 10.0 = -1 + 9.0 = 8.0$</li>
+    <li>$G_1 = R_2 + 0.9 \cdot 8.0 = 0 + 7.2 = 7.2$</li>
+    <li>$G_0 = R_1 + 0.9 \cdot 7.2 = 2 + 6.48 = 8.48$</li>
   </ul>
-  <p>Прямой расчет для $G_0$: $G_0 = 2 \cdot 0.9^0 + 0 \cdot 0.9^1 + (-1) \cdot 0.9^2 + 10 \cdot 0.9^3 = 2 + 0 - 0.81 + 7.29 = 8.48$. Значения идеально совпадают!</p>
+  <p>Прямой расчёт: $G_0 = 2\cdot0.9^0 + 0\cdot0.9^1 - 1\cdot0.9^2 + 10\cdot0.9^3 = 2 - 0.81 + 7.29 = 8.48$.</p>
 
-  <h3>Симуляция взаимодействия агента и среды на Python</h3>
+  <h3>Симуляция эпизода на Python</h3>
 <pre><code>import numpy as np
 
 def simulate_episode(env, policy, max_steps=100):
@@ -289,17 +264,16 @@ def simulate_episode(env, policy, max_steps=100):
 </div>
 
 <div class="box exambox">
-  <div class="bt">🔢 Пример 2. Расчет $V^\pi(s)$ через $Q^\pi(s, a)$ при стохастической стратегии</div>
-  <p>Пусть в состоянии $s$ доступны 3 действия: $\mathcal{A} = \{a_{\text{left}}, a_{\text{stay}}, a_{\text{right}}\}$.</p>
+  <div class="bt">🔢 Пример 2. Расчёт $V^\pi(s)$ через $Q^\pi(s, a)$ при стохастической стратегии</div>
+  <p>В состоянии $s$ доступны 3 действия: $\mathcal{A} = \{a_1, a_2, a_3\}$.</p>
   <ul>
-    <li>Оценки действий: $Q^\pi(s, a_{\text{left}}) = 4.0, \quad Q^\pi(s, a_{\text{stay}}) = 2.0, \quad Q^\pi(s, a_{\text{right}}) = 9.0$.</li>
-    <li>Стохастическая политика: $\pi(a_{\text{left}}|s) = 0.2, \quad \pi(a_{\text{stay}}|s) = 0.1, \quad \pi(a_{\text{right}}|s) = 0.7$.</li>
+    <li>Оценки: $Q^\pi(s, a_1) = 4.0, \quad Q^\pi(s, a_2) = 2.0, \quad Q^\pi(s, a_3) = 9.0$.</li>
+    <li>Политика: $\pi(a_1|s) = 0.2, \quad \pi(a_2|s) = 0.1, \quad \pi(a_3|s) = 0.7$.</li>
   </ul>
-  <p>Вычисляем ценность состояния $V^\pi(s)$:</p>
   <div class="math-scroll-wrapper">
   $$ V^\pi(s) = \sum_{a \in \mathcal{A}} \pi(a \mid s) Q^\pi(s, a) = 0.2 \cdot 4.0 + 0.1 \cdot 2.0 + 0.7 \cdot 9.0 = 0.8 + 0.2 + 6.3 = 7.3 $$
   </div>
-  <p>Если бы стратегия была строго жадной $a^* = a_{\text{right}}$, то $V^*(s) = \max_a Q(s, a) = 9.0$.</p>
+  <p>Жадная ценность: $V^*(s) = \max_a Q(s, a) = 9.0$.</p>
 </div>
 
 <!-- ============================================ -->
@@ -311,40 +285,40 @@ def simulate_episode(env, policy, max_steps=100):
     <tr>
       <th>Критерий</th>
       <th>Supervised Learning</th>
-      <th>Model-Free RL (Q/Policy Grad)</th>
+      <th>Model-Free RL (Q/PG)</th>
       <th>Model-Based RL (Динамика $\mathcal{P}, \mathcal{R}$)</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <td><strong>Наличие учителя</strong></td>
-      <td>Требуются явные метки $y$</td>
-      <td>Нет, только скалярная награда $r$</td>
-      <td>Нет, только награда и среда</td>
+      <td><strong>Метки</strong></td>
+      <td>Явные метки $y$</td>
+      <td>Только скалярная награда $r$</td>
+      <td>Награда и переходы среды</td>
     </tr>
     <tr>
       <td><strong>Обратная связь</strong></td>
-      <td>Мгновенная по каждому примеру</td>
-      <td>Отложенная во времени (Delayed)</td>
-      <td>Отложенная + симуляция в воображении</td>
+      <td>Мгновенная по каждому $x$</td>
+      <td>Отложенная (Delayed)</td>
+      <td>Отложенная + симуляция в модели</td>
     </tr>
     <tr>
-      <td><strong>Выборка данных (Sample Efficiency)</strong></td>
-      <td>Высокая (каждый пример информативен)</td>
-      <td>Низкая (требуются миллионы шагов)</td>
-      <td>Средняя/Высокая (планирование по модели)</td>
+      <td><strong>Sample Efficiency</strong></td>
+      <td>Высокая (i.i.d.)</td>
+      <td>Низкая ($10^6+$ шагов)</td>
+      <td>Высокая (планирование по модели)</td>
     </tr>
     <tr>
       <td><strong>Влияние на среду</strong></td>
-      <td>Пассивное (i.i.d. данные)</td>
-      <td>Активное (действия меняют состояния)</td>
-      <td>Активное (в реальности и модели)</td>
+      <td>Пассивное</td>
+      <td>Активное ($A_t$ меняет $S_{t+1}$)</td>
+      <td>Активное в среде и модели</td>
     </tr>
     <tr>
-      <td><strong>Область применения</strong></td>
-      <td>CV, классификация, распознавание речи</td>
-      <td>Игры (Atari, Dota), робототехника, LLM RLHF</td>
-      <td>Шахматы/Go (AlphaZero), управление БПЛА</td>
+      <td><strong>Применение</strong></td>
+      <td>Классификация, CV, NLP</td>
+      <td>Игры (Atari, Dota), робототехника, RLHF</td>
+      <td>AlphaZero (шахматы/Go), управление БПЛА</td>
     </tr>
   </tbody>
 </table>
@@ -356,70 +330,70 @@ def simulate_episode(env, policy, max_steps=100):
 <details class="qa">
   <summary>1. В чем строгое математическое определение Марковского свойства и почему оно фундаментально для RL?</summary>
   <div class="ans">
-    <p>Марковское свойство гласит: $\mathbb{P}(S_{t+1}, R_{t+1} \mid S_t, A_t, \dots, S_0, A_0) = \mathbb{P}(S_{t+1}, R_{t+1} \mid S_t, A_t)$. Оно означает, что текущее состояние $S_t$ содержит всю необходимую информацию для прогнозирования будущего, и предыстория не добавляет новой информации. Это позволяет строить рекуррентные уравнения Беллмана и свести задачу поиска оптимального поведения к динамическому программированию без учета бесконечной истории.</p>
+    <p>$\mathbb{P}(S_{t+1}, R_{t+1} \mid S_t, A_t, \dots, S_0, A_0) = \mathbb{P}(S_{t+1}, R_{t+1} \mid S_t, A_t)$. Состояние $S_t$ полностью определяет будущее, позволяя выводить рекуррентные уравнения Беллмана без предыстории.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>2. Зачем нужен коэффициент дисконтирования $\gamma < 1$? Что произойдет при $\gamma = 0$ и $\gamma = 1$?</summary>
   <div class="ans">
-    <p>$\gamma$ выполняет три функции: 1) обеспечивает сходимость бесконечных рядов наград $\sum \gamma^k R \le \frac{R_{\max}}{1 - \gamma}$; 2) моделирует неопределенность будущего; 3) регулирует горизонт планирования. При $\gamma = 0$ агент становится абсолютно близоруким («myopic»), максимизируя лишь $R_{t+1}$. При $\gamma = 1$ в бесконечных непрерывных задачах доход расходится до $\infty$, но $\gamma = 1$ допустим в строго эпизодических задачах с гарантированным завершением.</p>
+    <p>$\gamma$ гарантирует сходимость ряда $\sum \gamma^k R \le \frac{R_{\max}}{1 - \gamma}$, отражает неопределённость и задаёт горизонт $H \approx \frac{1}{1-\gamma}$. При $\gamma = 0$ агент близорук (максимизирует $R_{t+1}$). При $\gamma = 1$ доход расходится в бесконечных задачах, но допустим в эпизодических.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>3. Чем принципиально отличаются $V^\pi(s)$ и $Q^\pi(s, a)$?</summary>
   <div class="ans">
-    <p>$V^\pi(s) = \mathbb{E}_\pi [G_t \mid S_t = s]$ — это математическое ожидание дохода из состояния $s$, если агент выбирает все действия (включая первое) согласно стратегии $\pi$. $Q^\pi(s, a) = \mathbb{E}_\pi [G_t \mid S_t = s, A_t = a]$ — это ожидаемый доход, если в состоянии $s$ агент совершает произвольное действие $a$, а все последующие действия выбирает по стратегии $\pi$. $V^\pi(s)$ получается усреднением $Q^\pi(s, a)$ по стратегии: $V^\pi(s) = \sum_a \pi(a \mid s) Q^\pi(s, a)$.</p>
+    <p>$V^\pi(s) = \mathbb{E}_\pi [G_t \mid S_t = s]$ — ожидаемый доход из $s$ при следовании $\pi$ со старта. $Q^\pi(s, a) = \mathbb{E}_\pi [G_t \mid S_t = s, A_t = a]$ — доход при фиксированном первом действии $a$ и последующем следовании $\pi$. Связь: $V^\pi(s) = \sum_a \pi(a \mid s) Q^\pi(s, a)$.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>4. Что такое Credit Assignment Problem и почему она сложна в RL?</summary>
   <div class="ans">
-    <p>Проблема распределения ответственности (Credit Assignment Problem) заключается в определении того, какие конкретно действия из длинной последовательности привели к итоговому результату (победе или поражению), полученному с большой временной задержкой. Сложность обусловлена нелинейным накоплением эффекта и стохастичностью переходов среды.</p>
+    <p>Задача определения действий из длинной траектории, определивших итоговую отложенную награду. Сложность обусловлена временной задержкой между действием и результатом, а также стохастичностью переходов.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>5. Что произойдет, если ко всем наградам в среде прибавить положительную константу $c > 0$?</summary>
   <div class="ans">
-    <p>В бесконечной задаче $V^\pi(s)$ вырастет на константу $\frac{c}{1 - \gamma}$, что не изменит оптимальную стратегию $\arg\max_a Q(s, a)$. Однако в эпизодических задачах со штрафом за время ($R = -1$ за шаг) добавление $+c$ может сделать все награды положительными, и агент начнет бесконечно затягивать эпизод (ходить кругами), чтобы накапливать награды вместо скорейшего достижения цели!</p>
+    <p>В бесконечных задачах $V(s)$ вырастет на $\frac{c}{1 - \gamma}$, сохраняя оптимальную политику $\arg\max_a Q(s, a)$. В эпизодических задачах со штрафом за шаг ($R=-1$) сдвиг $+c$ может сделать награды положительными, вызвав зацикливание агента.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>6. В чем разница между Partially Observable MDP (POMDP) и классическим MDP?</summary>
   <div class="ans">
-    <p>В MDP агент наблюдает истинное состояние среды $S_t$, обладающее Марковским свойством. В POMDP агент получает лишь неполное или зашумленное наблюдение $O_t = g(S_t)$ (например, один кадр видео без скорости объектов или показания неполных датчиков). Для восстановления марковости в POMDP агенту приходится аккумулировать историю с помощью RNN/LSTM или стека кадров (Frame Stacking в DQN).</p>
+    <p>В MDP агент видит полное марковское состояние $S_t$. В POMDP наблюдение $O_t = g(S_t)$ неполно (шумные датчики, 1 кадр). Для восстановления марковости используют память (RNN/LSTM или Frame Stacking).</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>7. В чем отличие Model-Based RL от Model-Free RL?</summary>
   <div class="ans">
-    <p>Model-Based RL знает или явно аппроксимирует функцию переходов $\mathcal{P}(s' \mid s, a)$ и наград $\mathcal{R}(s, a)$, используя их для планирования (динамическое программирование, поиск по дереву MCTS). Model-Free RL не моделирует среду, а напрямую учит функцию ценности $Q(s, a)$ или параметры стратегии $\pi_\theta(a \mid s)$ на основе опыта взаимодействия.</p>
+    <p>Model-Based RL знает или обучает модель переходов $\mathcal{P}$ и наград $\mathcal{R}$, используя её для планирования (VI, PI, MCTS). Model-Free RL не моделирует динамику, напрямую оценивая $Q(s, a)$ или оптимизируя стратегию $\pi_\theta(a \mid s)$.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>8. Как температура $\tau$ в Softmax exploration влияет на стратегию агента?</summary>
   <div class="ans">
-    <p>В формуле $\pi(a \mid s) = \frac{\exp(Q(s, a)/\tau)}{\sum_b \exp(Q(s, b)/\tau)}$ параметр $\tau$ управляет энтропией стратегии. При $\tau \to \infty$ экспоненты стремятся к 1, и стратегия становится равномерной $\pi(a \mid s) = 1/|\mathcal{A}|$ (максимальное исследование). При $\tau \to 0$ все вероятности концентрируются на действии с максимальным $Q(s, a)$, превращая стратегию в детерминированную жадную (чистая эксплуатация).</p>
+    <p>В $\pi(a \mid s) \propto \exp(Q(s, a)/\tau)$: при $\tau \to \infty$ политика стремится к равномерной $\pi = 1/|\mathcal{A}|$ (максимальный exploration); при $\tau \to 0$ переходит в детерминированную жадную $\arg\max_a Q(s, a)$ (чистый exploitation).</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>9. Почему нельзя обучать RL-агента обычной кросс-энтропией как в Supervised Learning?</summary>
   <div class="ans">
-    <p>Потому что в RL нет меток правильных ответов $y^*$. Агент знает лишь скалярный результат $R$, который показывает, насколько хорошо текущее действие, но не сообщает, какое действие было бы наилучшим. Кроме того, распределение данных в RL нестационарно, так как зависит от текущих весов агента.</p>
+    <p>В RL отсутствуют эталонные метки правильных действий $y^*$. Скалярная награда $R$ лишь оценивает текущее действие. Кроме того, распределение данных нестационарно и зависит от текущей стратегии.</p>
   </div>
 </details>
 
 <details class="qa">
   <summary>10. Что такое дилемма Exploration vs Exploitation и почему чистая эксплуатация гибельна?</summary>
   <div class="ans">
-    <p>Exploitation — выбор действия с максимальной текущей оценкой $Q(s, a)$ для получения известной награды. Exploration — выбор неоптимальных действий для сбора информации о неизведанных состояниях среды. Чистая эксплуатация с первых шагов застревает в локальном субоптимуме, так как агент никогда не откроет более выгодные альтернативы с временно неизвестными высокими наградами.</p>
+    <p>Exploitation — выбор известного наилучшего $Q(s, a)$. Exploration — выбор неоптимальных действий для поиска лучших путей. Чистая эксплуатация с первых шагов застревает в локальном минимуме, не исследуя среду.</p>
   </div>
 </details>
 
@@ -427,14 +401,14 @@ def simulate_episode(env, policy, max_steps=100):
 <h2 id="tasks"><span class="num">7.</span> 📝 Микро-задачи с решениями</h2>
 
 <div class="task">
-  <div class="tt">Задача 1. Расчет дисконтированного дохода конечной траектории</div>
-  <p>Агент прошел эпизод со следующей последовательностью наград: $R_1 = +1, R_2 = +2, R_3 = +4, R_4 = +10$. Коэффициент дисконтирования $\gamma = 0.5$. Вычислите доход $G_0$ в начальный момент времени.</p>
+  <div class="tt">Задача 1. Расчёт дисконтированного дохода конечной траектории</div>
+  <p>Награды: $R_1 = +1, R_2 = +2, R_3 = +4, R_4 = +10$ при $\gamma = 0.5$. Вычислите $G_0$.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Используем определение $G_0 = \sum_{k=0}^3 \gamma^k R_{k+1}$:</p>
+      <p>По формуле $G_0 = \sum_{k=0}^3 \gamma^k R_{k+1}$:</p>
       <div class="math-scroll-wrapper">
-      $$ G_0 = 1 \cdot (0.5)^0 + 2 \cdot (0.5)^1 + 4 \cdot (0.5)^2 + 10 \cdot (0.5)^3 = 1 \cdot 1 + 2 \cdot 0.5 + 4 \cdot 0.25 + 10 \cdot 0.125 = 1 + 1 + 1 + 1.25 = 4.25 $$
+      $$ G_0 = 1 \cdot 1 + 2 \cdot 0.5 + 4 \cdot 0.25 + 10 \cdot 0.125 = 1 + 1 + 1 + 1.25 = 4.25 $$
       </div>
       <p><strong>Ответ:</strong> $G_0 = 4.25$.</p>
     </div>
@@ -443,11 +417,11 @@ def simulate_episode(env, policy, max_steps=100):
 
 <div class="task">
   <div class="tt">Задача 2. Теоретический предел бесконечного дохода</div>
-  <p>В бесконечной задаче агент получает постоянную награду $R_t = +5$ на каждом шаге. Фактор дисконтирования $\gamma = 0.95$. Чему равен суммарный дисконтированный доход $G_t$?</p>
+  <p>Постоянная награда $R_t = +5$ при $\gamma = 0.95$. Чему равен суммарный доход $G_t$?</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Сумма бесконечной геометрической прогрессии:</p>
+      <p>Сумма прогрессии:</p>
       <div class="math-scroll-wrapper">
       $$ G_t = \sum_{k=0}^\infty \gamma^k R = \frac{R}{1 - \gamma} = \frac{5}{1 - 0.95} = \frac{5}{0.05} = 100.0 $$
       </div>
@@ -457,29 +431,28 @@ def simulate_episode(env, policy, max_steps=100):
 </div>
 
 <div class="task">
-  <div class="tt">Задача 3. Расчет вероятностей при $\epsilon$-Greedy стратегии</div>
-  <p>В дискретном MDP агенту доступны 4 действия $\mathcal{A} = \{a_1, a_2, a_3, a_4\}$. Оценки $Q(s, a_1)=5.0, Q(s, a_2)=8.0, Q(s, a_3)=2.0, Q(s, a_4)=6.0$. Параметр $\epsilon = 0.2$. Найдите вероятности выбора каждого действия $\pi(a \mid s)$.</p>
+  <div class="tt">Задача 3. Расчёт вероятностей при $\epsilon$-Greedy стратегии</div>
+  <p>В MDP 4 действия $\mathcal{A}=\{a_1, a_2, a_3, a_4\}$ с $Q = [5.0, 8.0, 2.0, 6.0]$ при $\epsilon = 0.2$. Найдите $\pi(a \mid s)$.</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Жадное действие $a^* = a_2$ (так как $Q(s, a_2) = 8.0 = \max$). Количество действий $|\mathcal{A}| = 4$.</p>
+      <p>Жадное действие $a^* = a_2$ ($Q = 8.0 = \max$), $|\mathcal{A}| = 4$:</p>
       <ul>
-        <li>Для нежадных действий $a_1, a_3, a_4$: $\pi(a \mid s) = \frac{\epsilon}{|\mathcal{A}|} = \frac{0.2}{4} = 0.05$.</li>
-        <li>Для лучшего действия $a_2$: $\pi(a_2 \mid s) = 1 - \epsilon + \frac{\epsilon}{|\mathcal{A}|} = 1 - 0.2 + 0.05 = 0.85$.</li>
+        <li>Нежадные ($a_1, a_3, a_4$): $\pi(a \mid s) = \frac{\epsilon}{|\mathcal{A}|} = \frac{0.2}{4} = 0.05$.</li>
+        <li>Жадное ($a_2$): $\pi(a_2 \mid s) = 1 - \epsilon + \frac{\epsilon}{|\mathcal{A}|} = 1 - 0.2 + 0.05 = 0.85$.</li>
       </ul>
-      <p>Проверка суммы: $0.05 + 0.85 + 0.05 + 0.05 = 1.00$.</p>
-      <p><strong>Ответ:</strong> $\pi(a_2|s) = 0.85$, для остальных $\pi = 0.05$.</p>
+      <p><strong>Ответ:</strong> $\pi(a_2|s) = 0.85$, для $a_1, a_3, a_4$: $\pi = 0.05$.</p>
     </div>
   </details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 4. Связь между $V(s)$ и $Q(s, a)$</div>
-  <p>В состоянии $s$ агент совершает действие $a_1$ с вероятностью $0.3$, $a_2$ с вероятностью $0.5$ и $a_3$ с вероятностью $0.2$. Известно, что $Q^\pi(s, a_1) = 10, Q^\pi(s, a_2) = 4, Q^\pi(s, a_3) = -5$. Чему равно значение $V^\pi(s)$?</p>
+  <p>В состоянии $s$ вероятности $\pi = [0.3, 0.5, 0.2]$ и $Q = [10, 4, -5]$. Чему равно $V^\pi(s)$?</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Применяем закон математического ожидания:</p>
+      <p>Вычисляем математическое ожидание:</p>
       <div class="math-scroll-wrapper">
       $$ V^\pi(s) = \sum_{i=1}^3 \pi(a_i \mid s) Q^\pi(s, a_i) = 0.3 \cdot 10 + 0.5 \cdot 4 + 0.2 \cdot (-5) = 3.0 + 2.0 - 1.0 = 4.0 $$
       </div>
@@ -489,16 +462,12 @@ def simulate_episode(env, policy, max_steps=100):
 </div>
 
 <div class="task">
-  <div class="tt">Задача 5. Расчет Softmax (Boltzmann) стратегии</div>
-  <p>В состоянии $s$ два действия с $Q(s, a_1) = 2.0$ и $Q(s, a_2) = 1.0$. Температура $\tau = 1.0$. Найдите вероятности $\pi(a_1 \mid s)$ и $\pi(a_2 \mid s)$ с точностью до 4 знаков (примите $e \approx 2.7183, e^2 \approx 7.3891$).</p>
+  <div class="tt">Задача 5. Расчёт Softmax (Boltzmann) стратегии</div>
+  <p>В состоянии $s$ два действия: $Q(s, a_1) = 2.0$, $Q(s, a_2) = 1.0$ при $\tau = 1.0$. Найдите $\pi(a_1 \mid s)$ и $\pi(a_2 \mid s)$ ($e \approx 2.7183, e^2 \approx 7.3891$).</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Вычисляем экспоненты:</p>
-      <div class="math-scroll-wrapper">
-      $$ \exp(Q(s, a_1)/\tau) = e^{2.0/1.0} \approx 7.3891, \quad \exp(Q(s, a_2)/\tau) = e^{1.0/1.0} \approx 2.7183 $$
-      </div>
-      <p>Сумма: $\sum = 7.3891 + 2.7183 = 10.1074$.</p>
+      <p>Экспоненты: $\exp(2.0) \approx 7.3891, \exp(1.0) \approx 2.7183$, сумма $\sum = 10.1074$.</p>
       <div class="math-scroll-wrapper">
       $$ \pi(a_1 \mid s) = \frac{7.3891}{10.1074} \approx 0.7311, \quad \pi(a_2 \mid s) = \frac{2.7183}{10.1074} \approx 0.2689 $$
       </div>
@@ -509,16 +478,16 @@ def simulate_episode(env, policy, max_steps=100):
 
 <div class="task">
   <div class="tt">Задача 6. Влияние сдвига наград на функцию ценности</div>
-  <p>Все награды в среде увеличили на константу $c$: $R'_{t+1} = R_{t+1} + c$. Как изменится истинное значение $V^\pi(s)$ для всех состояний при бесконечном горизонте с фактором $\gamma$?</p>
+  <p>Награды сдвинуты: $R'_{t+1} = R_{t+1} + c$. Как изменится $V^\pi(s)$ при бесконечном горизонте с фактором $\gamma$?</p>
   <details>
     <summary>Решение</summary>
     <div class="sol">
-      <p>Раскладываем новый доход $G'_t$:</p>
+      <p>Раскладываем доход $G'_t$:</p>
       <div class="math-scroll-wrapper">
-      $$ G'_t = \sum_{k=0}^\infty \gamma^k (R_{t+k+1} + c) = \sum_{k=0}^\infty \gamma^k R_{t+k+1} + c \sum_{k=0}^\infty \gamma^k = G_t + \frac{c}{1 - \gamma} $$
+      $$ G'_t = \sum_{k=0}^\infty \gamma^k (R_{t+k+1} + c) = G_t + c \sum_{k=0}^\infty \gamma^k = G_t + \frac{c}{1 - \gamma} $$
       </div>
-      <p>Беря математическое ожидание по $\pi$, получаем: $V'_{\pi}(s) = V^\pi(s) + \frac{c}{1 - \gamma}$.</p>
-      <p><strong>Ответ:</strong> Ценность каждого состояния увеличится на строго постоянную величину $\frac{c}{1 - \gamma}$.</p>
+      <p>Ожидание: $V'_{\pi}(s) = V^\pi(s) + \frac{c}{1 - \gamma}$.</p>
+      <p><strong>Ответ:</strong> Ценность каждого состояния увеличится на константу $\frac{c}{1 - \gamma}$.</p>
     </div>
   </details>
 </div>
@@ -527,15 +496,15 @@ def simulate_episode(env, policy, max_steps=100):
 <h2 id="cheat"><span class="num">8.</span> ⚡ Скелет ответа по билету</h2>
 
 <div class="cheat">
-  <div class="bt">Скелет устного ответа по билету 21 (RL: строение агента, стратегия, полезность, модель, MDP)</div>
+  <div class="bt">Скелет ответа по билету 21 (RL: строение агента, стратегия, полезность, модель, MDP)</div>
   <ol>
-    <li><strong>Парадигма RL:</strong> Агент обучается методом проб и ошибок в интерактивной среде без учителя. Ключевые отличия: отложенная награда (delayed reward), нестатичные данные, распределение ответственности.</li>
-    <li><strong>Цикл взаимодействия:</strong> Дискретные шаги $t$: агент в $S_t$ выбирает $A_t \sim \pi(\cdot|S_t)$, среда возвращает $R_{t+1}$ и $S_{t+1} \sim \mathcal{P}(\cdot|S_t, A_t)$. Траектория $\tau = (S_0, A_0, R_1, S_1, A_1, \dots)$.</li>
-    <li><strong>Марковское свойство:</strong> $\mathbb{P}(S_{t+1}, R_{t+1} \mid S_t, A_t, \dots, S_0, A_0) = \mathbb{P}(S_{t+1}, R_{t+1} \mid S_t, A_t)$. Будущее зависит только от настоящего.</li>
-    <li><strong>Формализация MDP:</strong> Кортеж $\langle \mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma \rangle$. Пространства состояний $\mathcal{S}$ и действий $\mathcal{A}$, тензор переходов $\mathcal{P}$, функция наград $\mathcal{R}$, дисконт $\gamma \in [0, 1)$.</li>
-    <li><strong>Дисконтированный доход:</strong> $G_t = \sum_{k=0}^\infty \gamma^k R_{t+k+1} = R_{t+1} + \gamma G_{t+1}$. Ограничивает сумму $G_t \le \frac{R_{\max}}{1 - \gamma}$ и задает горизонт $H \approx \frac{1}{1 - \gamma}$.</li>
-    <li><strong>Стратегия и функции ценности:</strong> Стратегия $\pi(a|s) = \mathbb{P}(A_t=a|S_t=s)$. Функция ценности состояния $V^\pi(s) = \mathbb{E}_\pi [G_t \mid S_t = s]$. Функция ценности действия $Q^\pi(s, a) = \mathbb{E}_\pi [G_t \mid S_t=s, A_t=a]$. Связь: $V^\pi(s) = \sum_a \pi(a|s) Q^\pi(s, a)$.</li>
-    <li><strong>Exploration vs Exploitation:</strong> Баланс между эксплуатацией известных оптимумов и исследованием нового ($\epsilon$-greedy, Softmax с температурой $\tau$, UCB).</li>
+    <li><strong>Парадигма RL:</strong> Обучение методом проб и ошибок без учителя. Вызовы: отложенная награда (delayed reward), распределение ответственности (credit assignment), нестационарность данных.</li>
+    <li><strong>Цикл взаимодействия:</strong> Шаг $t$: агент в $S_t$ выбирает $A_t \sim \pi(\cdot|S_t)$, среда возвращает $R_{t+1}$ и $S_{t+1} \sim \mathcal{P}(\cdot|S_t, A_t)$. Траектория $\tau = (S_0, A_0, R_1, S_1, \dots)$.</li>
+    <li><strong>Марковское свойство:</strong> $\mathbb{P}(S_{t+1}, R_{t+1} \mid S_t, A_t, \dots, S_0, A_0) = \mathbb{P}(S_{t+1}, R_{t+1} \mid S_t, A_t)$. Будущее зависит только от текущего состояния.</li>
+    <li><strong>Формализация MDP:</strong> Кортеж $\langle \mathcal{S}, \mathcal{A}, \mathcal{P}, \mathcal{R}, \gamma \rangle$: состояния $\mathcal{S}$, действия $\mathcal{A}$, переходы $\mathcal{P}$, награды $\mathcal{R}$, дисконт $\gamma \in [0, 1)$.</li>
+    <li><strong>Дисконтированный доход:</strong> $G_t = \sum_{k=0}^\infty \gamma^k R_{t+k+1} = R_{t+1} + \gamma G_{t+1}$. Ограничивает сумму $G_t \le \frac{R_{\max}}{1 - \gamma}$, задаёт горизонт $H \approx \frac{1}{1 - \gamma}$.</li>
+    <li><strong>Стратегия и функции ценности:</strong> Политика $\pi(a|s) = \mathbb{P}(A_t=a|S_t=s)$. State-Value $V^\pi(s) = \mathbb{E}_\pi [G_t \mid S_t = s]$. Action-Value $Q^\pi(s, a) = \mathbb{E}_\pi [G_t \mid S_t=s, A_t=a]$. Связь: $V^\pi(s) = \sum_a \pi(a|s) Q^\pi(s, a)$.</li>
+    <li><strong>Exploration vs Exploitation:</strong> Баланс между эксплуатацией найденных решений и поиском новых ($\epsilon$-greedy, Softmax с $\tau$, UCB).</li>
   </ol>
 </div>
 

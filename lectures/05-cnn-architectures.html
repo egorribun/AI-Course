@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Лекция 5. Архитектуры сверточных нейронных сетей. Передача обучения (Transfer Learning)</title>
+<title>Лекция 5. Архитектуры свёрточных нейронных сетей. Передача обучения (Transfer Learning)</title>
 
 <script>
 window.MathJax = {
@@ -21,7 +21,7 @@ window.MathJax = {
 <header class="top"><div class="inner">
   <div class="kicker">Блок A · Компьютерное зрение · Билет 5</div>
   <h1>Лекция 5. Архитектуры свёрточных нейронных сетей. Передача обучения (Transfer Learning)</h1>
-  <p class="sub">Эволюция сверточных архитектур: от LeNet и AlexNet через VGG и Inception к ResNet, MobileNet и EfficientNet. Математика остаточных связей, градиентный поток и стратегии Transfer Learning.</p>
+  <p class="sub">Эволюция CNN: от LeNet и AlexNet через VGG и Inception к ResNet, MobileNet и EfficientNet. Математика остаточных связей и Transfer Learning.</p>
   <div class="meta">
     <span class="pill">⏱ 2 ч 15 мин</span>
     <span class="pill gray">12 вопросов препода</span>
@@ -35,64 +35,54 @@ window.MathJax = {
 <a class="backlink" href="../index.html">← К оглавлению курса</a>
 
 <nav class="toc">
-  <div class="bt">Содержание лекции (8-Step Architecture)</div>
+  <div class="bt">Содержание лекции</div>
   <ol>
-    <li><a href="#s1">1. Интуиция и мотивация</a></li>
-    <li><a href="#s2">2. Архитектура и схема</a></li>
-    <li><a href="#s3">3. Математический аппарат</a></li>
-    <li><a href="#s4">4. Пошаговый числовой пример</a></li>
-    <li><a href="#s5">5. Преимущества, недостатки и применимость</a></li>
-    <li><a href="#qa">6. 🎯 Препод спросит</a></li>
-    <li><a href="#tasks">7. 📝 Микро-задачи с решениями</a></li>
-    <li><a href="#cheat">8. ⚡ Скелет ответа по билету</a></li>
+    <li><a href="#s1">Интуиция и мотивация</a></li>
+    <li><a href="#s2">Архитектура и схема</a></li>
+    <li><a href="#s3">Математический аппарат</a></li>
+    <li><a href="#s4">Пошаговый числовой пример</a></li>
+    <li><a href="#s5">Преимущества, недостатки и применимость</a></li>
+    <li><a href="#qa">🎯 Препод спросит</a></li>
+    <li><a href="#tasks">📝 Микро-задачи с решениями</a></li>
+    <li><a href="#cheat">⚡ Скелет ответа по билету</a></li>
   </ol>
 </nav>
 
 <!-- ============================================ -->
 <h2 id="s1"><span class="num">1.</span> Интуиция и мотивация</h2>
 
-<p>Развитие компьютерного зрения в период 2012–2020 гг. определялось фундаментальным вопросом: <strong>как строить глубокие нейросети, не теряя вычислительной эффективности и способности к обучению?</strong></p>
-
-<div class="box exambox">
-  <div class="bt">🎯 Проблема деградации глубоких сетей (Degradation Problem)</div>
-  <p>До 2015 года считалось, что увеличение числа слоев ведет к повышению выразительной способности модели. Однако эмпирические эксперименты выявили парадокс: при увеличении глубины обычной прямой сети (Plain Network) с 20 до 56 слоев <strong>ошибка на обучающей выборке (Train Error) возрастает</strong>.</p>
-  <p>Это не переобучение (при Overfitting ошибка на Train падает до нуля), а <em>затруднение оптимизации</em>: затухание градиентов при обратном проходе через десятки нелинейных слоев разрушает сигнал обучения на ранних слоях.</p>
-</div>
+<p><strong>Проблема деградации (Degradation Problem):</strong> в прямых сетях (Plain Nets) без связей проброса увеличение глубины с 20 до 56 слоёв приводит к <em>росту ошибки на Train</em> из-за затухания и разрушения градиента (это не переобучение, а деградация оптимизации).</p>
 
 <div class="box idea">
-  <div class="bt">💡 Идея остаточного обучения (Residual Learning) и Transfer Learning</div>
+  <div class="bt">💡 Остаточное обучение (Residual Learning) и Transfer Learning</div>
   <ul>
-    <li><strong>Остаточное обучение (ResNet, He et al., 2015):</strong> Вместо аппроксимации полного целевого отображения $\mathcal{H}(x)$ сеть обучается оценивать остаток (residual) $\mathcal{F}(x) = \mathcal{H}(x) - x$. Тождественное отображение (identity shortcut) пробрасывает сигнал $x$ без изменений. Если дополнительный слой бесполезен, веса $W \to 0$, и блок превращается в тождественный оператор $y = x$.</li>
-    <li><strong>Передача обучения (Transfer Learning):</strong> Обучение глубокой сети «с нуля» требует миллионов размеченных изображений (ImageNet) и недель работы суперкомпьютеров. Однако ранние сверточные слои извлекают <em>универсальные инвариантные признаки</em> (границы, текстуры, градиенты цвета, базовые формы). Предобученный на ImageNet экстрактор признаков (Backbone) переиспользуется для новых прикладных задач с микро-выборками из десятков или сотен объектов.</li>
+    <li><strong>Остаточное обучение (ResNet, He et al., 2015):</strong> сеть оценивает остаток $\mathcal{F}(x) = \mathcal{H}(x) - x$. Тождественный проброс (identity shortcut) $y = \mathcal{F}(x) + x$ позволяет градиентам течь напрямую, открывая обучение сетей в 100+ слоёв.</li>
+    <li><strong>Передача обучения (Transfer Learning):</strong> ранние свёрточные слои извлекают универсальные геометрические признаки (границы, текстуры). Предобученный на ImageNet backbone переиспользуется для прикладных задач с микро-выборками.</li>
   </ul>
 </div>
 
 <!-- ============================================ -->
 <h2 id="s2"><span class="num">2.</span> Архитектура и схема</h2>
 
-<h3>2.1 Хронологическая эволюция сверточных архитектур</h3>
+<h3>2.1 Эволюция свёрточных архитектур</h3>
 
 <div class="scheme">
-1998: LeNet-5 ──────────── 7 слоев, 60k параметров, MNIST (Conv 5×5 + AvgPool)
+1998: LeNet-5 ──────────── 7 слоёв, 60k параметров (Conv 5×5 + AvgPool)
                            │
-2012: AlexNet ──────────── 8 слоев, 60M параметров, ReLU, Dropout, GPU-параллелизм
+2012: AlexNet ──────────── 8 слоёв, 60M параметров, ReLU, Dropout, GPU
                            │
-2014: VGG-16/19 ────────── 16–19 слоев, 138M параметров, стеки 3×3 свёрток
+2014: VGG-16/19 ────────── 16–19 слоёв, 138M параметров, стеки 3×3 свёрток
                            │
-2014: GoogLeNet ────────── 22 слоя, 7M параметров, Inception-блоки с 1×1 Bottleneck
+2014: GoogLeNet ────────── 22 слоя, 7M параметров, Inception 1×1 Bottleneck
                            │
 2015: ResNet-50/152 ────── 50–152 слоя, 25.5M параметров, Residual Skip-Connections
                            │
-2016: DenseNet ─────────── Плотные связи (конкатенация признаков вместо сложения)
+2017: MobileNetV1/V2 ───── Depthwise Separable Conv, Inverted Residuals
                            │
-2017: MobileNetV1/V2 ───── Depthwise Separable Conv, инвертированные остаточные блоки
-                           │
-2019: EfficientNet ─────── Согласованное масштабирование (Compound Scaling d, w, r)
-                           │
-2020+: ViT / ConvNeXt ──── Vision Transformers и модернизированные чистые CNN
-<span class="cap">Рис. 1. Эволюционное древо архитектур: от преодоления барьера глубины к энергоэффективности и масштабным трансформерам.</span></div>
+2019: EfficientNet ─────── Compound Scaling (d, w, r)
+<span class="cap">Рис. 1. Эволюция архитектур: преодоление деградации глубины и оптимизация параметров.</span></div>
 
-<h3>2.2 Архитектура Residual Block (ResNet)</h3>
+<h3>2.2 Архитектура Residual блоков</h3>
 
 <div class="scheme">
 1. BASIC BLOCK (ResNet-18/34)               2. BOTTLENECK BLOCK (ResNet-50/101/152)
@@ -128,9 +118,9 @@ window.MathJax = {
         │                                               │
         ▼                                               ▼
    Выход y = F(x) + x                              Выход y = F(x) + x
-<span class="cap">Рис. 2. Сравнение BasicBlock и Bottleneck блока ResNet. В Bottleneck свёртка 1×1 снижает размерность в 4 раза, экономит FLOPs и затем восстанавливает число каналов.</span></div>
+<span class="cap">Рис. 2. BasicBlock и Bottleneck в ResNet. Свёртка 1×1 сжимает каналы в 4 раза, экономя FLOPs.</span></div>
 
-<h3>2.3 Схема пайплайна Transfer Learning</h3>
+<h3>2.3 Стратегии Transfer Learning</h3>
 
 <div class="scheme">
                  ПРЕДОБУЧЕННЫЙ BACKBONE (ImageNet, 1000 классов)
@@ -143,102 +133,53 @@ window.MathJax = {
    1. FEATURE EXTRACTION                               2. FINE-TUNING
 ┌──────────────────────────────────────┐    ┌─────────────────────────────────┐
 │ Заморожен (requires_grad=False)      │    │ Разморожен (requires_grad=True) │
-│ Веса θ_backbone не меняются!         │    │ Дообучение с малым lr ~ 10^-5   │
-├──────────────────────────────────────┤    ├─────────────────────────────────┤
-│ + НОВАЯ ГОЛОВА (Head):               │    │ + НОВАЯ ГОЛОВА (Head):          │
-│ Linear(d_in, K_new)                  │    │ Linear(d_in, K_new)             │
-│ Обучается только голова!             │    │ Обучается вся сеть со differential lr│
+│ Обучается только новая голова        │    │ Дифференциальный lr ~ 10^-5     │
 └──────────────────────────────────────┘    └─────────────────────────────────┘
-<span class="cap">Рис. 3. Два режима переноса обучения в зависимости от объема целевого датасета и вычислительных ресурсов.</span></div>
+<span class="cap">Рис. 3. Режимы переноса обучения: фиксация признаков vs сквозное дообучение.</span></div>
+
 <!-- ============================================ -->
 <h2 id="s3"><span class="num">3.</span> Математический аппарат</h2>
 
-<h3>3.1 Математическая формулировка ResNet и градиентный поток</h3>
+<h3>3.1 Градиентный поток в ResNet (Residual Skip-Connection)</h3>
 
-<p>Для базового блока прямое преобразование имеет вид:</p>
+<p>Для базового остаточного блока:</p>
 <div class="math-scroll-wrapper">
 $$ y = \mathcal{F}(x, \{W_i\}) + x $$
 </div>
-<p>где $x$ и $y$ — входной и выходной векторы/тензоры, а $\mathcal{F} = W_2 \sigma(W_1 x)$ — обучаемое остаточное отображение. Если размерности входа и выхода не совпадают (при изменении числа каналов или spatial downsampling со stride $S=2$), на shortcut накладывается линейная проекция $W_s$:</p>
+<p>Для цепочки из $L$ блоков рекурсивное соотношение для любого слоя $l < L$:</p>
 <div class="math-scroll-wrapper">
-$$ y = \mathcal{F}(x, \{W_i\}) + W_s x $$
+$$ x_L = x_l + \sum_{i=l}^{L-1} \mathcal{F}(x_i, \mathcal{W}_i) $$
 </div>
-
-<div class="box mathbox">
-  <div class="bt">📐 Строгий математический вывод градиентного потока в ResNet</div>
-  <p>Рассмотрим стек из $L$ последовательных residual блоков. Для любого произвольного глубокого слоя $L$ и более раннего слоя $l$ ($L > l$):</p>
-  <div class="math-scroll-wrapper">
-  $$ x_L = x_l + \sum_{i=l}^{L-1} \mathcal{F}(x_i, \mathcal{W}_i) $$
-  </div>
-  <p>Применяя цепное правило (Chain Rule) для вычисления градиента функции потерь $\mathcal{L}$ по активациям раннего слоя $x_l$:</p>
-  <div class="math-scroll-wrapper">
-  $$ \frac{\partial \mathcal{L}}{\partial x_l} = \frac{\partial \mathcal{L}}{\partial x_L} \frac{\partial x_L}{\partial x_l} = \frac{\partial \mathcal{L}}{\partial x_L} \left( \mathbf{I} + \frac{\partial}{\partial x_l} \sum_{i=l}^{L-1} \mathcal{F}(x_i, \mathcal{W}_i) \right) $$
-  </div>
-  <div class="math-scroll-wrapper">
-  $$ \frac{\partial \mathcal{L}}{\partial x_l} = \frac{\partial \mathcal{L}}{\partial x_L} + \frac{\partial \mathcal{L}}{\partial x_L} \left( \frac{\partial}{\partial x_l} \sum_{i=l}^{L-1} \mathcal{F}(x_i, \mathcal{W}_i) \right) $$
-  </div>
-  <p><strong>Фундаментальное свойство:</strong> Слагаемое $\frac{\partial \mathcal{L}}{\partial x_L}$ проходит на слой $l$ <em>напрямую без матричных умножений</em>. Даже если градиент через остаточные блоки затухает ($\frac{\partial \mathcal{F}}{\partial x_l} \approx 0$), суммарный градиент $\frac{\partial \mathcal{L}}{\partial x_l}$ никогда не зануляется благодаря единичной матрице $\mathbf{I}$.</p>
+<p>По правилу цепочки градиент функции потерь $\mathcal{L}$ по активациям слоя $x_l$:</p>
+<div class="math-scroll-wrapper">
+$$ \frac{\partial \mathcal{L}}{\partial x_l} = \frac{\partial \mathcal{L}}{\partial x_L} \frac{\partial x_L}{\partial x_l} = \frac{\partial \mathcal{L}}{\partial x_L} \left( \mathbf{I} + \frac{\partial}{\partial x_l} \sum_{i=l}^{L-1} \mathcal{F}(x_i, \mathcal{W}_i) \right) = \frac{\partial \mathcal{L}}{\partial x_L} + \frac{\partial \mathcal{L}}{\partial x_L} \left( \frac{\partial}{\partial x_l} \sum_{i=l}^{L-1} \mathcal{F}(x_i, \mathcal{W}_i) \right) $$
 </div>
+<p>Слагаемое $\frac{\partial \mathcal{L}}{\partial x_L}$ проходит на ранний слой $l$ напрямую через единичную матрицу $\mathbf{I}$, предотвращая затухание градиента даже при глубокой архитектуре.</p>
 
-<h3>3.2 Факторизация свёрток и Inception 1×1 Bottleneck</h3>
+<h3>3.2 Факторизация свёрток и Inception Bottleneck</h3>
 
-<p><strong>1. Стек из двух $3\times3$ свёрток vs одна $5\times5$ свёртка (VGG):</strong></p>
 <ul>
-  <li>Рецептивное поле двух слоев $3\times3$: $RF = 1 + (3-1) + (3-1) = 5\times5$ (идентично $5\times5$).</li>
-  <li>Число параметров для $C$ каналов: $2 \times (3 \times 3 \times C^2) = 18 C^2$ против $1 \times (5 \times 5 \times C^2) = 25 C^2$.</li>
-  <li>Экономия параметров и FLOPs: $\frac{25 - 18}{25} = 28\%$, плюс дополнительная нелинейность ReLU между слоями.</li>
+  <li><strong>Стек двух $3\times3$ свёрток vs одна $5\times5$ (VGG):</strong> одинаковое рецептивное поле ($RF = 5\times5$), но параметры составляют $2 \times 3^2 C^2 = 18C^2$ против $25C^2$ (экономия $28\%$) плюс дополнительная нелинейность.</li>
+  <li><strong>Inception 1×1 Bottleneck:</strong> свёртка $1\times1$ сжимает $C_{in} \to C_{mid} \ll C_{in}$ перед $3\times3$ или $5\times5$ и восстанавливает каналы на выходе.</li>
 </ul>
-
-<p><strong>2. Inception Bottleneck:</strong> Свёрточный слой $1\times1$ выполняет поэлементное взвешенное суммирование каналов (Pointwise Conv), сжимая размерность с $C_{in}$ до $C_{mid} \ll C_{in}$ перед ресурсоёмкой свёрткой $3\times3$ или $5\times5$, а затем восстанавливает число каналов.</p>
 
 <h3>3.3 Согласованное масштабирование EfficientNet (Compound Scaling)</h3>
 
-<p>Вместо изолированного наращивания глубины (ResNet), ширины каналов (WideResNet) или разрешения входа, EfficientNet (Tan & Le, 2019) масштабирует все три измерения согласованно:</p>
 <div class="math-scroll-wrapper">
-$$ \text{Глубина:} \quad d = \alpha^\phi, \qquad \text{Ширина:} \quad w = \beta^\phi, \qquad \text{Разрешение:} \quad r = \gamma^\phi $$
+$$ d = \alpha^\phi, \qquad w = \beta^\phi, \qquad r = \gamma^\phi \qquad (\text{при } \alpha \cdot \beta^2 \cdot \gamma^2 \approx 2) $$
 </div>
-<div class="math-scroll-wrapper">
-$$ \text{Ограничение:} \quad \alpha \cdot \beta^2 \cdot \gamma^2 \approx 2, \quad \alpha \ge 1, \; \beta \ge 1, \; \gamma \ge 1 $$
-</div>
-<p>где $\phi$ — глобальный коэффициент масштаба, а базовые константы $\alpha=1.2, \beta=1.1, \gamma=1.15$ находятся сеточным поиском на базовой сети EfficientNet-B0.</p>
+<p>где $d$ — глубина, $w$ — ширина, $r$ — разрешение, $\phi$ — коэффициент масштаба.</p>
 
 <h3>3.4 Матрица решений Transfer Learning</h3>
 
 <div class="table-scroll-wrapper">
 <table>
-<thead>
-  <tr>
-    <th>Размер целевого датасета</th>
-    <th>Близость к ImageNet</th>
-    <th>Рекомендуемая стратегия</th>
-    <th>Методология реализации</th>
-  </tr>
-</thead>
+<thead><tr><th>Размер датасета</th><th>Близость к ImageNet</th><th>Стратегия</th><th>Реализация</th></tr></thead>
 <tbody>
-  <tr>
-    <td><strong>Малый</strong> ($< 10^3$ фото)</td>
-    <td><strong>Высокая</strong> (обычные фото)</td>
-    <td><strong>Linear Classifier (Feature Extraction)</strong></td>
-    <td>Заморозить весь backbone, обучить только новый линейный слой $W \in \mathbb{R}^{d \times K}$. Предотвращает Overfitting.</td>
-  </tr>
-  <tr>
-    <td><strong>Малый</strong> ($< 10^3$ фото)</td>
-    <td><strong>Низкая</strong> (рентген, микроскопия)</td>
-    <td><strong>Intermediate Feature Extraction</strong></td>
-    <td>Заморозить ранние слои, обучить классификатор на признаках середины сети (Layer2/3), либо легкий fine-tune с высоким Dropout.</td>
-  </tr>
-  <tr>
-    <td><strong>Большой</strong> ($> 10^5$ фото)</td>
-    <td><strong>Высокая</strong></td>
-    <td><strong>Full Fine-Tuning</strong></td>
-    <td>Разморозить всю сеть, обучать с дифференциальным learning rate: $\text{lr}_{head} \approx 10^{-3}, \text{lr}_{backbone} \approx 10^{-5}$.</td>
-  </tr>
-  <tr>
-    <td><strong>Большой</strong> ($> 10^5$ фото)</td>
-    <td><strong>Низкая</strong> (спутниковые радары)</td>
-    <td><strong>Fine-Tuning from Pretrained Init</strong></td>
-    <td>Инициализировать весами ImageNet и обучать всю сеть. Сходится значительно быстрее случайной инициализации.</td>
-  </tr>
+<tr><td><strong>Малый ($<10^3$)</strong></td><td><strong>Высокая</strong></td><td><strong>Feature Extraction</strong></td><td>Заморозить backbone, обучить линейную голову $W \in \mathbb{R}^{d \times K}$.</td></tr>
+<tr><td><strong>Малый ($<10^3$)</strong></td><td><strong>Низкая (медицина)</strong></td><td><strong>Mid-Level Features</strong></td><td>Классификатор на средних слоях (Layer2/3) + сильная аугментация.</td></tr>
+<tr><td><strong>Большой ($>10^5$)</strong></td><td><strong>Высокая</strong></td><td><strong>Full Fine-Tuning</strong></td><td>Разморозить всю сеть, $\text{lr}_{head} \approx 10^{-3}, \text{lr}_{backbone} \approx 10^{-5}$.</td></tr>
+<tr><td><strong>Большой ($>10^5$)</strong></td><td><strong>Низкая</strong></td><td><strong>Pretrained Init</strong></td><td>Обучать всю сеть с инициализацией весами ImageNet.</td></tr>
 </tbody>
 </table>
 </div>
@@ -267,117 +208,34 @@ optimizer = torch.optim.AdamW([
 <!-- ============================================ -->
 <h2 id="s4"><span class="num">4.</span> Пошаговый числовой пример</h2>
 
-<h3>Пример 1. Расчет параметров и FLOPs: BasicBlock vs Bottleneck</h3>
+<p><strong>1. Параметры и FLOPs: BasicBlock vs Bottleneck ($H \times W = 14 \times 14, C = 256$):</strong></p>
+<ul>
+  <li><strong>BasicBlock (два $3\times3$ слоя $256 \to 256$):</strong> $2 \times (3^2 \times 256^2) = 1\,179\,648$ весов ($\approx 1.18$ млн), $462$ MFLOPs.</li>
+  <li><strong>Bottleneck ($256 \to 64 \to 64 \to 256$):</strong> $1\times1$ ($16\,384$) + $3\times3$ ($36\,864$) + $1\times1$ ($16\,384$) = $69\,632$ весов ($\approx 0.07$ млн), $27.3$ MFLOPs.</li>
+  <li><strong>Экономия:</strong> Bottleneck снижает вычисления и память в <strong>$\approx 17$ раз</strong>.</li>
+</ul>
 
-<div class="box exambox">
-  <div class="bt">🔢 Сравнение вычислительной сложности для тензора $H \times W = 14 \times 14$ и $C = 256$ каналов:</div>
-  <p><strong>Вариант А: Стандартный сверточный блок из двух слоев $3\times3$ (256 $\to$ 256):</strong></p>
-  <ul>
-    <li>Параметры слоя 1: $3 \times 3 \times 256 \times 256 = 589\,824$ весов.</li>
-    <li>Параметры слоя 2: $3 \times 3 \times 256 \times 256 = 589\,824$ весов.</li>
-    <li>Сумма параметров: $1\,179\,648$ весов ($\approx 1.18$ млн).</li>
-    <li>FLOPs на карте $14 \times 14$: $2 \times (14 \times 14 \times 1\,179\,648) \approx 462.4 \times 10^6$ FLOPs ($462$ MFLOPs).</li>
-  </ul>
-  
-  <p><strong>Вариант Б: Bottleneck блок ($256 \to 64 \to 64 \to 256$):</strong></p>
-  <ul>
-    <li>Слой 1 ($1\times1$, сжатие): $1 \times 1 \times 256 \times 64 = 16\,384$ весов.</li>
-    <li>Слой 2 ($3\times3$, обработка): $3 \times 3 \times 64 \times 64 = 36\,864$ весов.</li>
-    <li>Слой 3 ($1\times1$, восстановление): $1 \times 1 \times 64 \times 256 = 16\,384$ весов.</li>
-    <li>Сумма параметров: $16\,384 + 36\,864 + 16\,384 = 69\,632$ весов ($\approx 0.07$ млн).</li>
-    <li>FLOPs на карте $14 \times 14$: $2 \times (14 \times 14 \times 69\,632) \approx 27.3 \times 10^6$ FLOPs ($27.3$ MFLOPs).</li>
-  </ul>
-  <p><strong>Результат:</strong> Bottleneck сокращает параметры и вычисления в <strong>$\approx 17$ раз</strong>, позволяя строить сети в 100+ слоев при том же бюджете!</p>
-</div>
+<p><strong>2. Численный расчёт градиента через Residual блок:</strong></p>
+<p>Входящий градиент $\frac{\partial \mathcal{L}}{\partial y} = [0.8, -0.4]$, якобиан $\frac{\partial \mathcal{F}}{\partial x} = \begin{bmatrix} -0.95 & 0.05 \\ 0.00 & -0.90 \end{bmatrix}$ (сильное затухание в блоке):</p>
+<ul>
+  <li>Без skip-connection (Plain): $\frac{\partial \mathcal{L}}{\partial x} = [0.8, -0.4] \begin{bmatrix} -0.95 & 0.05 \\ 0.00 & -0.90 \end{bmatrix} = [-0.76, 0.40]$ (за 50 слоёв $(-0.9)^{50} \approx 0.005$, исчезновение).</li>
+  <li>В ResNet: $\frac{\partial \mathcal{L}}{\partial x} = [0.8, -0.4](\mathbf{I} + \frac{\partial \mathcal{F}}{\partial x}) = [0.04, 0.00] + [0.8, -0.4] = [0.84, -0.40]$ (градиент стабилен).</li>
+</ul>
 
-<h3>Пример 2. Численный расчет градиентного потока через Residual блок</h3>
-<p>Пусть входящий градиент с верхнего уровня равен $\frac{\partial \mathcal{L}}{\partial y} = [0.8, -0.4]^\top$.</p>
-<p>Якобиан остаточного блока $\frac{\partial \mathcal{F}}{\partial x} = \begin{pmatrix} -0.95 & 0.05 \\ 0.00 & -0.90 \end{pmatrix}$ (сильное затухание сигнала внутри блока).</p>
-<p><strong>1. В обычной сети без skip-connection:</strong></p>
-<div class="math-scroll-wrapper">
-$$ \frac{\partial \mathcal{L}}{\partial x}_{\text{plain}} = \frac{\partial \mathcal{L}}{\partial y} \frac{\partial \mathcal{F}}{\partial x} = [0.8, -0.4] \begin{pmatrix} -0.95 & 0.05 \\ 0.00 & -0.90 \end{pmatrix} = [-0.76, 0.40] $$
-</div>
-<p>При прохождении через 10 таких слоев градиент уменьшается как $(-0.9)^{10} \approx 0.34$, а через 50 слоев — $(-0.9)^{50} \approx 0.005$ (полное исчезновение градиента).</p>
-<p><strong>2. В сети ResNet со skip-connection:</strong></p>
-<div class="math-scroll-wrapper">
-$$ \frac{\partial \mathcal{L}}{\partial x}_{\text{resnet}} = \frac{\partial \mathcal{L}}{\partial y} \left( \mathbf{I} + \frac{\partial \mathcal{F}}{\partial x} \right) = [0.8, -0.4] \left( \begin{pmatrix} 1 & 0 \\ 0 & 1 \end{pmatrix} + \begin{pmatrix} -0.95 & 0.05 \\ 0.00 & -0.90 \end{pmatrix} \right) = [0.8, -0.4] \begin{pmatrix} 0.05 & 0.05 \\ 0.00 & 0.10 \end{pmatrix} + [0.8, -0.4] $$
-</div>
-<div class="math-scroll-wrapper">
-$$ = [0.04, 0.00] + [0.8, -0.4] = [0.84, -0.40] $$
-</div>
-<p>Градиент стабилен и не затухает, гарантируя устойчивую сходимость.</p>
 <!-- ============================================ -->
 <h2 id="s5"><span class="num">5.</span> Преимущества, недостатки и применимость</h2>
 
 <div class="table-scroll-wrapper">
 <table>
-<thead>
-  <tr>
-    <th>Архитектура</th>
-    <th>Параметры</th>
-    <th>Top-1 ImageNet</th>
-    <th>Ключевые преимущества</th>
-    <th>Главные ограничения</th>
-    <th>Типовая область применения</th>
-  </tr>
-</thead>
+<thead><tr><th>Архитектура</th><th>Параметры</th><th>Ключевые преимущества</th><th>Главные ограничения</th><th>Область применения</th></tr></thead>
 <tbody>
-  <tr>
-    <td><strong>LeNet-5</strong></td>
-    <td>60 тыс.</td>
-    <td>—</td>
-    <td>Минимальные требования к железу, простая реализация</td>
-    <td>Работает только с низким разрешением (32×32)</td>
-    <td>OCR на микроконтроллерах, учебные задачи</td>
-  </tr>
-  <tr>
-    <td><strong>AlexNet</strong></td>
-    <td>61 млн</td>
-    <td>57.1%</td>
-    <td>Исторический прорыв (ReLU, Dropout, GPU)</td>
-    <td>Тяжелые полносвязные слои (FC6/FC7 занимают 90% весов)</td>
-    <td>Устарела, исторический интерес</td>
-  </tr>
-  <tr>
-    <td><strong>VGG-16</strong></td>
-    <td>138 млн</td>
-    <td>71.3%</td>
-    <td>Однородный дизайн ($3\times3$), отличные эмбеддинги для Perceptual Loss/Style Transfer</td>
-    <td>Огромный размер (528 МБ весов), высокое потребление памяти</td>
-    <td>Neural Style Transfer, feature extractor в детекторах</td>
-  </tr>
-  <tr>
-    <td><strong>GoogLeNet / Inception</strong></td>
-    <td>7 млн</td>
-    <td>74.8%</td>
-    <td>Многомасштабные признаки, высокая точность при малом числе весов ($1\times1$ bottleneck)</td>
-    <td>Сложный асимметричный граф, нерегулярный доступ к памяти</td>
-    <td>Серверный инференс со строгим лимитом памяти</td>
-  </tr>
-  <tr>
-    <td><strong>ResNet-50</strong></td>
-    <td>25.5 млн</td>
-    <td>76.1%</td>
-    <td>Решение деградации, возможность обучать сети в 1000 слоев, стандарт индустрии</td>
-    <td>Избыточность признаков на средних слоях</td>
-    <td>Де-факто базовый backbone для всех задач CV</td>
-  </tr>
-  <tr>
-    <td><strong>MobileNetV2</strong></td>
-    <td>3.5 млн</td>
-    <td>72.0%</td>
-    <td>Inverted Residuals + Linear Bottlenecks, высокая скорость на CPU телефонов</td>
-    <td>Ниже точность на мелких деталях</td>
-    <td>On-device мобильное зрение (iOS CoreML, Android TFLite)</td>
-  </tr>
-  <tr>
-    <td><strong>EfficientNet-B0..B7</strong></td>
-    <td>5.3–66 млн</td>
-    <td>77.1–84.3%</td>
-    <td>SOTA соотношение точности к FLOPs благодаря Compound Scaling</td>
-    <td>Медленнее на GPU из-за большого числа мелких depthwise операций</td>
-    <td>Высокоточная классификация и детекция при ограниченном бюджете</td>
-  </tr>
+<tr><td><strong>LeNet-5</strong></td><td>60 тыс.</td><td>Минимальные требования к железу</td><td>Только низкое разрешение (32×32)</td><td>OCR, учебные задачи</td></tr>
+<tr><td><strong>AlexNet</strong></td><td>61 млн</td><td>Исторический прорыв (ReLU, GPU, Dropout)</td><td>Тяжёлые FC-слои (90% весов)</td><td>Устарела</td></tr>
+<tr><td><strong>VGG-16</strong></td><td>138 млн</td><td>Однородный стек $3\times3$, отличные эмбеддинги</td><td>Большой объём памяти (528 МБ)</td><td>Style Transfer, Perceptual Loss</td></tr>
+<tr><td><strong>GoogLeNet</strong></td><td>7 млн</td><td>Inception $1\times1$ bottleneck, малый вес</td><td>Сложный асимметричный граф</td><td>Серверный инференс</td></tr>
+<tr><td><strong>ResNet-50</strong></td><td>25.5 млн</td><td>Решение деградации через skip-connections</td><td>Избыточность на средних слоях</td><td>Базовый backbone для CV</td></tr>
+<tr><td><strong>MobileNetV2</strong></td><td>3.5 млн</td><td>Inverted Residuals + Linear Bottleneck</td><td>Ниже точность на мелких деталях</td><td>Мобильные устройства (TFLite)</td></tr>
+<tr><td><strong>EfficientNet</strong></td><td>5.3–66 млн</td><td>Compound Scaling (SOTA точность/FLOPs)</td><td>Медленнее на GPU из-за depthwise</td><td>Высокоточная классификация/детекция</td></tr>
 </tbody>
 </table>
 </div>
@@ -385,135 +243,126 @@ $$ = [0.04, 0.00] + [0.8, -0.4] = [0.84, -0.40] $$
 <!-- ============================================ -->
 <h2 id="qa"><span class="num">6.</span> 🎯 Препод спросит</h2>
 
-<details class="qa"><summary>В чем суть проблемы деградации глубоких сетей и почему это не Overfitting?</summary>
+<details class="qa"><summary>В чём суть проблемы деградации глубоких сетей и почему это не Overfitting?</summary>
 <div class="ans">
-<p>Проблема деградации заключается в том, что при увеличении глубины обычной сети (Plain Net) с 20 до 56 слоев ошибка возрастает как на тесте, так и <strong>на обучающей выборке (Train Error)</strong>. При Overfitting ошибка на Train падает почти до 0, а на Val растет. В случае деградации модель просто не может оптимизироваться из-за затухания и разрушения градиентов в глубоком нелинейном графе.</p>
+<p>При увеличении глубины обычной сети (Plain Net) с 20 до 56 слоёв ошибка возрастает как на тесте, так и <strong>на обучающей выборке (Train Error)</strong>. При Overfitting ошибка на Train стремится к 0. В случае деградации модель теряет способность к оптимизации из-за затухания и разрушения градиента в глубоком графе.</p>
 </div></details>
 
 <details class="qa"><summary>Напишите формулу блока ResNet и объясните, как слагаемое +I спасает градиент.</summary>
 <div class="ans">
-<p>Формула прямого прохода: $y = \mathcal{F}(x) + x$. Производная по входу: $\frac{\partial \mathcal{L}}{\partial x} = \frac{\partial \mathcal{L}}{\partial y} (\frac{\partial \mathcal{F}}{\partial x} + \mathbf{I}) = \frac{\partial \mathcal{L}}{\partial y}\frac{\partial \mathcal{F}}{\partial x} + \frac{\partial \mathcal{L}}{\partial y}$. Единичная матрица $\mathbf{I}$ создает прямой шунт (highway), по которому градиент верхнего слоя $\frac{\partial \mathcal{L}}{\partial y}$ беспрепятственно и без затухания передается вплоть до первого входного слоя.</p>
+<p>$y = \mathcal{F}(x) + x \implies \frac{\partial \mathcal{L}}{\partial x} = \frac{\partial \mathcal{L}}{\partial y}(\frac{\partial \mathcal{F}}{\partial x} + \mathbf{I}) = \frac{\partial \mathcal{L}}{\partial y}\frac{\partial \mathcal{F}}{\partial x} + \frac{\partial \mathcal{L}}{\partial y}$. Единичная матрица $\mathbf{I}$ формирует прямой шунт (highway), передающий сигнал ошибки верхнего уровня напрямую к нижним слоям без затухания.</p>
 </div></details>
 
-<details class="qa"><summary>Почему два последовательных слоя свертки 3×3 лучше одного слоя 5×5?</summary>
+<details class="qa"><summary>Почему два последовательных слоя свёртки 3×3 лучше одного слоя 5×5?</summary>
 <div class="ans">
-<p>1. <strong>Рецептивное поле одинаково:</strong> $1 + (3-1) + (3-1) = 5\times5$. 2. <strong>Параметры:</strong> Два слоя $3\times3$ требуют $2 \cdot (3^2 C^2) = 18 C^2$ параметров, а один $5\times5$ требует $25 C^2$ весов (экономия 28%). 3. <strong>Выразительность:</strong> Между двумя слоями стоит функция активации ReLU, позволяющая выучивать более сложные нелинейные зависимости.</p>
+<p>1. <strong>Поле зрения:</strong> $RF = 1 + (3-1) + (3-1) = 5\times5$ (совпадает с $5\times5$).<br>
+2. <strong>Параметры:</strong> $2 \times (3^2 C^2) = 18 C^2$ против $25 C^2$ (экономия $28\%$).<br>
+3. <strong>Выразительность:</strong> Дополнительная нелинейность ReLU между слоями повышает ёмкость модели.</p>
 </div></details>
 
-<details class="qa"><summary>Зачем в блоке Inception и ResNet Bottleneck используется свертка 1×1?</summary>
+<details class="qa"><summary>Зачем в блоке Inception и ResNet Bottleneck используется свёртка 1×1?</summary>
 <div class="ans">
-<p>Свёртка $1\times1$ (Pointwise) вычисляет линейную комбинацию каналов в каждой пространственной точке. Она используется для <strong>уменьшения размерности (сжатия числа каналов)</strong> перед ресурсоемкой свёрткой $3\times3$ или $5\times5$, снижая число операций на порядок, а затем для восстановления исходного числа каналов на выходе блока.</p>
+<p>Свёртка $1\times1$ вычисляет линейную комбинацию каналов. Она используется для <strong>сжатия числа каналов</strong> перед ресурсоёмкой свёрткой $3\times3$ (снижая FLOPs на порядок) и последующего восстановления размерности на выходе блока.</p>
 </div></details>
 
 <details class="qa"><summary>Чем residual connection в ResNet отличается от конкатенации в DenseNet?</summary>
 <div class="ans">
-<p>В ResNet выходы складываются поэлементно: $y = \mathcal{F}(x) + x$ (число каналов не меняется, информация суммируется). В DenseNet выходы конкатенируются по оси каналов: $y = [\mathcal{F}(x), x]$. Это сохраняет все исходные карты признаков без искажения, но линейно увеличивает число каналов с каждым слоем (параметр Growth Rate $k$).</p>
+<p>В ResNet выходы складываются поэлементно: $y = \mathcal{F}(x) + x$ (число каналов не меняется). В DenseNet выходы конкатенируются по оси каналов: $y = [\mathcal{F}(x), x]$, сохраняя все исходные карты признаков, но линейно наращивая число каналов с каждым слоем (Growth Rate $k$).</p>
 </div></details>
 
 <details class="qa"><summary>Почему в современных CNN отказались от полносвязных слоев (FC) в пользу Global Average Pooling (GAP)?</summary>
 <div class="ans">
-<p>В AlexNet и VGG-16 полносвязные слои FC6/FC7 содержали более 85–90% всех параметров сети ($4096 \times 4096 \times C$), что требовало сотни мегабайт памяти и вызывало жесткое переобучение. Global Average Pooling усредняет каждый $H \times W$ канал в одно число, имеет ровно <strong>0 параметров</strong> и делает модель инвариантной к пространственному размеру входного изображения.</p>
+<p>В AlexNet и VGG-16 слои FC6/FC7 занимали до 90% параметров сети, вызывая переобучение и требуя сотни мегабайт. GAP усредняет карту $H \times W$ в одно число на канал: содержит <strong>0 параметров</strong> и снимает ограничение на фиксированный размер входа.</p>
 </div></details>
 
-<details class="qa"><summary>Как устроена свертка Depthwise Separable в MobileNet и во сколько раз она экономит вычисления?</summary>
+<details class="qa"><summary>Как устроена свёртка Depthwise Separable в MobileNet и во сколько раз она экономит вычисления?</summary>
 <div class="ans">
-<p>Она разделяет стандартную 3D-свертку на два этапа: 1) <strong>Depthwise Conv:</strong> пространственная свёртка $K \times K \times 1$ независимо по каждому каналу. 2) <strong>Pointwise Conv:</strong> свёртка $1 \times 1 \times C_{in} \times C_{out}$ для смешивания каналов. Экономия вычислений: $\frac{K^2 \cdot C_{in} + C_{in} \cdot C_{out}}{K^2 \cdot C_{in} \cdot C_{out}} = \frac{1}{C_{out}} + \frac{1}{K^2} \approx \frac{1}{K^2}$. Для ядер $3\times3$ это дает ускорение в <strong>8–9 раз</strong>.</p>
+<p>Операция делится на: 1) <strong>Depthwise:</strong> свёртка $K \times K \times 1$ независимо по каждому каналу; 2) <strong>Pointwise:</strong> свёртка $1 \times 1 \times C_{in} \times C_{out}$. Экономия вычислений: $\frac{1}{C_{out}} + \frac{1}{K^2} \approx \frac{1}{K^2}$ (ускорение в <strong>8–9 раз</strong> для $3\times3$).</p>
 </div></details>
 
 <details class="qa"><summary>В каких случаях следует выбирать Feature Extraction, а когда Fine-Tuning?</summary>
 <div class="ans">
-<p><strong>Feature Extraction (заморозка backbone):</strong> выбирается при малом размере нового датасета ($<1000$ картинок) и высокой близости к ImageNet. Это защищает от переобучения. <strong>Fine-Tuning (дообучение всех весов):</strong> выбирается при наличии достаточного объема данных ($>10^4$ картинок). При этом шаг обучения для backbone устанавливается в 10–100 раз меньше, чем для новой головы ($\text{lr} \sim 10^{-5}$).</p>
+<p><strong>Feature Extraction (заморозка backbone):</strong> малый датасет ($<1000$ картинок), близкий к ImageNet домен (защита от переобучения). <strong>Fine-Tuning (дообучение всей сети):</strong> большой объем данных ($>10^4$), с малым шагом обучения backbone ($\text{lr} \sim 10^{-5}$).</p>
 </div></details>
 
 <details class="qa"><summary>Что такое Catastrophic Forgetting при Fine-Tuning и как его избежать?</summary>
 <div class="ans">
-<p>Catastrophic Forgetting — явление, при котором градиенты от новой неинициализированной головы на первых шагах разрушают полезные предобученные веса backbone. Способы защиты: 1) Двухэтапное обучение: сначала обучить голову при замороженном backbone на 5 эпох, затем разморозить и дообучать всё. 2) Использование малого $\text{lr} \le 10^{-5}$ для backbone. 3) Learning rate warmup.</p>
+<p>Это разрушение полезных предобученных весов градиентами от случайной головы на первых эпохах. Защита: двухэтапное обучение (сначала обучить только голову на 5 эпохах, затем разморозить backbone), малый learning rate ($\le 10^{-5}$) и прогрев (LR warmup).</p>
 </div></details>
 
-<details class="qa"><summary>В чем суть концепции Compound Scaling в EfficientNet?</summary>
+<details class="qa"><summary>В чём суть концепции Compound Scaling в EfficientNet?</summary>
 <div class="ans">
-<p>Вместо изолированного изменения одного параметра сеть масштабируется по трем осям согласованно: глубина $d = \alpha^\phi$, ширина $w = \beta^\phi$, разрешение $r = \gamma^\phi$ с ограничением $\alpha \beta^2 \gamma^2 \approx 2$. Это гарантирует, что с ростом разрешения входной картинки сеть получает достаточное рецептивное поле (глубину) и емкость каналов (ширину) для захвата мелких деталей.</p>
+<p>Сеть масштабируется согласованно по трём осям: глубина $d = \alpha^\phi$, ширина $w = \beta^\phi$, разрешение $r = \gamma^\phi$ с ограничением $\alpha \beta^2 \gamma^2 \approx 2$. Это гарантирует баланс рецептивного поля и ёмкости каналов при росте разрешения.</p>
 </div></details>
 
 <details class="qa"><summary>Почему при Transfer Learning нормализацию изображений нужно делать теми же mean и std, что и на ImageNet?</summary>
 <div class="ans">
-<p>Веса первого сверточного слоя обучены реагировать на распределение входных пикселей с конкретным математическим ожиданием $\mu = [0.485, 0.456, 0.406]$ и дисперсией $\sigma = [0.229, 0.224, 0.225]$. Если подать ненормализованные пиксели $[0, 255]$ или применить другие параметры, фильтры первого слоя сработают некорректно, сдвинув активации всей сети.</p>
+<p>Фильтры первого свёрточного слоя настроены на распределение пикселей с $\mu = [0.485, 0.456, 0.406]$ и $\sigma = [0.229, 0.224, 0.225]$. Некорректная нормализация сдвигает активации первого слоя, ломая работу всех последующих уровней сети.</p>
 </div></details>
 
 <details class="qa"><summary>Каковы преимущества ConvNeXt над классическими ResNet и ViT?</summary>
 <div class="ans">
-<p>ConvNeXt берет архитектурные приемы Vision Transformers (ядра $7\times7$, инвертированный bottleneck с расширением $4\times$, замена BatchNorm на LayerNorm, нелинейность GELU вместо ReLU, меньшее число нелинейностей) и переносит их на чистые сверточные сети, достигая точности ViT при сохранении высокой скорости и простоты обучения CNN.</p>
+<p>ConvNeXt переносит архитектурные приёмы Vision Transformers (ядра $7\times7$, инвертированный bottleneck $4\times$, замена BatchNorm на LayerNorm, GELU) на чистые свёрточные сети, достигая точности ViT при высокой скорости обучения и инференса CNN.</p>
 </div></details>
 
 <!-- ============================================ -->
 <h2 id="tasks"><span class="num">7.</span> 📝 Микро-задачи с решениями</h2>
 
 <div class="task">
-  <div class="tt">Задача 1. Подсчет параметров VGG-16 vs ResNet-50</div>
-  <p>Сравните число параметров в классификаторе VGG-16 (два FC по 4096 нейронов на карте признаков $7\times7\times512$) и ResNet-50 (Global Average Pooling + один FC на $2048$ каналов) для $K=1000$ классов.</p>
+  <div class="tt">Задача 1. Подсчёт параметров VGG-16 vs ResNet-50</div>
+  <p>Сравните параметры классификатора VGG-16 (два FC по 4096 на $7\times7\times512$) и ResNet-50 (GAP + FC на 2048 каналов) для $K=1000$ классов.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>1. <strong>VGG-16 FC слои:</strong></p>
-    <p>Вход: $7 \times 7 \times 512 = 25\,088$.</p>
-    <p>FC1: $25\,088 \times 4096 = 102\,760\,448$ весов.</p>
-    <p>FC2: $4096 \times 4096 = 16\,777\,216$ весов.</p>
-    <p>FC3 (выход): $4096 \times 1000 = 4\,096\,000$ весов.</p>
-    <p>Сумма в FC голове VGG: $\approx 123.6$ млн параметров!</p>
-    <p>2. <strong>ResNet-50 с GAP:</strong></p>
-    <p>GAP усредняет карту $7 \times 7 \times 2048 \to 1 \times 1 \times 2048$ (0 параметров).</p>
-    <p>FC: $2048 \times 1000 = 2\,048\,000$ весов ($\approx 2.05$ млн параметров).</p>
-    <p><strong>Вывод:</strong> GAP сокращает параметры классификатора в <strong>60 раз</strong>!</p>
+    <p>1. VGG-16 FC: $25\,088 \times 4096 + 4096 \times 4096 + 4096 \times 1000 \approx 123.6$ млн параметров.</p>
+    <p>2. ResNet-50 GAP + FC: GAP = $0$, FC = $2048 \times 1000 \approx 2.05$ млн параметров.</p>
+    <p><strong>Вывод:</strong> GAP снижает параметры классификатора в <strong>60 раз</strong>.</p>
   </div></details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 2. Рецептивное поле трех слоев 3×3</div>
-  <p>Последовательно применены три сверточных слоя с ядрами $K_1=K_2=K_3=3$ и шагами $S_1=1, S_2=2, S_3=1$. Вычислите итоговое рецептивное поле $RF_3$.</p>
+  <div class="tt">Задача 2. Рецептивное поле трёх слоёв 3×3</div>
+  <p>Слои с ядрами $K_1=K_2=K_3=3$ и шагами $S_1=1, S_2=2, S_3=1$. Вычислите итоговое $RF_3$.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>Формула: $RF_l = RF_{l-1} + (K_l - 1) \cdot J_{l-1}$, где $J_0 = 1, RF_0 = 1, J_l = J_{l-1} \cdot S_l$.</p>
-    <p>Слой 1: $RF_1 = 1 + (3 - 1) \cdot 1 = 3$. $J_1 = 1 \cdot 1 = 1$.</p>
-    <p>Слой 2: $RF_2 = 3 + (3 - 1) \cdot 1 = 5$. $J_2 = 1 \cdot 2 = 2$.</p>
-    <p>Слой 3: $RF_3 = 5 + (3 - 1) \cdot 2 = 5 + 4 = 9$.</p>
-    <p><strong>Ответ:</strong> $RF_3 = 9 \times 9$ пикселей.</p>
+    <p>Слой 1: $RF_1 = 1 + (3-1) \cdot 1 = 3, \quad J_1 = 1$.</p>
+    <p>Слой 2: $RF_2 = 3 + (3-1) \cdot 1 = 5, \quad J_2 = 2$.</p>
+    <p>Слой 3: $RF_3 = 5 + (3-1) \cdot 2 = 9 \implies RF = 9 \times 9$.</p>
   </div></details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 3. Экономия вычислений в Depthwise Separable свертке</div>
-  <p>Входной тензор имеет $C_{in}=128$ каналов, выходной $C_{out}=256$, ядро $3\times3$. Рассчитайте коэффициент ускорения Depthwise Separable свертки относительно обычной свертки.</p>
+  <div class="tt">Задача 3. Экономия вычислений в Depthwise Separable свёртке</div>
+  <p>$C_{in}=128, C_{out}=256$, ядро $3\times3$. Рассчитайте коэффициент ускорения Depthwise Separable свёртки.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>Отношение числа операций:</p>
-    <p>$\dfrac{\text{FLOPs}_{\text{sep}}}{\text{FLOPs}_{\text{standard}}} = \dfrac{1}{C_{out}} + \dfrac{1}{K^2} = \dfrac{1}{256} + \dfrac{1}{9} \approx 0.0039 + 0.1111 = 0.1150$</p>
-    <p>Коэффициент ускорения: $\dfrac{1}{0.1150} \approx 8.7$ раз.</p>
+    <p>$\dfrac{\text{FLOPs}_{\text{sep}}}{\text{FLOPs}_{\text{std}}} = \dfrac{1}{256} + \dfrac{1}{9} \approx 0.0039 + 0.1111 = 0.1150$.</p>
+    <p>Коэффициент ускорения: $\dfrac{1}{0.1150} \approx 8.7$ раза.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 4. Выбор стратегии Transfer Learning</div>
-  <p>Имеется медицинский датасет из 200 снимков МРТ головного мозга для бинарной классификации (опухоль есть/нет). Выберите оптимальный режим Transfer Learning и объясните опасность полного fine-tuning.</p>
+  <p>Датасет из 200 снимков МРТ для бинарной классификации. Выберите режим Transfer Learning и объясните риск fine-tuning.</p>
   <details><summary>Решение</summary><div class="sol">
-    <p><strong>Выбор:</strong> Feature Extraction на предобученном ResNet (или обучение линейного классификатора / SVM на признаках слоя layer3/layer4) с сильной пространственной аугментацией.</p>
-    <p><strong>Опасность Fine-Tuning:</strong> При 200 примерах и 25 млн обучаемых параметров сеть моментально переобучится (запомнит частные шумы выборки), полностью разрушив генерализованные фильтры ImageNet.</p>
+    <p><strong>Выбор:</strong> Feature Extraction на предобученном ResNet (обучение только головы / SVM на признаках layer3/layer4) с аугментацией.</p>
+    <p><strong>Риск Fine-Tuning:</strong> При 200 снимках 25 млн параметров сети мгновенно переобучатся, стерев полезные веса ImageNet.</p>
   </div></details>
 </div>
 
 <div class="task">
-  <div class="tt">Задача 5. Расчет размерности выхода при Strided проекции в ResNet</div>
-  <p>На вход Residual блока подается тензор $28 \times 28 \times 128$. Блок содержит две свертки $3\times3$ со stride $S=2$ в первой свертке и числом выходных каналов $C_{out}=256$. Какая операция должна быть на shortcut-ветке?</p>
+  <div class="tt">Задача 5. Расчёт размерности выхода при Strided проекции в ResNet</div>
+  <p>Вход $28 \times 28 \times 128$. Блок содержит две свёртки $3\times3$ со stride $S=2$ в первой и $C_{out}=256$. Что должно быть на shortcut?</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>1. Основная ветка: после первой свёртки $S=2$ пространственный размер становится $\lfloor (28 - 3 + 2)/2 \rfloor + 1 = 14 \times 14$, а число каналов $256$.</p>
-    <p>2. Входной тензор $x$ имеет размер $28 \times 28 \times 128$. Поэлементное сложение $F(x) + x$ невозможно.</p>
-    <p>3. <strong>Решение:</strong> Shortcut обязан содержать проекционный слой: свёртку $1\times1$ со stride $S=2$, числом фильтров $256$ и слоем BatchNorm, трансформирующую $x$ в размерность $14 \times 14 \times 256$.</p>
+    <p>1. Основная ветка выдаёт размер $14 \times 14 \times 256$.</p>
+    <p>2. Shortcut обязан содержать проекционный слой: свёртку $1\times1$ со stride $S=2$, 256 фильтрами и BatchNorm, приводящую вход к $14 \times 14 \times 256$.</p>
   </div></details>
 </div>
 
 <div class="task">
   <div class="tt">Задача 6. Масштабирование EfficientNet при $\phi = 1$</div>
-  <p>Базовая модель EfficientNet-B0 имеет $d=16$ слоев, ширину $w=32$ канала и разрешение $r=224$. При коэффициентах $\alpha=1.2, \beta=1.1, \gamma=1.15$ найдите параметры модели B1 ($\phi=1$).</p>
+  <p>EfficientNet-B0: глубина $d=16$, ширина $w=32$, разрешение $r=224$. При $\alpha=1.2, \beta=1.1, \gamma=1.15$ найдите параметры B1 ($\phi=1$).</p>
   <details><summary>Решение</summary><div class="sol">
-    <p>Глубина: $d_{B1} = 16 \times 1.2^1 = 19.2 \approx 19$ слоев.</p>
-    <p>Ширина: $w_{B1} = 32 \times 1.1^1 = 35.2 \approx 36$ каналов (округление до кратного 8).</p>
-    <p>Разрешение: $r_{B1} = 224 \times 1.15^1 = 257.6 \approx 256 \times 256$ пикселей.</p>
-    <p>Проверка роста FLOPs: $1.2 \times 1.1^2 \times 1.15^2 = 1.2 \times 1.21 \times 1.3225 \approx 1.92 \approx 2\times$ (рост вычислений ровно в 2 раза).</p>
+    <p>Глубина: $d_{B1} = 16 \times 1.2 = 19.2 \approx 19$ слоёв.</p>
+    <p>Ширина: $w_{B1} = 32 \times 1.1 = 35.2 \approx 36$ каналов.</p>
+    <p>Разрешение: $r_{B1} = 224 \times 1.15 = 257.6 \approx 256 \times 256$ пикселей.</p>
+    <p>Рост вычислений: $1.2 \times 1.1^2 \times 1.15^2 \approx 1.92 \approx 2\times$ FLOPs.</p>
   </div></details>
 </div>
 
@@ -521,18 +370,18 @@ $$ = [0.04, 0.00] + [0.8, -0.4] = [0.84, -0.40] $$
 <h2 id="cheat"><span class="num">8.</span> ⚡ Скелет ответа по билету</h2>
 
 <div class="cheat">
-  <div class="bt">Скелет устного ответа по билету 5: Архитектуры CNN и Transfer Learning</div>
+  <div class="bt">Скелет устного ответа по Билету 5: Архитектуры CNN и Transfer Learning</div>
   <ol>
-    <li><strong>Эволюция CNN на ImageNet:</strong> LeNet-5 (1998, $5\times5$ свёртки) $\to$ AlexNet (2012, ReLU, Dropout, GPU) $\to$ VGG (2014, переход к стекам $3\times3$ свёрток) $\to$ GoogLeNet (2014, Inception $1\times1$ bottleneck) $\to$ ResNet (2015, Residual Learning) $\to$ MobileNet (Depthwise Separable) $\to$ EfficientNet (Compound Scaling).</li>
-    <li><strong>Проблема деградации и Skip-connections (ResNet):</strong> В глубоких plain-сетях ошибка на Train растет из-за затухания градиентов. Решение: остаточный блок $y = \mathcal{F}(x) + x$. Градиент $\frac{\partial \mathcal{L}}{\partial x} = \frac{\partial \mathcal{L}}{\partial y}(\frac{\partial \mathcal{F}}{\partial x} + \mathbf{I})$ благодаря слагаемому $+\mathbf{I}$ пробрасывает сигнал ошибки напрямую без затухания.</li>
-    <li><strong>Bottleneck и Global Average Pooling:</strong> В ResNet-50 свёртка $1\times1$ сжимает число каналов в 4 раза, экономя вычисления в 17 раз. Global Average Pooling заменяет тяжелые полносвязные слои (FC), снижая параметры классификатора на 95% и устраняя переобучение.</li>
-    <li><strong>Легковесные и современные архитектуры:</strong> MobileNet делит свертку на Depthwise ($K\times K\times 1$) и Pointwise ($1\times1$), сокращая FLOPs в 8–9 раз. EfficientNet согласованно масштабирует глубину, ширину и разрешение: $\alpha \beta^2 \gamma^2 \approx 2$. ConvNeXt модернизирует CNN приемами Vision Transformers (ядра $7\times7$, LayerNorm, GELU).</li>
-    <li><strong>Передача обучения (Transfer Learning):</strong> Ранние слои извлекают универсальные геометрические признаки (границы, текстуры), верхние слои — семантические концепты классов.</li>
-    <li><strong>Матрица решений Transfer Learning:</strong> 
+    <li><strong>Эволюция CNN:</strong> LeNet (1998, $5\times5$) $\to$ AlexNet (2012, ReLU, GPU) $\to$ VGG (2014, стеки $3\times3$) $\to$ GoogLeNet (2014, $1\times1$ bottleneck) $\to$ ResNet (2015, Residual Learning) $\to$ MobileNet (Depthwise Separable) $\to$ EfficientNet (Compound Scaling).</li>
+    <li><strong>Деградация и Skip-connections (ResNet):</strong> В глубоких plain-сетях растёт Train Error. Решение: $y = \mathcal{F}(x) + x$. Градиент $\frac{\partial \mathcal{L}}{\partial x} = \frac{\partial \mathcal{L}}{\partial y}(\frac{\partial \mathcal{F}}{\partial x} + \mathbf{I})$ за счёт $+\mathbf{I}$ не затухает.</li>
+    <li><strong>Bottleneck и GAP:</strong> Bottleneck $1\times1 \to 3\times3 \to 1\times1$ снижает FLOPs в 17 раз. Global Average Pooling заменяет FC-слои ($0$ параметров), устраняя переобучение.</li>
+    <li><strong>Мобильные и современные CNN:</strong> MobileNet делит свёртку на Depthwise и Pointwise (ускорение в 8–9 раз). EfficientNet масштабирует $d, w, r$ согласованно ($\alpha \beta^2 \gamma^2 \approx 2$). ConvNeXt модернизирует CNN приёмами ViT.</li>
+    <li><strong>Суть Transfer Learning:</strong> Ранние слои учат универсальные геометрические признаки, верхние — специфичные классы.</li>
+    <li><strong>Матрица решений:</strong>
       <ul>
-        <li><em>Мало данных + близкий домен:</em> Feature Extraction (заморозка backbone, обучение головы $W \in \mathbb{R}^{d \times K}$).</li>
-        <li><em>Много данных + близкий домен:</em> Fine-Tuning всей сети с малым $\text{lr}_{backbone} \sim 10^{-5}$ и большим $\text{lr}_{head} \sim 10^{-3}$.</li>
-        <li><em>Далекий домен (медицина):</em> Заморозка первых слоев, fine-tune верхних слоев или обучение классификатора на промежуточных признаках.</li>
+        <li><em>Мало данных + близкий домен:</em> Feature Extraction (заморозка backbone, обучение головы).</li>
+        <li><em>Много данных + близкий домен:</em> Fine-Tuning всей сети с $\text{lr}_{backbone} \sim 10^{-5}$ и $\text{lr}_{head} \sim 10^{-3}$.</li>
+        <li><em>Далёкий домен (медицина):</em> Заморозка первых слоёв, fine-tune верхних слоёв или обучение на промежуточных картах признаков.</li>
       </ul>
     </li>
   </ol>
